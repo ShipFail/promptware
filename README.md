@@ -5,4 +5,4 @@ Learn more about Promptware from blog post [Promptware OS: One Line to Boot Your
 
 ## Links
 
-[AI Engineer Talk: Don't Build Agents, Build Skills Instead – Barry Zhang & Mahesh Murag, Anthropic, Nov 2025](https://youtu.be/CEvIs9y1uog?si=NW0vcTc2-DJbOhXY)
+- [AI Engineer Talk: Don't Build Agents, Build Skills Instead – Barry Zhang & Mahesh Murag, Anthropic, Nov 2025](https://youtu.be/CEvIs9y1uog?si=NW0vcTc2-DJbOhXY)
