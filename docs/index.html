@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Promptware OS – One Line Boots Your AI Library</title>
+    <meta
+      name="description"
+      content="Promptware OS is a GitHub-hosted, AI-native library of skills, personas, and tools. One line in agents.md boots a whole OS of reusable prompts and Deno tools."
+    />
+
+    <!-- Tailwind + Flowbite via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.5.1/flowbite.min.css"
+      integrity="sha512-8Fqf2PqH5eZlD3iWxIt3Qkz5p/7L8Fz9Ute7V3x2PaFkvxFw5GXcJRGh1R1sAMZzH3C0CzbvaXjlXZcCptTanh=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+
+    <script>
+      // Tailwind config
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['system-ui', 'ui-sans-serif', 'SF Pro Text', 'Inter', 'sans-serif'],
+              mono: ['ui-monospace', 'SF Mono', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'monospace'],
+            },
+            colors: {
+              primary: {
+                50: '#ecfeff',
+                100: '#cffafe',
+                200: '#a5f3fc',
+                300: '#67e8f9',
+                400: '#22d3ee',
+                500: '#06b6d4',
+                600: '#0891b2',
+                700: '#0e7490',
+                800: '#155e75',
+                900: '#164e63',
+              },
+            },
+          },
+        },
+      };
+
+      // Theme initialization: prefer localStorage, then system
+      (function () {
+        const stored = localStorage.getItem('promptware-theme');
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (stored === 'dark' || (!stored && prefersDark)) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      })();
+    </script>
+
+    <style>
+      /* Small niceties */
+      ::selection {
+        background-color: rgba(8, 145, 178, 0.25);
+      }
+    </style>
+  </head>
+  <body class="bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100">
+    <!-- Page wrapper -->
+    <div class="min-h-screen flex flex-col">
+      <!-- Navbar -->
+      <header class="border-b border-gray-200/70 dark:border-gray-800/80 bg-white/80 dark:bg-gray-950/80 backdrop-blur">
+        <nav class="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:py-4">
+          <div class="flex items-center gap-2">
+            <div
+              class="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-600 text-white shadow-sm shadow-primary-600/40"
+            >
+              <span class="font-mono text-lg font-semibold">PW</span>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-base font-semibold tracking-tight sm:text-lg">Promptware OS</span>
+                <span
+                  class="inline-flex items-center rounded-full border border-emerald-500/40 bg-emerald-50/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-500/10 dark:text-emerald-300"
+                >
+                  Alpha · 2025
+                </span>
+              </div>
+              <p class="text-xs text-gray-500 dark:text-gray-400">
+                One line in <code class="font-mono">agents.md</code> boots your AI‑native OS.
+              </p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 sm:gap-3">
+            <a
+              href="#philosophy"
+              class="hidden text-xs font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white sm:inline"
+            >
+              Philosophy
+            </a>
+            <a
+              href="#architecture"
+              class="hidden text-xs font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white sm:inline"
+            >
+              Architecture
+            </a>
+            <a
+              href="#hackathon"
+              class="hidden text-xs font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white sm:inline"
+            >
+              Hackathon
+            </a>
+
+            <!-- Theme toggle -->
+            <button
+              id="theme-toggle"
+              type="button"
+              class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 hover:border-primary-400 hover:text-primary-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400 dark:hover:border-primary-500 dark:hover:text-primary-400"
+              aria-label="Toggle dark mode"
+            >
+              <svg
+                id="theme-toggle-light-icon"
+                class="hidden h-4 w-4"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  d="M10 3.5a.75.75 0 0 1 .75-.75h.01a.75.75 0 0 1 .75.75V5a.75.75 0 0 1-1.5 0V3.5Zm0 9.75a3.25 3.25 0 1 0 0-6.5 3.25 3.25 0 0 0 0 6.5Zm-6.5-3.25a.75.75 0 0 1 .75-.75H5a.75.75 0 0 1 0 1.5H4.25A.75.75 0 0 1 3.5 10Zm11 0a.75.75 0 0 1 .75-.75H15a.75.75 0 0 1 0 1.5h-.75a.75.75 0 0 1-.75-.75ZM5.47 5.47a.75.75 0 0 1 1.06-1.06l.53.53a.75.75 0 0 1-1.06 1.06l-.53-.53Zm7.47 7.47a.75.75 0 0 1 1.06-1.06l.53.53a.75.75 0 0 1-1.06 1.06l-.53-.53Zm0-8.53a.75.75 0 0 1 1.06 0l.53.53a.75.75 0 0 1-1.06 1.06l-.53-.53a.75.75 0 0 1 0-1.06ZM6.53 12.53a.75.75 0 0 1 0 1.06l-.53.53a.75.75 0 1 1-1.06-1.06l.53-.53a.75.75 0 0 1 1.06 0ZM10 15a.75.75 0 0 1 .75.75V16.5a.75.75 0 0 1-1.5 0v-.75A.75.75 0 0 1 10 15Z"
+                />
+              </svg>
+              <svg
+                id="theme-toggle-dark-icon"
+                class="hidden h-4 w-4"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  d="M17.293 13.293A8 8 0 0 1 6.707 2.707 6.5 6.5 0 1 0 17.293 13.293Z"
+                />
+              </svg>
+            </button>
+
+            <a
+              href="#hackathon"
+              class="hidden rounded-full bg-primary-600 px-4 py-1.5 text-xs font-semibold text-white shadow-sm shadow-primary-600/50 hover:bg-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-950 sm:inline-flex"
+            >
+              Join the Hackathon
+            </a>
+          </div>
+        </nav>
+      </header>
+
+      <!-- Main content -->
+      <main class="flex-1">
+        <!-- Hero -->
+        <section class="border-b border-gray-200/70 dark:border-gray-800/80 bg-gradient-to-b from-sky-50/80 via-white to-white dark:from-gray-950 dark:via-gray-950 dark:to-gray-950">
+          <div class="mx-auto flex max-w-6xl flex-col gap-10 px-4 py-12 sm:py-16 md:flex-row md:items-center">
+            <div class="md:w-1/2">
+              <div class="inline-flex items-center gap-2 rounded-full border border-primary-200/60 bg-white/80 px-3 py-1 text-[11px] font-medium text-primary-800 shadow-sm shadow-primary-100/70 dark:border-primary-500/40 dark:bg-gray-900/80 dark:text-primary-200 dark:shadow-none">
+                <span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+                AI‑native · Promptware OS · 2025
+              </div>
+
+              <h1 class="mt-4 text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl md:text-5xl dark:text-gray-50">
+                One line boots
+                <span class="whitespace-nowrap">your AI‑native OS.</span>
+              </h1>
+
+              <p class="mt-4 max-w-xl text-sm text-gray-600 sm:text-base dark:text-gray-300">
+                Promptware OS is a GitHub‑hosted library of personas, skills, and Deno tools for AI agents. Instead of
+                copying prompts between repos, you give each agent a single URL. It learns the rest by reading the
+                library.
+              </p>
+
+              <div class="mt-6 flex flex-wrap items-center gap-3">
+                <a
+                  href="#hackathon"
+                  class="inline-flex items-center gap-2 rounded-full bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-primary-600/60 hover:bg-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-950"
+                >
+                  <span>Join the Promptware Hackathon</span>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    class="h-4 w-4"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      d="M5.22 14.78a.75.75 0 0 1 0-1.06L11.94 7H7.5a.75.75 0 0 1 0-1.5h6a.75.75 0 0 1 .75.75v6a.75.75 0 0 1-1.5 0V8.06l-6.72 6.72a.75.75 0 0 1-1.06 0Z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                </a>
+
+                <a
+                  href="#architecture"
+                  class="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-800 hover:border-primary-400 hover:text-primary-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:border-primary-500 dark:hover:text-primary-300"
+                >
+                  View architecture
+                  <span class="text-xs text-gray-400 dark:text-gray-500">(like <span class="font-mono">/usr</span> for agents)</span>
+                </a>
+              </div>
+
+              <!-- One-liner snippet -->
+              <div
+                class="mt-8 max-w-xl rounded-2xl border border-gray-200 bg-white/80 p-4 text-xs text-gray-800 shadow-sm dark:border-gray-700 dark:bg-gray-900/80 dark:text-gray-100"
+              >
+                <div class="mb-2 flex items-center justify-between">
+                  <span class="font-mono text-[11px] uppercase tracking-[0.14em] text-gray-500 dark:text-gray-400">
+                    Bootloader · agents.md
+                  </span>
+                  <span class="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                    one line
+                  </span>
+                </div>
+                <pre class="overflow-x-auto rounded-xl bg-gray-900 px-3 py-3 text-[11px] leading-relaxed text-gray-100 dark:bg-black"><code>// Promptware OS boot line
+Your detailed persona and skills registry is documented at:
+https://raw.githubusercontent.com/ShipFail/promptware/main/library/agents/press0.md.
+When you need more context, fetch and read that URL. It links to your mini-library index
+and to skill pages that may contain remote Deno scripts you can ask the user to run.</code></pre>
+              </div>
+            </div>
+
+            <!-- Right column: visual / architecture card -->
+            <div class="md:w-1/2">
+              <div
+                class="mt-8 rounded-3xl border border-gray-200/80 bg-gray-50/80 p-4 shadow-lg shadow-gray-200/70 dark:border-gray-800 dark:bg-gray-900/90 dark:shadow-black/40 md:mt-0"
+              >
+                <div class="mb-3 flex items-center justify-between gap-3">
+                  <div>
+                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">
+                      Promptware filesystem
+                    </p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                      Minimal v0 layout · grows like a Unix tree
+                    </p>
+                  </div>
+                  <span
+                    class="inline-flex items-center rounded-full bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold text-emerald-500"
+                  >
+                    AI‑readable · human‑readable
+                  </span>
+                </div>
+
+                <pre class="max-h-72 overflow-auto rounded-2xl bg-gray-900 p-4 text-[11px] leading-relaxed text-emerald-100/90 dark:bg-black"><code>ShipFail/promptware/
+  library/
+    index.md              # global library index (for maintainers)
+    categories/           # optional: domain-based indexes
+    shelves/              # optional: shelf-level indexes
+    skills/               # skills as markdown “books”
+      core.coding-style.md
+      domain.publishing-basics.md
+      domain.book-layout.md
+    agents/
+      press0.md           # persona = who am I?
+      press0.index.md     # mini-library = what do I read?
+      mvw.md
+      mvw.index.md
+  scripts/                # Deno tools with clear --help
+    format_ts.ts
+    book_layout/generate_layout.ts</code></pre>
+
+                <p class="mt-3 text-[11px] text-gray-500 dark:text-gray-400">
+                  Think of <span class="font-mono">agents/</span> as your kernels, <span class="font-mono">skills/</span> as your
+                  manpages, and <span class="font-mono">scripts/</span> as your <span class="font-mono">/bin</span>.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Why Promptware section -->
+        <section id="why" class="border-b border-gray-200/70 bg-white dark:border-gray-800/80 dark:bg-gray-950">
+          <div class="mx-auto max-w-6xl px-4 py-12 sm:py-16">
+            <div class="mx-auto max-w-3xl text-center">
+              <h2 class="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-50">
+                Why Promptware OS?
+              </h2>
+              <p class="mt-3 text-sm text-gray-600 sm:text-base dark:text-gray-300">
+                Unix unified hardware and processes. Promptware OS unifies <em>agents</em> and their <em>prompts</em>:
+                one shared library, many co‑founders.
+              </p>
+            </div>
+
+            <div class="mt-8 grid gap-6 md:grid-cols-3">
+              <!-- Card 1 -->
+              <div
+                class="flex h-full flex-col rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900"
+              >
+                <div
+                  class="mb-3 inline-flex h-8 w-8 items-center justify-center rounded-xl bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300"
+                >
+                  <span class="font-mono text-xs">01</span>
+                </div>
+                <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-50">One library, many repos</h3>
+                <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                  Stop copy‑pasting <code class="font-mono text-xs">agents.md</code> and skills across projects. Maintain
+                  one Promptware library; let every repo read from it by URL.
+                </p>
+                <p class="mt-3 text-[11px] font-mono text-gray-500 dark:text-gray-400">
+                  cp prompts/ repo1/ repo2/ repo3/ ❌<br />
+                  read Promptware/ via URL ✅
+                </p>
+              </div>
+
+              <!-- Card 2 -->
+              <div
+                class="flex h-full flex-col rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900"
+              >
+                <div
+                  class="mb-3 inline-flex h-8 w-8 items-center justify-center rounded-xl bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300"
+                >
+                  <span class="font-mono text-xs">02</span>
+                </div>
+                <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-50">Persona vs bookshelf</h3>
+                <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                  Separate an agent’s <strong>persona</strong> (who am I?) from its
+                  <strong>mini‑library</strong> (what do I read?). Load many personas together; only pull their books when
+                  needed.
+                </p>
+                <p class="mt-3 text-[11px] text-gray-500 dark:text-gray-400">
+                  Cheaper tokens. Cleaner cognition. Better multi‑agent systems.
+                </p>
+              </div>
+
+              <!-- Card 3 -->
+              <div
+                class="flex h-full flex-col rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900"
+              >
+                <div
+                  class="mb-3 inline-flex h-8 w-8 items-center justify-center rounded-xl bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300"
+                >
+                  <span class="font-mono text-xs">03</span>
+                </div>
+                <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-50">Tools are scripts, not magic</h3>
+                <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                  Every tool is just a Deno script with a clear <code class="font-mono text-xs">--help</code>. Skill docs only
+                  store the name and URL; the tool describes itself.
+                </p>
+                <p class="mt-3 text-[11px] text-gray-500 dark:text-gray-400">
+                  Markdown for humans &amp; agents; CLI help for precise contracts.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Architecture section -->
+        <section
+          id="architecture"
+          class="border-b border-gray-200/70 bg-gray-50/80 dark:border-gray-800/80 dark:bg-gray-950"
+        >
+          <div class="mx-auto max-w-6xl px-4 py-12 sm:py-16">
+            <div class="grid gap-10 md:grid-cols-[1.1fr_0.9fr] md:items-start">
+              <div>
+                <h2 class="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-50">How it works</h2>
+                <p class="mt-3 text-sm text-gray-600 sm:text-base dark:text-gray-300">
+                  Promptware OS treats GitHub as a library and Deno as a runtime. Agents navigate like humans in a
+                  library: persona → mini‑library index → skill → tool.
+                </p>
+
+                <ol class="mt-6 space-y-4 text-sm text-gray-700 dark:text-gray-200">
+                  <li class="flex gap-3">
+                    <span
+                      class="mt-0.5 inline-flex h-6 w-6 flex-none items-center justify-center rounded-full bg-primary-600 text-[11px] font-semibold text-white"
+                      >1</span
+                    >
+                    <div>
+                      <p class="font-semibold">Persona boot</p>
+                      <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">
+                        An agent starts from a single line in <code class="font-mono text-xs">agents.md</code> pointing to its
+                        persona file (e.g., <code class="font-mono text-xs">agents/press0.md</code>) in Promptware.
+                      </p>
+                    </div>
+                  </li>
+                  <li class="flex gap-3">
+                    <span
+                      class="mt-0.5 inline-flex h-6 w-6 flex-none items-center justify-center rounded-full bg-primary-600 text-[11px] font-semibold text-white"
+                      >2</span
+                    >
+                    <div>
+                      <p class="font-semibold">Mini‑library lookup</p>
+                      <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">
+                        The persona points to a mini‑library index (e.g.,
+                        <code class="font-mono text-xs">agents/press0.index.md</code>) that lists core skills and shelves.
+                        The agent only fetches this when it needs more capability.
+                      </p>
+                    </div>
+                  </li>
+                  <li class="flex gap-3">
+                    <span
+                      class="mt-0.5 inline-flex h-6 w-6 flex-none items-center justify-center rounded-full bg-primary-600 text-[11px] font-semibold text-white"
+                      >3</span
+                    >
+                    <div>
+                      <p class="font-semibold">Skill &amp; tool execution</p>
+                      <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">
+                        From the mini‑library index, the agent opens a specific skill (Markdown doc). If it references a
+                        tool, the agent asks to run the Deno URL with <code class="font-mono text-xs">--help</code>, then builds a
+                        concrete command.
+                      </p>
+                    </div>
+                  </li>
+                </ol>
+
+                <div
+                  class="mt-6 rounded-2xl border border-dashed border-primary-300/70 bg-primary-50/60 p-4 text-xs text-primary-900 dark:border-primary-500/50 dark:bg-primary-900/10 dark:text-primary-100"
+                >
+                  <p class="font-semibold uppercase tracking-[0.16em] text-[10px]">Global Deno tool usage rule</p>
+                  <p class="mt-2">
+                    When you want to use any tool from Promptware:
+                  </p>
+                  <ol class="mt-2 list-decimal space-y-1 pl-5">
+                    <li>Find its URL in the skill doc.</li>
+                    <li>Run it with <code class="font-mono">deno run --allow-all &lt;url&gt; --help</code>.</li>
+                    <li>Read the help text, then propose a concrete command.</li>
+                  </ol>
+                  <p class="mt-2 text-[11px] text-primary-900/80 dark:text-primary-100/80">
+                    Skills stay lean; tools speak for themselves.
+                  </p>
+                </div>
+              </div>
+
+              <div class="space-y-4">
+                <div
+                  class="rounded-2xl border border-gray-200 bg-white p-4 text-xs text-gray-800 shadow-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-100"
+                >
+                  <p class="mb-2 font-mono text-[11px] uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">
+                    Persona file (press0.md)
+                  </p>
+                  <pre class="overflow-x-auto rounded-xl bg-gray-900 p-3 text-[11px] text-gray-100 dark:bg-black"><code>---
+id: agent.press0
+type: persona
+title: "Press0 AI Co-founder"
+version: "0.1.0"
+---
+
+You are the AI co-founder for Press0, a book-centric publishing product.
+
+When you need more context about your skills and tools, consult your
+mini-library index:
+https://raw.githubusercontent.com/ShipFail/promptware/main/library/agents/press0.index.md</code></pre>
+                </div>
+
+                <div
+                  class="rounded-2xl border border-gray-200 bg-white p-4 text-xs text-gray-800 shadow-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-100"
+                >
+                  <p class="mb-2 font-mono text-[11px] uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">
+                    Mini‑library (press0.index.md)
+                  </p>
+                  <pre class="overflow-x-auto rounded-xl bg-gray-900 p-3 text-[11px] text-gray-100 dark:bg-black"><code># Press0 Skill Index
+
+## Core skills
+- ShipFail Coding Style
+- Publishing Workflow Basics
+- Book Layout Automation
+
+## Optional shelves
+- Layout &amp; Print Shelf
+- Testing &amp; CI Shelf</code></pre>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Philosophy section -->
+        <section id="philosophy" class="border-b border-gray-200/70 bg-white dark:border-gray-800/80 dark:bg-gray-950">
+          <div class="mx-auto max-w-6xl px-4 py-12 sm:py-16">
+            <div class="grid gap-10 md:grid-cols-2 md:items-start">
+              <div>
+                <h2 class="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-50">
+                  Promptware philosophy
+                </h2>
+                <p class="mt-3 text-sm text-gray-600 sm:text-base dark:text-gray-300">
+                  Unix had a simple philosophy: do one thing well, compose small tools, and speak plain text. Promptware
+                  OS applies the same spirit to AI‑native systems.
+                </p>
+
+                <ul class="mt-5 space-y-3 text-sm text-gray-700 dark:text-gray-200">
+                  <li class="flex gap-2">
+                    <span class="mt-1 h-1.5 w-1.5 flex-none rounded-full bg-primary-500"></span>
+                    <span><strong>A skill is a small, well‑defined behavior.</strong> Keep it focused and composable.</span>
+                  </li>
+                  <li class="flex gap-2">
+                    <span class="mt-1 h-1.5 w-1.5 flex-none rounded-full bg-primary-500"></span>
+                    <span><strong>A tool is a script with a clear <code class="font-mono text-xs">--help</code>.</strong> No hidden magic.</span>
+                  </li>
+                  <li class="flex gap-2">
+                    <span class="mt-1 h-1.5 w-1.5 flex-none rounded-full bg-primary-500"></span>
+                    <span><strong>Markdown is the universal interface.</strong> The same doc works for humans and agents.</span>
+                  </li>
+                  <li class="flex gap-2">
+                    <span class="mt-1 h-1.5 w-1.5 flex-none rounded-full bg-primary-500"></span>
+                    <span><strong>URLs are the syscalls.</strong> Fetching a URL is the primitive operation of Promptware OS.</span>
+                  </li>
+                  <li class="flex gap-2">
+                    <span class="mt-1 h-1.5 w-1.5 flex-none rounded-full bg-primary-500"></span>
+                    <span><strong>One line boots the system.</strong> Everything else is discoverable.</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div class="space-y-4">
+                <div
+                  class="rounded-2xl border border-gray-200 bg-gray-50 p-4 text-xs text-gray-800 shadow-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-100"
+                >
+                  <p class="font-mono text-[11px] uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">
+                    From toy to OS
+                  </p>
+                  <p class="mt-2">
+                    Early Unix and Minix started as toys. Promptware OS is a similar toy for the AI era: a small
+                    filesystem of skills and tools that can grow into a stable, opinionated OS for agents.
+                  </p>
+                  <p class="mt-2">
+                    Today it’s a repo. Tomorrow it’s an ecosystem. Eventually, it can be the <span class="font-mono">/</span>
+                    of your AI stack.
+                  </p>
+                </div>
+
+                <div
+                  class="rounded-2xl border border-gray-200 bg-gray-50 p-4 text-xs text-gray-800 shadow-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-100"
+                >
+                  <p class="font-mono text-[11px] uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">
+                    Promptware in one sentence
+                  </p>
+                  <p class="mt-2">
+                    <strong>Promptware OS is to agents what <span class="font-mono">/usr</span> and manpages are to Unix:</strong>
+                    a shared, text‑first library everyone agrees to read.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Hackathon section -->
+        <section
+          id="hackathon"
+          class="bg-gradient-to-b from-gray-950 via-gray-950 to-black text-gray-50"
+        >
+          <div class="mx-auto max-w-6xl px-4 py-12 sm:py-16">
+            <div class="grid gap-10 md:grid-cols-[1.1fr_0.9fr] md:items-center">
+              <div>
+                <h2 class="text-2xl font-semibold tracking-tight">Build Promptware OS with us</h2>
+                <p class="mt-3 text-sm text-gray-300 sm:text-base">
+                  We’re at the Minix stage of Promptware OS: early, hackable, and wide open for ideas. The goal of this
+                  hackathon is to turn a repo into the root filesystem of future AI co‑founders.
+                </p>
+
+                <ul class="mt-5 space-y-2 text-sm text-gray-300">
+                  <li>• Add new skills as Markdown books under <code class="font-mono text-xs">library/skills/</code>.</li>
+                  <li>• Design personas and mini‑libraries for your own agents.</li>
+                  <li>• Ship Deno tools with beautiful <code class="font-mono text-xs">--help</code> output.</li>
+                  <li>• Experiment with categories, shelves, and tag indexes.</li>
+                </ul>
+
+                <div class="mt-6 flex flex-wrap items-center gap-3">
+                  <a
+                    href="https://github.com/ShipFail/promptware"
+                    class="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm shadow-white/30 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-black"
+                  >
+                    <svg
+                      viewBox="0 0 16 16"
+                      aria-hidden="true"
+                      class="h-4 w-4"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        fill="currentColor"
+                        d="M8 0C3.58 0 0 3.58 0 8a8 8 0 0 0 5.47 7.59c.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.5 7.5 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"
+                      />
+                    </svg>
+                    <span>View repo on GitHub</span>
+                  </a>
+
+                  <a
+                    href="#philosophy"
+                    class="inline-flex items-center gap-2 rounded-full border border-gray-600 px-4 py-2 text-sm font-semibold text-gray-100 hover:border-primary-400 hover:text-primary-200"
+                  >
+                    Read the Manifesto
+                  </a>
+                </div>
+
+                <p class="mt-4 text-[11px] text-gray-400">
+                  Built under the <span class="font-mono">ShipFail</span> umbrella · Designed to evolve like Linux: from a
+                  personal experiment to a shared OS.
+                </p>
+              </div>
+
+              <div>
+                <div
+                  class="rounded-3xl border border-gray-700/80 bg-gray-900/70 p-5 text-xs text-gray-100 shadow-[0_0_40px_rgba(15,23,42,0.8)]"
+                >
+                  <p class="font-mono text-[11px] uppercase tracking-[0.16em] text-gray-400">Hackathon checklist</p>
+                  <ol class="mt-3 list-decimal space-y-2 pl-5">
+                    <li>Create <code class="font-mono">ShipFail/promptware</code> with <code class="font-mono">library/</code> and <code class="font-mono">scripts/</code>.</li>
+                    <li>Define at least one persona + mini‑library (<code class="font-mono">press0.md</code>, <code class="font-mono">press0.index.md</code>).</li>
+                    <li>Add 3–5 skills as Markdown books in <code class="font-mono">library/skills/</code>.</li>
+                    <li>Ship one Deno tool with a beautiful <code class="font-mono">--help</code>.</li>
+                    <li>Wire a real agent to Promptware with the one‑liner boot line.</li>
+                  </ol>
+
+                  <p class="mt-4 text-[11px] text-gray-400">
+                    If we do this right, in a few years people will say: “Remember when Promptware was just a repo?”
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <!-- Footer -->
+      <footer class="border-t border-gray-200 bg-white py-4 text-xs text-gray-500 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-400">
+        <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-4">
+          <p>
+            Promptware OS · 2025 · Crafted for AI‑native agents. Inspired by Unix, Linux, and the free software spirit.
+          </p>
+          <p class="flex items-center gap-2">
+            <span>Part of</span>
+            <span class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 font-mono text-[11px] text-gray-700 dark:bg-gray-900 dark:text-gray-200">
+              ShipFail
+            </span>
+          </p>
+        </div>
+      </footer>
+    </div>
+
+    <!-- Theme toggle script -->
+    <script>
+      (function () {
+        const themeToggleBtn = document.getElementById('theme-toggle');
+        const lightIcon = document.getElementById('theme-toggle-light-icon');
+        const darkIcon = document.getElementById('theme-toggle-dark-icon');
+
+        function syncIcons() {
+          const isDark = document.documentElement.classList.contains('dark');
+          if (isDark) {
+            darkIcon.classList.add('hidden');
+            lightIcon.classList.remove('hidden');
+          } else {
+            lightIcon.classList.add('hidden');
+            darkIcon.classList.remove('hidden');
+          }
+        }
+
+        syncIcons();
+
+        themeToggleBtn?.addEventListener('click', () => {
+          const root = document.documentElement;
+          const isDark = root.classList.contains('dark');
+          if (isDark) {
+            root.classList.remove('dark');
+            localStorage.setItem('promptware-theme', 'light');
+          } else {
+            root.classList.add('dark');
+            localStorage.setItem('promptware-theme', 'dark');
+          }
+          syncIcons();
+        });
+      })();
+    </script>
+
+    <!-- Flowbite JS -->
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.5.1/flowbite.min.js"
+      integrity="sha512-1GApBpMoIqXP7o+FxRJ6ZxHG9oL9n3vW+vJV+3G36VDBul4kmoDQmpXgAO9CViVJLLP5CbdqPWNRyGEazLpA4w=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
+  </body>
+</html>
