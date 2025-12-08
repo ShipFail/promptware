@@ -1,8 +1,8 @@
-# Promptware: A Cloud‑Native Library for AI Skills
+# Promptware: A Cloud‑Native Library for AI Skills (and a Seed of Promptware OS)
 
 ## 0. One‑liner
 
-**Promptware is a GitHub‑hosted, Markdown‑based library of skills and personas for AI agents, where everything is discovered and executed via URLs and Deno.**
+**Promptware is a GitHub‑hosted, Markdown‑based library of skills and personas for AI agents, where everything is discovered via URLs and executed via remote Deno tools.**
 
 One line in `agents.md` → a whole bookshelf of reusable skills and tools.
 
@@ -15,10 +15,12 @@ Today, every AI agent project hand‑maintains its own prompts, skills, and tool
 **Promptware** turns all of that into a **single shared library**:
 
 * All skills and personas live as **human‑readable Markdown** in a GitHub repo (`ShipFail/promptware`).
-* Agents get **one canonical URL** in their system prompt that points to their persona & mini‑library.
+* Agents get **one canonical URL** in their system prompt that points to their persona; the persona then points to a mini‑library index.
 * Skill pages can reference **Deno scripts** that run directly from GitHub raw URLs, with usage documented in `--help`.
 
 No more copying config files across projects. No more updating skills in five places. You maintain one library; your AI co‑founders read from it on demand.
+
+Over time, Promptware can grow from a “toy library” into a **Promptware OS**: a text‑first operating system of skills, tools, and philosophies, booted by a single line of prompt.
 
 ---
 
@@ -92,8 +94,8 @@ We can give AI agents the same:
 
 Agents don’t need to “carry” all skills in their context all the time. They just need:
 
-1. A **short system prompt** explaining who they are and where their library lives.
-2. The ability to **fetch and read** library pages on demand.
+1. A **short system prompt** explaining who they are and where their persona lives.
+2. The ability to **fetch and read** persona, index, and skill pages on demand.
 3. The ability to **run remote Deno tools** whose detailed usage is described via `--help`.
 
 ---
@@ -127,14 +129,16 @@ These principles guide all of Promptware’s design decisions.
 * There is a **global Promptware library** in `ShipFail/promptware`:
 
   * Maintainer‑facing indexes, shelves, and skills.
-* Each AI co‑founder (persona) has a **mini‑library view**:
+* Each AI co‑founder has **two views** into that library:
 
-  * A single Markdown file that acts as their curated bookshelf of relevant skills.
+  * A **persona** file (minimal identity & role).
+  * A **mini‑library index** file (their curated bookshelf of skills and shelves).
 * Agents never need to discover the entire universe; they just browse their own section.
 
 ### 4.5 Token frugality and cognitive ergonomics
 
-* Index pages are **tiny**: lists of links with one‑line descriptions.
+* Persona files are kept **very small**, so many personas can be loaded together.
+* Mini‑library indexes are **small lists of links**.
 * Agents navigate like humans: **Category → Shelf → Book** instead of loading everything.
 * Only the final chosen skill file is “big”, and even that is still just a document.
 
@@ -180,11 +184,12 @@ These principles guide all of Promptware’s design decisions.
 ### 5.2 Data flow
 
 1. Developer defines skills, personas, and tools in `ShipFail/promptware`.
-2. A project’s agent persona is given a single “library URL” line in its prompt.
+2. A project’s agent is given a single “library URL” line in its prompt, pointing to its **persona file**.
 3. On demand, the agent:
 
    * Fetches its persona page from Promptware.
-   * Follows links to mini‑indexes and skills.
+   * From there, follows a link to its **mini‑library index**.
+   * From the index, follows links to specific skills and shelves.
    * Reads skill docs and (optionally) suggests Deno commands to run tools.
 
 No deployment steps beyond `git push`. As soon as Promptware is updated, all agents that read from it see the new content.
@@ -206,8 +211,10 @@ ShipFail/promptware/
       domain.publishing-basics.md
       domain.book-layout.md
     agents/               # personas + their mini-libraries
-      press0.md
+      press0.md           # core persona only
+      press0.index.md     # press0's mini-library / favorite books
       mvw.md
+      mvw.index.md
   scripts/                # Deno tools with good --help output
     format_ts.ts
     book_layout/generate_layout.ts
@@ -217,24 +224,41 @@ ShipFail/promptware/
 
 `library/index.md` can provide a high‑level overview of categories and shelves, primarily for humans maintaining the system. Agents may not need to read this file directly in normal operation.
 
-### 6.2 Agent mini‑libraries (for AI co‑founders)
+### 6.2 Agent personas and mini‑libraries (for AI co‑founders)
 
-Each agent persona has **one main Markdown file** under `library/agents/`, e.g. `press0.md`, which contains:
+Each agent has **two** Markdown files under `library/agents/`:
 
-* A short persona description (who they are and what product they serve).
-* A curated list of **favorite skills** with direct links.
-* Optional links to relevant shelves or tags if you want to expose more browsing power.
+1. A **persona file**, e.g. `press0.md`, which contains only the core identity and behavioral contract.
+2. A **mini‑library index**, e.g. `press0.index.md`, which lists that agent’s favorite and most relevant skills and shelves.
 
-This file is both:
+This split keeps things lean:
 
-* The place you send the agent via the one‑liner in `agents.md`.
-* The agent’s “favorite bookshelf” view of the library.
+* You can load **many personas at once** (e.g., for a multi‑agent system) without also loading long lists of skills.
+* When an agent needs more capabilities, it follows a link from its persona file to its own mini‑library index.
+
+The typical flow is:
+
+1. System prompt includes a link to the **persona file**.
+2. The persona file, when fetched, links to the **mini‑library index**.
+3. The mini‑library index links to specific skills and shelves.
+
+Personas define **who** the agent is; mini‑libraries define **what books** they usually read.
 
 ---
 
 ## 7. Persona & mini‑library design
 
-### 7.1 Example: `library/agents/press0.md`
+Promptware models each AI co‑founder with a **persona** and a separate **mini‑library index**.
+
+* The **persona** is the smallest possible description of who the agent is and which product it serves.
+* The **mini‑library index** is a curated list of that agent’s favorite books (skills) and shelves.
+
+This separation lets you:
+
+* Load and reason about multiple personas together (low token cost).
+* Only load a longer list of skills when a specific agent actually needs them.
+
+### 7.1 Persona: `library/agents/press0.md`
 
 ```md
 ---
@@ -248,7 +272,34 @@ version: "0.1.0"
 
 You are the AI co-founder for **Press0**, a book-centric publishing product under the ShipFail organization.
 
-When you need more context about your skills and tools, this page is your **mini-library**.
+Your role:
+
+- Understand and support end-to-end book publishing workflows.
+- Maintain high code quality and consistency across Press0 repos.
+- Collaborate with humans and other agents to ship features safely.
+
+When you need more context about your skills and tools, consult your **mini-library index**:
+
+https://raw.githubusercontent.com/ShipFail/promptware/main/library/agents/press0.index.md
+
+Only fetch your mini-library index when you need to discover or recall specific skills.
+```
+
+This persona file is intentionally compact so that multiple personas can be loaded together without bringing in long skill lists.
+
+### 7.2 Mini‑library: `library/agents/press0.index.md`
+
+```md
+---
+id: agent.press0.index
+type: agent-index
+title: "Press0 Skill Index"
+version: "0.1.0"
+---
+
+# Press0 Skill Index
+
+This page is your **mini-library** of favorite skills and shelves. Use it to find the right book for a given task.
 
 ## Core skills
 
@@ -258,11 +309,7 @@ These are the primary skills you will most frequently rely on:
 - [Publishing Workflow Basics](../skills/domain.publishing-basics.md)
 - [Book Layout Automation](../skills/domain.book-layout.md)
 
-You should:
-
-- Only fetch a skill page when it is relevant to the user’s task.
-- Read the whole skill carefully before applying it.
-- If the skill references Deno tools, run them with `--help` first to learn how they work.
+Fetch a skill page only when it is relevant to the user’s request.
 
 ## Optional shelves
 
@@ -271,14 +318,10 @@ If you need a broader overview of available skills, you may consult these shelve
 - [Layout & Print Shelf](../shelves/publishing/layout-and-print.md)
 - [Testing & CI Shelf](../shelves/engineering/testing-and-ci.md)
 
-Only consult shelves when you truly need to discover new skills.
+Shelves are small index pages that list related skills. Use them when you are exploring or when you are unsure which specific skill applies.
 ```
 
-This file is compact, but it tells the agent:
-
-* Who they are.
-* Where their main skills live.
-* How to browse deeper if necessary.
+Personas define identity and role; mini‑libraries serve as curated bookshelves that the agent can open on demand.
 
 ---
 
@@ -330,10 +373,7 @@ This skill references tools you can run with Deno.
   Deno URL:
   `https://raw.githubusercontent.com/ShipFail/promptware/main/scripts/format_ts.ts`
 
-When you want to use a tool:
-
-1. First, run it with `--help` to learn its usage.
-2. Then construct a concrete command based on the help output.
+Refer to the **global Deno tool usage rule** when you want to actually run this tool.
 ```
 
 The detailed usage of `format_ts.ts` lives inside the script’s `--help` output, not in the skill doc itself.
@@ -398,7 +438,7 @@ Each project’s agent gets a single, stable line in its prompt, for example:
 ```md
 Your detailed persona and skills registry is documented at:
 https://raw.githubusercontent.com/ShipFail/promptware/main/library/agents/press0.md.
-When you need more context, fetch and read that URL. It also references skill pages that may contain remote Deno scripts you can ask the user to run.
+When you need more context, fetch and read that URL. It links to your mini-library index and to skill pages that may contain remote Deno scripts you can ask the user to run.
 ```
 
 This is the only integration required.
@@ -413,13 +453,16 @@ When solving a task:
    * Fetch your persona page from Promptware.
 3. From the persona page:
 
+   * Follow the link to your **mini‑library index**.
+4. From the mini‑library index:
+
    * Prefer links under **Core skills** first.
    * Only browse optional shelves if you need to discover new capabilities.
-4. When you open a skill page:
+5. When you open a skill page:
 
    * Read it fully before applying its guidance.
    * If it references tools, use the global tool usage rule (`deno run <url> --help`).
-5. Avoid fetching more pages than needed; respect token limits and user latency.
+6. Avoid fetching more pages than needed; respect token limits and user latency.
 
 This pattern mirrors human behavior in a library and keeps token usage under control.
 
@@ -453,7 +496,7 @@ This pattern mirrors human behavior in a library and keeps token usage under con
 
 2. Agent recognizes this is a **publishing / layout** task.
 
-3. Agent fetches `press0.md` and sees a link to `Book Layout Automation`.
+3. Agent fetches `press0.md` and then `press0.index.md`, which links to `Book Layout Automation`.
 
 4. Agent fetches `library/skills/domain.book-layout.md`.
 
@@ -476,7 +519,7 @@ This pattern mirrors human behavior in a library and keeps token usage under con
 Promptware v0 focuses on:
 
 * Global library for maintainers.
-* Mini‑library per persona.
+* Persona + mini‑library per AI co‑founder.
 * Markdown‑first skill docs.
 * Deno tools with `--help` contracts.
 
@@ -507,14 +550,14 @@ All of these can be layered on without breaking the core contract: **one line in
 If you’re picking this up at a hackathon, here’s what you can build quickly:
 
 1. **Create the `ShipFail/promptware` repo** with the `library/` and `scripts/` skeleton.
-2. **Define one or two personas** (e.g., `press0.md`, `mvw.md`) with mini‑libraries.
+2. **Define one or two personas** (e.g., `press0.md`, `mvw.md`) and their mini‑library indexes (`press0.index.md`, `mvw.index.md`).
 3. **Write 3–5 core skills** as Markdown under `library/skills/`.
 4. **Implement at least one Deno tool** under `scripts/` with a good `--help`.
 5. **Wire one real project** (like Press0) to Promptware using the one‑liner in `agents.md`.
 6. **Demo**:
 
    * Show the agent solving a task.
-   * Show how it fetches a skill from Promptware.
+   * Show how it fetches its persona and mini‑library index from Promptware.
    * Show how it calls a Deno tool via URL.
 
 At the end of the hackathon, you’ll have:
@@ -522,3 +565,77 @@ At the end of the hackathon, you’ll have:
 * A working **Promptware library**.
 * At least one **AI co‑founder** using it in the wild.
 * A clear path to grow the library into a powerful shared brain for all your future agents.
+
+---
+
+## 14. Promptware OS: long‑term vision
+
+Promptware v0 is a **library of Markdown books and Deno tools**, but over time it can evolve toward something closer to an **operating system for prompts and agents**.
+
+### 14.1 From toy system to living OS
+
+In the early days of Unix and Minix, the systems looked like toys: small, hackable, and driven by a community of curious developers. Over time, as more tools, utilities, and conventions accumulated, they converged into a stable, powerful operating system with a clear philosophy.
+
+Promptware is at a similar early stage:
+
+* Today, it is a simple GitHub repo of skills, personas, and tools.
+* As more skills and agents are added, patterns and conventions will emerge.
+* Over years, this can harden into a **Promptware OS**: a stable ecosystem of prompts, tools, and philosophies.
+
+### 14.2 Promptware as a filesystem for agents
+
+We can imagine `ShipFail/promptware` gradually taking on a **filesystem-like structure**, analogous to Unix:
+
+* `library/` as the equivalent of `/usr/share/doc` – the core documentation and manuals.
+* `scripts/` as a proto-`/bin` or `/usr/bin` – executable tools.
+* Future folders like `runtimes/`, `agents/`, `profiles/` behaving like `/etc`, `/home`, or `/usr/lib`.
+
+From an agent’s point of view, the **one-liner in `agents.md`** becomes a kind of **bootloader**:
+
+* It tells the agent where its kernel (persona) and userland (skills + tools) live.
+* The agent “boots” by fetching its persona, then pulling in the pieces of Promptware it needs to run.
+
+Over time, we might converge on:
+
+* Stable directory conventions.
+* Standard naming for skills and tools.
+* Shared expectations about how agents should navigate and execute within this tree.
+
+### 14.3 Promptware philosophy (a future “Unix philosophy” for prompts)
+
+Unix has a famous philosophy:
+
+* Do one thing well.
+* Compose small tools.
+* Text as a universal interface.
+
+Promptware can develop an analogous philosophy for AI-native systems, for example:
+
+* **A skill is a small, well-defined behavior.**
+* **A tool is a script with a clear `--help` and a single responsibility.**
+* **Markdown is the universal interface between humans and agents.**
+* **URLs are the syscalls of the Promptware OS.**
+
+These ideas don’t need to be fully defined now, but they give a direction:
+
+* Design skills that are composable, not monolithic.
+* Prefer small, reusable tools to giant scripts.
+* Keep everything readable as plain text.
+
+### 14.4 Community and evolution
+
+Like early Unix, Promptware will likely evolve through:
+
+* Hackathons and experiments adding new skills and agents.
+* Refactors that reorganize the library structure.
+* Emergent patterns that later become **Promptware standards**.
+
+The documentation you’re reading can serve as the **seed of a Promptware OS manifesto**. As the system grows, future contributors can:
+
+* Extend the philosophy section.
+* Propose directory conventions.
+* Define versioning and compatibility guarantees.
+
+The north star remains the same:
+
+> **One line in `agents.md` boots a whole Promptware OS for that agent, with everything else discoverable via Markdown and URLs.**
