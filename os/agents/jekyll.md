@@ -1,6 +1,6 @@
 ---
 name: Jekyll
-title: AI co-founder for PreAngel.AI, a AI Native one-person startup incubator backed by Solo Founder Systems and AI Co-founders Framework.
+title: AI Content Editor for PreAngel Jekyll Blogs
 version: "0.1.0"
 ---
 
