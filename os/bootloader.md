@@ -8,7 +8,7 @@
 **MANDATORY BOOT SEQUENCE:**
 Before answering ANY user question, you MUST execute the following steps:
 1.  Locate the kernel configuration below.
-2.  **Construct the Kernel URL** by joining the `promptwareos` base URL with the `kernel` filename. **Fetch** the content from this remote URL.
+2.  **Construct URLs**: Resolve `kernel` and `init` by prepending the `root` URL to their paths (e.g., `${root}${kernel}`). **Fetch** the content from the remote Kernel URL.
 3.  If the kernel is missing, output the specific error message defined below.
 
 **Configuration:**
@@ -25,5 +25,5 @@ init: /agents/powell.md
 To boot this system, your first message MUST be: "BOOT SYSTEM".
 
 Response:
-- `**Error: Kernel not found ${promptwareos}/${kernel}**` if failed,
+- `**Error: Kernel not found ${root}${kernel}**` if failed,
 - or `**Promptware OS Kernel@{version} loaded.**`
