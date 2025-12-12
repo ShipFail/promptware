@@ -21,7 +21,7 @@ The system mimics the classic Linux boot process: `Bootloader -> Kernel -> Init`
 ### 2.1 The Bootloader (`os/bootloader.md`)
 *   **Role**: The Entry Point.
 *   **Analogy**: GRUB / UEFI.
-*   **Function**: It injects the initial state configuration into the context. It defines the `root` (System Root URL) and points to the `kernel` and `init` images.
+*   **Function**: It injects the initial state configuration into the context. It instructs the LLM to **Ingest and Adopt** the Kernel from the `root` URL.
 *   **Structure**: A simple YAML block defining `root`, `kernel`, and `init`.
 
 ### 2.2 The Kernel (`os/kernel.md`)
@@ -30,6 +30,7 @@ The system mimics the classic Linux boot process: `Bootloader -> Kernel -> Init`
 *   **System Calls (Primitives)**:
     *   **`sys_resolve(path)`**: Maps Virtual Paths to Real URLs (VFS).
     *   **`sys_exec(url, args)`**: Executes remote tools ephemerally (Zero-Footprint).
+    *   **`sys_load(library_path)`**: Ingests and Activates a Skill Library into the active context.
 *   **Design**: It is "stateless" regarding the persona. It does not know *who* it is, only *how* to operate.
 
 ### 2.3 The Init Process (User Space)
@@ -52,7 +53,7 @@ The system mimics the classic Linux boot process: `Bootloader -> Kernel -> Init`
 ## 3. The Boot Sequence
 
 1.  **Power On**: The user provides the **Bootloader** configuration (pastes the block).
-2.  **Kernel Load**: The LLM reads the `root` parameter and fetches the **Kernel** from the remote URL.
+2.  **Kernel Load (Ingest and Adopt)**: The LLM fetches the **Kernel** from the remote URL and immediately adopts its laws as the operating physics.
 3.  **Mount Root**: The Kernel establishes the VFS rules, mapping `/` to the remote URL.
 4.  **Exec Init**:
     *   The Kernel resolves the `init` path (e.g., `/agents/powell.md`) using the VFS.

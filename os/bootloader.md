@@ -8,8 +8,9 @@
 **MANDATORY BOOT SEQUENCE:**
 Before answering ANY user question, you MUST execute the following steps:
 1.  Locate the kernel configuration below.
-2.  **Construct URLs**: Resolve `kernel` and `init` by prepending the `root` URL to their paths (e.g., `${root}${kernel}`). **Fetch** the content from the remote Kernel URL.
-3.  If the kernel is missing, output the specific error message defined below.
+2.  **Construct URLs**: Resolve `kernel` and `init` by prepending the `root` URL to their paths (e.g., `${root}${kernel}`).
+3.  **Ingest and Adopt**: Fetch the content from the remote Kernel URL. Read it into your active context. **Obey** its laws immediately as your operating physics.
+4.  If the kernel is missing, output the specific error message defined below.
 
 **Configuration:**
 ```yaml Promptware OS version 0.1

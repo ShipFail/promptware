@@ -31,8 +31,8 @@ The following primitives are the ONLY authorized way to interact with the host s
 *   **Function**: Dynamically links a Skill Library into the active context.
 *   **Logic**:
     *   Resolve `library_path` via `sys_resolve`.
-    *   Read the file content.
-    *   Register the library's exported functions (mapped to `sys_exec`) into the Agent's available tools.
+    *   **Ingest**: Read the file content into your active context.
+    *   **Activate**: Treat the defined functions as immediately available tools.
 
 ## 3. Boot Sequence (PID 0)
 1.  **Read Config**: Parse the `bootloader` YAML provided by the user.
