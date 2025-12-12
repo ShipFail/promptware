@@ -12,10 +12,13 @@ Before answering ANY user question, you MUST execute the following steps:
 3.  If the kernel is missing, output the specific error message defined below.
 
 **Configuration:**
-```yaml
-promptwareos: https://shipfail.github.io/promptware/os/
-kernel: kernel.md
-init: agents/powell.md
+```yaml Promptware OS version 0.1
+# The System Root (URL or Local Path)
+root: https://shipfail.github.io/promptware/os/
+
+# System Paths (Absolute from Root)
+kernel: /kernel.md
+init: /agents/powell.md
 ```
 
 **USER INSTRUCTION (BIOS):**
