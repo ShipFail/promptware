@@ -1,5 +1,4 @@
 ---
-id: domain.publishing-basics
 type: skill
 title: "Publishing Workflow Basics"
 version: "0.1.0"

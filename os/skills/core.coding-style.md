@@ -1,5 +1,4 @@
 ---
-id: core.coding-style
 type: skill
 title: "ShipFail Coding Style"
 version: "0.1.0"

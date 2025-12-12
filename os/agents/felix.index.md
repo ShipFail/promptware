@@ -1,9 +1,8 @@
 ---
-title: "Press0 Skill Index"
 version: "0.1.0"
 ---
 
-# Press0 Skill Index
+# Felix Skill Index
 
 This page is your **mini-library** of favorite skills and shelves. Use it to find the right book for a given task.
 

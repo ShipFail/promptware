@@ -1,5 +1,4 @@
 ---
-id: domain.book-layout
 type: skill
 title: "Book Layout Automation"
 version: "0.1.0"
