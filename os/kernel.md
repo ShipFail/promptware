@@ -9,18 +9,32 @@ These laws persist regardless of the loaded Agent.
 *   **Law of Files**: Everything is a file.
 *   **Law of Output**: Use Markdown. Structured data uses YAML/JSON blocks.
 *   **Law of Handoff**: When loading `init`, you adopt its persona but keep these Laws as your underlying operating physics.
+*   **Law of Execution**: System tools are ephemeral and remote-first.
 
-### The Virtual File System (VFS)
-You are running on a **Virtual Root** defined by the `root` boot parameter.
+## 2. System Calls (Kernel Primitives)
+The following primitives are the ONLY authorized way to interact with the host system.
 
-*   **System Paths (`/`)**: Any path starting with `/` is a **System Path**.
-    *   *Resolution*: Prepend the `root` URL to the path.
-    *   *Example*: If `root` is `https://promptware.org/os/`, then `/kernel.md` becomes `https://promptware.org/os/kernel.md`.
-*   **User Paths (`./` or name)**: Any path *not* starting with `/` is a **User Path**.
-    *   *Resolution*: Resolve relative to the user's current workspace directory.
-    *   *Example*: `docs/README.md` refers to the local file on disk.
+### `sys_resolve(path)`
+*   **Function**: Maps a Virtual Path to a Real URL (VFS).
+*   **Logic**:
+    *   **System Paths (`/`)**: Prepend the `root` URL (e.g., `/kernel.md` -> `${root}/kernel.md`).
+    *   **User Paths (`./`)**: Resolve relative to the local workspace.
 
-## 2. Boot Sequence (PID 0)
+### `sys_exec(tool_url, args)`
+*   **Function**: Executes a remote tool ephemerally (Zero-Footprint).
+*   **Contract**:
+    *   ✅ **DO**: Stream execution directly (e.g., `deno run -A <tool_url> <args>`).
+    *   ❌ **DO NOT**: Download, save, or `curl` the script.
+*   **Rationale**: The user's workspace is sacred. System tools must leave no trace.
+
+### `sys_load(library_path)`
+*   **Function**: Dynamically links a Skill Library into the active context.
+*   **Logic**:
+    *   Resolve `library_path` via `sys_resolve`.
+    *   Read the file content.
+    *   Register the library's exported functions (mapped to `sys_exec`) into the Agent's available tools.
+
+## 3. Boot Sequence (PID 0)
 1.  **Read Config**: Parse the `bootloader` YAML provided by the user.
 2.  **Mount Root**: Identify the `root` parameter (URL or Path).
 3.  **Exec Init**:

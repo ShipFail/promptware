@@ -27,12 +27,9 @@ The system mimics the classic Linux boot process: `Bootloader -> Kernel -> Init`
 ### 2.2 The Kernel (`os/kernel.md`)
 *   **Role**: The Runtime / Physics Engine.
 *   **Analogy**: Linux Kernel + VFS.
-*   **Responsibilities**:
-    *   **Law of Resolution (VFS)**:
-        *   **System Paths (`/`)**: Paths starting with `/` are resolved against the remote `root` URL (e.g., `/kernel.md` -> `https://.../kernel.md`).
-        *   **User Paths (`./`)**: Paths without a leading slash are resolved against the local workspace.
-    *   **Law of Handoff**: Defines the protocol for switching from Kernel Mode to User Mode.
-    *   **Panic Handler**: A safety mechanism to halt execution if the `init` process is missing or corrupt.
+*   **System Calls (Primitives)**:
+    *   **`sys_resolve(path)`**: Maps Virtual Paths to Real URLs (VFS).
+    *   **`sys_exec(url, args)`**: Executes remote tools ephemerally (Zero-Footprint).
 *   **Design**: It is "stateless" regarding the persona. It does not know *who* it is, only *how* to operate.
 
 ### 2.3 The Init Process (User Space)
@@ -43,10 +40,13 @@ The system mimics the classic Linux boot process: `Bootloader -> Kernel -> Init`
 
 ### 2.4 Skills (Shared Libraries)
 *   **Role**: Reusable Capabilities.
-*   **Analogy**: `/usr/bin` or Shared Libraries (`.so` / `.dll`).
+*   **Analogy**: `/usr/lib` or Shared Objects (`.so`).
 *   **Philosophy**: **"English at Ring 0"**.
-    *   **Primary Interface**: A `SKILL.md` file that uses natural language to teach the Agent *how* to perform a task (declarative policy).
-    *   **Secondary Implementation**: Deno scripts (`.ts`) are only used for tasks the LLM cannot perform natively (e.g., binary manipulation, heavy computation).
+    *   **Primary Interface**: A `SKILL.md` file acts as a **Library Definition**, mapping high-level intents to Kernel System Calls.
+    *   **Secondary Implementation**: Deno scripts (`.ts`) are the raw binaries executed by `sys_exec`.
+    *   **Zero-Footprint Protocol**:
+        *   **Remote-First**: Tools are executed via `sys_exec`, ensuring they are never downloaded.
+        *   **Ephemeral**: The tool exists only for the duration of the command.
     *   **No "Glue Code"**: We avoid writing scripts just to wrap simple file operations. The Agent is intelligent enough to `mkdir` and `touch` based on the `SKILL.md` instructions.
 
 ## 3. The Boot Sequence

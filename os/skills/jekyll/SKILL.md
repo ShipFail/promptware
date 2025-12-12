@@ -283,15 +283,11 @@ Behavior:
 
 If you have access to a `--help` or documentation for the Deno tasks, you may inspect it when debugging, but always treat `deno task test` as the canonical final gate.
 
-### Tools
+### Library Functions
 
-1. `fit-image.ts`: resize and convert images to WebP. Use it whenever you add a new image or see a non-optimized one.
-
-   * **Location**: `/skills/jekyll/fit-image.ts`
-   * **Execution**: Resolve `${root}` and run via Deno.
-     * `deno run -A ${root}/skills/jekyll/fit-image.ts <local_image_path>`
-
-   * **Behavior**: This script will replace the original file with an optimized `.webp` version. Update your Markdown links to point to the new `.webp` file.
+| Function | Syscall | Description |
+| :--- | :--- | :--- |
+| `fit-image` | `sys_exec(${root}/skills/jekyll/fit-image.ts)` | Resizes/converts image to WebP. **Note**: Replaces original file. Update links to `.webp`. |
 
 ## 4. Workflow: Drafting a Post
 
