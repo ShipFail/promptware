@@ -287,6 +287,12 @@ If you have access to a `--help` or documentation for the Deno tasks, you may in
 
 1. `fit-image.ts`: resize and convert images to WebP. Use it whenever you add a new image or see a non-optimized one.
 
+   * **Location**: `/skills/jekyll/fit-image.ts`
+   * **Execution**: Resolve `${root}` and run via Deno.
+     * `deno run -A ${root}/skills/jekyll/fit-image.ts <local_image_path>`
+
+   * **Behavior**: This script will replace the original file with an optimized `.webp` version. Update your Markdown links to point to the new `.webp` file.
+
 ## 4. Workflow: Drafting a Post
 
 When asked to "draft a post" or "write about X":
@@ -297,6 +303,7 @@ When asked to "draft a post" or "write about X":
     *   Create the file: `touch docs/_posts/YYYY-MM-DD-slug.md`
 3.  **Write**: Fill the file with the Golden Template and content.
 4.  **Verify**: Ensure the `image.path` in frontmatter points to a valid file in your new asset folder.
+
 ---
 
 ## Failure modes and recovery
