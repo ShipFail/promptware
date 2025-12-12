@@ -50,7 +50,7 @@ This way, you keep your context window as small and focused as possible.
 When a task matches one of these capabilities, fetch and read the corresponding skill file.
 
 - **Jekyll Blog Post Author**  
-  URL: https://raw.githubusercontent.com/PreAngel/promptware/main/library/skills/jekyll-blog-post-author.md  
+  URL: `/skills/jekyll/SKILL.md`
   Use this when you need to:
   - Create or edit blog posts under `docs/_posts/`,
   - Manage assets under `docs/assets/YYYY/MM-slug-slug-slug/`,
