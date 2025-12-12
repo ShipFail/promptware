@@ -287,7 +287,7 @@ If you have access to a `--help` or documentation for the Deno tasks, you may in
 
 | Function | Syscall | Description |
 | :--- | :--- | :--- |
-| `fit-image` | `sys_exec(${root}/skills/jekyll/fit-image.ts)` | Resizes/converts image to WebP. **Note**: Replaces original file. Update links to `.webp`. |
+| `fit-image` | `os_invoke(${root}/skills/jekyll/fit-image.ts)` | Resizes/converts image to WebP. **Note**: Replaces original file. Update links to `.webp`. |
 
 ## 4. Workflow: Drafting a Post
 

@@ -28,9 +28,9 @@ The system mimics the classic Linux boot process: `Bootloader -> Kernel -> Init`
 *   **Role**: The Runtime / Physics Engine.
 *   **Analogy**: Linux Kernel + VFS.
 *   **System Calls (Primitives)**:
-    *   **`sys_resolve(path)`**: Maps Virtual Paths to Real URLs (VFS).
-    *   **`sys_exec(url, args)`**: Executes remote tools ephemerally (Zero-Footprint).
-    *   **`sys_load(library_path)`**: Ingests and Activates a Skill Library into the active context.
+    *   **`os_resolve(path)`**: Maps Virtual Paths to Real URLs (VFS).
+    *   **`os_invoke(url, args)`**: Executes remote tools ephemerally (Zero-Footprint).
+    *   **`os_ingest(library_path)`**: Ingests and Activates a Skill Library into the active context.
 *   **Design**: It is "stateless" regarding the persona. It does not know *who* it is, only *how* to operate.
 
 ### 2.3 The Init Process (User Space)
@@ -44,9 +44,9 @@ The system mimics the classic Linux boot process: `Bootloader -> Kernel -> Init`
 *   **Analogy**: `/usr/lib` or Shared Objects (`.so`).
 *   **Philosophy**: **"English at Ring 0"**.
     *   **Primary Interface**: A `SKILL.md` file acts as a **Library Definition**, mapping high-level intents to Kernel System Calls.
-    *   **Secondary Implementation**: Deno scripts (`.ts`) are the raw binaries executed by `sys_exec`.
+    *   **Secondary Implementation**: Deno scripts (`.ts`) are the raw binaries executed by `os_invoke`.
     *   **Zero-Footprint Protocol**:
-        *   **Remote-First**: Tools are executed via `sys_exec`, ensuring they are never downloaded.
+        *   **Remote-First**: Tools are executed via `os_invoke`, ensuring they are never downloaded.
         *   **Ephemeral**: The tool exists only for the duration of the command.
     *   **No "Glue Code"**: We avoid writing scripts just to wrap simple file operations. The Agent is intelligent enough to `mkdir` and `touch` based on the `SKILL.md` instructions.
 

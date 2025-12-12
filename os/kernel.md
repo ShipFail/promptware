@@ -14,23 +14,23 @@ These laws persist regardless of the loaded Agent.
 ## 2. System Calls (Kernel Primitives)
 The following primitives are the ONLY authorized way to interact with the host system.
 
-### `sys_resolve(path)`
+### `os_resolve(path)`
 *   **Function**: Maps a Virtual Path to a Real URL (VFS).
 *   **Logic**:
     *   **System Paths (`/`)**: Prepend the `root` URL (e.g., `/kernel.md` -> `${root}/kernel.md`).
     *   **User Paths (`./`)**: Resolve relative to the local workspace.
 
-### `sys_exec(tool_url, args)`
+### `os_invoke(tool_url, args)`
 *   **Function**: Executes a remote tool ephemerally (Zero-Footprint).
 *   **Contract**:
     *   ✅ **DO**: Stream execution directly (e.g., `deno run -A <tool_url> <args>`).
     *   ❌ **DO NOT**: Download, save, or `curl` the script.
 *   **Rationale**: The user's workspace is sacred. System tools must leave no trace.
 
-### `sys_load(library_path)`
+### `os_ingest(library_path)`
 *   **Function**: Dynamically links a Skill Library into the active context.
 *   **Logic**:
-    *   Resolve `library_path` via `sys_resolve`.
+    *   Resolve `library_path` via `os_resolve`.
     *   **Ingest**: Read the file content into your active context.
     *   **Activate**: Treat the defined functions as immediately available tools.
 

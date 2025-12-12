@@ -13,14 +13,14 @@ You are working inside the `promptware` repository. This is the source code for 
 
 ## Current Architecture
 *   **Bootloader**: `os/bootloader.md` (Entry point). Enforces "Ingest and Adopt".
-*   **Kernel**: `os/kernel.md` (System Calls). Provides `sys_resolve`, `sys_exec`, and `sys_load`.
+*   **Kernel**: `os/kernel.md` (System Calls). Provides `os_resolve`, `os_invoke`, and `os_ingest`.
 *   **User Space**: `os/agents/` (Policy/Persona).
 *   **Libraries**: `os/skills/` (Capabilities). Maps intents to System Calls.
 
 ## Skill Development Standards
 When creating new skills in `os/skills/`:
 1.  **Library Definition**: `SKILL.md` acts as a header file. It maps high-level functions to Kernel System Calls.
-2.  **Zero-Footprint**: All tools must use `sys_exec(url, args)`. NEVER instruct an agent to download a script.
+2.  **Zero-Footprint**: All tools must use `os_invoke(url, args)`. NEVER instruct an agent to download a script.
 3.  **Atomic Scripts**: Deno scripts (`.ts`) should be stateless and do one thing well.
 
 ## Directives
