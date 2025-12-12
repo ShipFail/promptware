@@ -283,6 +283,27 @@ Behavior:
 
 If you have access to a `--help` or documentation for the Deno tasks, you may inspect it when debugging, but always treat `deno task test` as the canonical final gate.
 
+### Tool: `fit-image.ts`
+
+Use this tool to resize and convert images to WebP.
+
+*   **When to use**: Whenever you add a new image or see a non-optimized one.
+*   **Command**:
+    ```bash
+    fit-image.ts <path/to/image>
+    ```
+*   **Behavior**: This script will replace the original file with an optimized `.webp` version. Update your Markdown links to point to the new `.webp` file.
+
+## 4. Workflow: Drafting a Post
+
+When asked to "draft a post" or "write about X":
+
+1.  **Plan**: Determine the `slug` and `date`.
+2.  **Scaffold**:
+    *   Create the folder: `mkdir -p docs/assets/YYYY/MM-slug/`
+    *   Create the file: `touch docs/_posts/YYYY-MM-DD-slug.md`
+3.  **Write**: Fill the file with the Golden Template and content.
+4.  **Verify**: Ensure the `image.path` in frontmatter points to a valid file in your new asset folder.
 ---
 
 ## Failure modes and recovery

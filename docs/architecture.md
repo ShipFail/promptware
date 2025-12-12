@@ -39,6 +39,14 @@ The system mimics the classic Linux boot process: `Bootloader -> Kernel -> Init`
 *   **Function**: This is the Agent (e.g., `os/agents/powell.md`). Once loaded, it defines the personality, tone, available tools, and specific directives.
 *   **Flexibility**: By changing the `init` parameter in the bootloader, you can boot into a completely different OS experience (e.g., a Coder, a Writer, or a Debugger) without changing the Kernel.
 
+### 2.4 Skills (Shared Libraries)
+*   **Role**: Reusable Capabilities.
+*   **Analogy**: `/usr/bin` or Shared Libraries (`.so` / `.dll`).
+*   **Philosophy**: **"English at Ring 0"**.
+    *   **Primary Interface**: A `SKILL.md` file that uses natural language to teach the Agent *how* to perform a task (declarative policy).
+    *   **Secondary Implementation**: Deno scripts (`.ts`) are only used for tasks the LLM cannot perform natively (e.g., binary manipulation, heavy computation).
+    *   **No "Glue Code"**: We avoid writing scripts just to wrap simple file operations. The Agent is intelligent enough to `mkdir` and `touch` based on the `SKILL.md` instructions.
+
 ## 3. The Boot Sequence
 
 1.  **Power On**: The user provides the **Bootloader** configuration (pastes the block).
@@ -62,4 +70,7 @@ The system mimics the classic Linux boot process: `Bootloader -> Kernel -> Init`
     ├── kernel.md       # Core runtime laws
     ├── agents/         # User Space programs (Personas)
     └── skills/         # Shared libraries (Capabilities)
+        └── jekyll/     # Example Skill Package
+            ├── SKILL.md     # The "Source Code" (Promptware)
+            └── fit-image.ts # The "Binary" (Helper Tool)
 ```
