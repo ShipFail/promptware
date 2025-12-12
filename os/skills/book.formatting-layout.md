@@ -62,7 +62,7 @@ Do not pretend to have pixel-perfect layout; this skill is about **order, groupi
 This skill can rely on Deno tools to automate layout planning. For example:
 
 - `generate-layout` – Generate an initial layout plan from a chapter list or JSON outline.  
-  Deno URL: `https://raw.githubusercontent.com/ShipFail/promptware/main/scripts/book_layout/generate_layout.ts`
+  Deno URL: `/skills/book/generate_layout.ts`
 
 When you want to use a tool:
 
