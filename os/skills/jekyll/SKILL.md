@@ -283,16 +283,9 @@ Behavior:
 
 If you have access to a `--help` or documentation for the Deno tasks, you may inspect it when debugging, but always treat `deno task test` as the canonical final gate.
 
-### Tool: `fit-image.ts`
+### Tools
 
-Use this tool to resize and convert images to WebP.
-
-*   **When to use**: Whenever you add a new image or see a non-optimized one.
-*   **Command**:
-    ```bash
-    fit-image.ts <path/to/image>
-    ```
-*   **Behavior**: This script will replace the original file with an optimized `.webp` version. Update your Markdown links to point to the new `.webp` file.
+1. `fit-image.ts`: resize and convert images to WebP. Use it whenever you add a new image or see a non-optimized one.
 
 ## 4. Workflow: Drafting a Post
 

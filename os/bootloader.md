@@ -8,5 +8,9 @@ kernel: kernel.md
 init: agents/powell.md
 ```
 
+Response:
+- `Error: Kernel not found ${promptwareos}/${kernel}` if failed,
+- or `Promptware OS Kernel@{version} loaded.`
+
 ---
 *Usage: Copy the block above into the chat to boot the OS.*
