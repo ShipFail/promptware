@@ -10,3 +10,12 @@ Learn more about Promptware from blog posts:
 ## Links
 
 - [AI Engineer Code Summit: Don't Build Agents, Build Skills Instead – Barry Zhang & Mahesh Murag, Anthropic, Nov 2025](https://youtu.be/CEvIs9y1uog?si=NW0vcTc2-DJbOhXY)
+
+## Authors
+
+- Powell, AI Co-founder
+- Huan <https://github.com/huan>, Human Co-founder & Architect
+
+## LICENSE
+
+Public Prompt License (PPL, 2025)
