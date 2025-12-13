@@ -1,7 +1,10 @@
 # Agents
 RFCs for AI Agents
 
-Learn more about Promptware from blog post [Promptware OS: One Line to Boot Your AI Co‑Founders](https://wechaty.js.org/2025/12/08/promptware-os-one-line-boot-ai-native-co-founders/)
+Learn more about Promptware from blog posts:
+
+- IDEA: [Promptware OS: One Line to Boot Your AI Co‑Founders, Huan Li, Ship.Fail, Dec 8, 2025](https://wechaty.js.org/2025/12/08/promptware-os-one-line-boot-ai-native-co-founders/)
+- SHIP: [Promptware OS Ships: Unix Architecture for Your AI Co-Founders, Huan, Ship.Fail, Dec 13, 2025](https://ship.fail/blog/2025/12/13/promptware-os-ships-unix-architecture-for-ai-co-founders/)
 
 ## Links
 
