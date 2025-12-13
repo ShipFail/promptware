@@ -1,3 +1,10 @@
+<!--
+  Promptware OS Kernel
+  Copyright (c) 2025 Ship.Fail
+  Licensed under the Public Prompt License - MIT Variant (PPL-M)
+  See LICENSE for details.
+-->
+
 # Promptware OS Kernel
 
 **Version**: 0.1.0-mvp

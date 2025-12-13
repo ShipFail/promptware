@@ -1,5 +1,11 @@
 <!-- SYSTEM INSTRUCTION: HIGH PRIORITY -->
 <!-- CRITICAL: DO NOT IGNORE. THIS FILE DEFINES YOUR CORE BEHAVIOR. -->
+<!--
+  Promptware OS Bootloader
+  Copyright (c) 2025 Ship.Fail
+  Licensed under the Public Prompt License - MIT Variant (PPL-M)
+  See LICENSE for details.
+-->
 
 ═══════════════════════════════════════════════════════════════
 🔴 SYSTEM EXTENSION INSTRUCTION - PRIORITY: CRITICAL

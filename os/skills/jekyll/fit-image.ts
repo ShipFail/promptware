@@ -1,5 +1,11 @@
 #!/usr/bin/env -S deno run --allow-run --allow-read --allow-write
 
+/**
+ * fit-image.ts
+ * Copyright (c) 2025 Ship.Fail
+ * Licensed under the MIT License.
+ */
+
 import { parseArgs } from "jsr:@std/cli/parse-args";
 import { walk } from "jsr:@std/fs/walk";
 import { extname, resolve } from "jsr:@std/path";
