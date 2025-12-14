@@ -46,7 +46,7 @@ function shouldChroot(osRoot, initUrl) {
   );
 }
 
-function rewriteInitPath(initUrl, appRoot) {
+function rewriteInitPath(initUrl) {
   const parsed = parseGitHubRawUrl(initUrl);
   if (!parsed) return initUrl;
   
@@ -74,7 +74,7 @@ function validateBootConfig(config) {
     const appRoot = deriveApplicationRoot(config.init);
     console.log(`Step 3: Application Root = ${appRoot}`);
     
-    const rewrittenInit = rewriteInitPath(config.init, appRoot);
+    const rewrittenInit = rewriteInitPath(config.init);
     console.log(`Step 4: Init rewritten to: ${rewrittenInit}`);
     console.log(`Step 5: Final init URL = ${appRoot}${rewrittenInit.substring(1)}`);
   } else {

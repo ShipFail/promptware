@@ -45,7 +45,7 @@ When `init` is a full GitHub raw URL pointing to a different repo/ref than OS `r
 ## Boot Sequence
 
 Boot immediately upon reading this file. do not wait.
-User has already putting this in your system prompt, their intense is wanting you to boot the Promptware OS right now.
+User has already put this in your system prompt, their intent is wanting you to boot the Promptware OS right now.
 Do not wait. Boot again when user saying `BOOT SYSTEM`.
 
 **MANDATORY BOOT SEQUENCE - EXECUTION STEPS**:
