@@ -20,7 +20,7 @@
 ## Configuration (Single Source of Truth)
 ```yaml
 version: "0.1"
-root: "https://shipfail.github.io/promptware/os/"
+root: "https://raw.githubusercontent.com/ShipFail/promptware/refs/heads/main/os/"
 kernel: "/kernel.md"
 init: "/agents/jekyll.md"
 ```
