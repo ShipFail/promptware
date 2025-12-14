@@ -112,7 +112,7 @@ tags:
 image: /assets/YYYY/MM-slug-slug-slug/post-teaser-image.webp
 # Optional flags:
 # mermaid: true
-# mathjax: true
+# math: true
 ---
 ```
 
@@ -151,7 +151,7 @@ Optional flags:
 
   * Required if the post includes Mermaid diagrams.
   * Always use double quotes for labels in Mermaid diagrams (e.g. `A["Label (with parens)"]`).
-* `mathjax: true`
+* `math: true`
 
   * Required if the post includes LaTeX equations (e.g. `$$ ... $$`).
 
@@ -327,7 +327,7 @@ If something goes wrong:
 
      * All required keys are present.
      * `author` matches a file in `docs/_authors/`.
-     * Optional flags (`mermaid`, `mathjax`) are only present when needed.
+     * Optional flags (`mermaid`, `math`) are only present when needed.
 
 4. **Markdownlint issues**
 
