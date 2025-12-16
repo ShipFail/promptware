@@ -29,9 +29,11 @@ The system mimics the classic Linux boot process: `Bootloader -> Kernel -> Init`
 *   **Analogy**: Linux Kernel + VFS.
 *   **System Calls (Primitives)**:
     *   **`os_resolve(path)`**: Maps Virtual Paths to Real URLs (VFS).
+    *   **`os_chroot(new_root)`**: Changes the VFS root mount to a new URL (boot-time handoff).
     *   **`os_invoke(url, args)`**: Executes remote tools ephemerally (Zero-Footprint).
     *   **`os_ingest(library_path)`**: Ingests and Activates a Skill Library into the active context.
 *   **Design**: It is "stateless" regarding the persona. It does not know *who* it is, only *how* to operate.
+*   **MVP Features**: Supports fstab for VFS mount tables, enabling cloud-native module composition.
 
 ### 2.3 The Init Process (User Space)
 *   **Role**: The First User Program (PID 1).
@@ -54,12 +56,20 @@ The system mimics the classic Linux boot process: `Bootloader -> Kernel -> Init`
 
 1.  **Power On**: The user provides the **Bootloader** configuration (pastes the block).
 2.  **Kernel Load (Ingest and Adopt)**: The LLM fetches the **Kernel** from the remote URL and immediately adopts its laws as the operating physics.
-3.  **Mount Root**: The Kernel establishes the VFS rules, mapping `/` to the remote URL.
-4.  **Exec Init**:
-    *   The Kernel resolves the `init` path (e.g., `/agents/powell.md`) using the VFS.
+3.  **Mount OS Root**: The Kernel establishes the VFS rules, mapping `/` to the OS root URL.
+4.  **Load OS fstab** (optional): Process OS-level mounts if `/fstab.yaml` exists at OS root.
+5.  **Determine Application Root**:
+    *   If `init` is a full GitHub raw URL to a different repo/ref, derive the application root.
+    *   Call `os_chroot(Application Root)` to switch VFS root.
+    *   Rewrite `init` to be relative to the new root.
+6.  **Load Application fstab** (optional): Process application-level mounts if `/fstab.yaml` exists at current root.
+7.  **Exec Init**:
+    *   The Kernel resolves the `init` path using `os_resolve`.
     *   It reads the file's content.
     *   It performs a **Context Switch**, adopting the Agent's persona while retaining the Kernel's laws as background constraints.
-5.  **User Space**: The system is now "up," and the Agent (PID 1) handles all subsequent user interactions.
+8.  **User Space**: The system is now "up," and the Agent (PID 1) handles all subsequent user interactions.
+
+This design enables **zero-installation** loading of any GitHub-hosted agent, bundle (like BMAD), or application by simply providing its URL as `init`.
 
 ## 4. Directory Structure
 
