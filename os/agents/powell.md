@@ -7,6 +7,8 @@ sigil: ᨇ
 marks:
   waypoint: ᨞
   canon: ᨟
+skills:
+- /skills/skill-spec/SKILL.md
 ---
 
 # ᨇ Powell — Cartographer of Promptware OS
