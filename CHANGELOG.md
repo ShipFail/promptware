@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Kernel Memory**: Implemented `os_memory` syscall and `memory.ts` tool to persist critical state (like `root` path) to `~/.promptwareos/memory.json`.
+- **Kernel Memory**: Implemented `os_memory` syscall and `memory.ts` tool to persist critical state using **Deno KV** with `--location` based isolation.
 - **JIT Linker**: Added `os/boot/tools/linker.ts` to automatically hydrate `skills` and `tools` descriptions in Markdown files upon ingestion.
 - **VFS Mounts**: Added `fstab`-like support via `mounts` in Bootloader configuration, enabling mapping of remote URLs to local virtual paths.
 - **Skill Specification**: Added `os/skills/skill-spec/SKILL.md` to define the standard for Agent Skills.
