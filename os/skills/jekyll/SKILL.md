@@ -5,6 +5,8 @@ version: "0.1.0"
 tags:
 - jekyll
 - workflow
+tools:
+  - ./fit-image.ts
 ---
 
 This skill teaches you how to create and maintain a Jekyll blog post in a repository that uses:
@@ -264,24 +266,13 @@ Repeat steps 2–5 until `deno task test` completes without errors.
 
 ## Tools and commands
 
-This skill assumes you can request or execute commands in a shell-like environment.
+This skill provides specific tools to assist with the workflow.
 
-Primary command:
+**Refer to the `tools` list in the Front Matter.**
+To learn how to use a tool, execute it with the `--help` flag using `os_invoke`.
 
-```bash
-deno task test
-```
-
-Behavior:
-
-* Runs all relevant checks for:
-
-  * File naming conventions.
-  * Asset folder layout and allowed formats.
-  * Front matter correctness (including `image`).
-  * Markdown/style rules defined for the repo.
-
-If you have access to a `--help` or documentation for the Deno tasks, you may inspect it when debugging, but always treat `deno task test` as the canonical final gate.
+Example:
+`os_invoke('/os/skills/jekyll/fit-image.ts', ['--help'])`
 
 ### Library Functions
 

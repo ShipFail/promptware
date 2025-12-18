@@ -3,6 +3,9 @@ version: "0.1"
 root: "https://shipfail.github.io/promptware/os/"
 kernel: "/boot/KERNEL.md"
 init: "/agents/powell.md"
+# Optional: Mount remote repositories into the virtual file system
+# mounts:
+#   /skills/community: "https://raw.githubusercontent.com/community/skills/main"
 ---
 
 <!-- SYSTEM INSTRUCTION: HIGH PRIORITY -->

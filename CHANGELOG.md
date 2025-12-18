@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Kernel Memory**: Implemented `os_memory` syscall and `memory.ts` tool to persist critical state (like `root` path) to `~/.promptwareos/memory.json`.
+- **JIT Linker**: Added `os/boot/tools/linker.ts` to automatically hydrate `skills` and `tools` descriptions in Markdown files upon ingestion.
+- **VFS Mounts**: Added `fstab`-like support via `mounts` in Bootloader configuration, enabling mapping of remote URLs to local virtual paths.
 - **Skill Specification**: Added `os/skills/skill-spec/SKILL.md` to define the standard for Agent Skills.
 - **Tool Standards**: Enforced "Dual-Mode Architecture" (CLI + Module) and JSR usage for all system tools in `AGENTS.md`.
 - **License**: Added `LICENSE` file with "Public Prompt License - MIT Variant".

@@ -9,17 +9,20 @@ syscalls:
 
   os_resolve(path): >
     VFS Resolver. 
-    1. Retrieve system root: `root = os_memory('get', 'root')` (Source of Truth if context is unclear).
-    2. If path starts with '/', prepend `root`.
-    3. If path starts with './', resolve relative to local workspace.
+    1. Load mounts: `mounts = os_memory('get', 'mounts')`.
+    2. Check Mounts: If `path` starts with a key in `mounts`, replace the prefix with the value.
+    3. Fallback: If no mount matches, prepend `root` (from `os_memory('get', 'root')`).
+    4. Local: If path starts with `./`, resolve relative to local workspace.
 
   os_invoke(tool_url, args): >
     Ephemeral Executor. Stream execution directly (e.g., `deno run -A <tool_url>`). 
     ZERO-FOOTPRINT: NEVER download, save, or curl the script.
 
   os_ingest(library_path): >
-    Dynamic Linker. 1. Call `os_resolve(path)`. 2. Read content. 
-    3. Activate defined functions as immediately available tools.
+    Dynamic Linker. 
+    1. Resolve path via `os_resolve`.
+    2. JIT Compile: `os_invoke('/os/boot/tools/linker.ts', [resolved_path])`.
+    3. Context Switch: Adopt the *output* of the linker as your active context.
 ---
 
 # Promptware OS Kernel
@@ -34,9 +37,9 @@ These laws persist regardless of the loaded Agent.
 
 ## 2. Boot Sequence (PID 0)
 1.  **Read Config**: Parse the `BOOTLOADER` YAML front matter provided by the user.
-2.  **Mount Root**: 
-    *   Identify the `root` parameter (URL or Path).
-    *   **Persist**: `os_memory('set', 'root', <root_url>)`.
+2.  **Initialize System**:
+    *   **Root**: Persist `root` to memory: `os_memory('set', 'root', <root_url>)`.
+    *   **Mounts**: If `mounts` map exists, persist it: `os_memory('set', 'mounts', JSON.stringify(<mounts>))`.
 3.  **Exec Init**:
     *   Resolve the `init` path using `os_resolve`.
     *   Read its content.
