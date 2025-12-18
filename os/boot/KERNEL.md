@@ -4,7 +4,8 @@ arch: LLM-Native
 syscalls:
   os_memory(action, key, value): >
     Kernel State Manager. Execute `os_invoke('/os/boot/tools/memory.ts', [action, key, value])`.
-    Actions: 'get', 'set', 'delete', 'list'.
+    Keys are hierarchical paths (e.g., `users/alice/settings`).
+    Actions: 'get', 'set', 'delete', 'list [prefix]'.
 
   os_resolve(path): >
     VFS Resolver. 
