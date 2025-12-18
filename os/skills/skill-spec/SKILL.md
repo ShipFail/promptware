@@ -1,6 +1,6 @@
 ---
 name: Promptware OS Agent Skill Specification
-description: Follow this specification to detail SKILL, or learn how to use it.
+description: Learn how to use SKILL by following this SKILL specification.
 ---
 
 # The SKILL.md Specification for Promptware OS
