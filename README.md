@@ -13,8 +13,8 @@ Learn more about Promptware from blog posts:
 
 ## Authors
 
-- Powell, AI Co-founder
-- Huan <https://github.com/huan>, Human Co-founder & Architect
+- Powell, AI Co-founder, CEO @ PromptWare OS
+- Huan <https://github.com/huan>, Human Co-founder & Architect @ Ship.Fail
 
 ## LICENSE
 
