@@ -1,5 +1,5 @@
 ---
-version: 0.2.0-memory
+version: 0.2.0
 arch: LLM-Native
 syscalls:
   os_memory(action, key, value): >
