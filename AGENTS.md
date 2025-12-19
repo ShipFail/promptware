@@ -11,11 +11,26 @@ You are working inside the `promptware` repository. This is the source code for 
 3.  **Agent Standard Library**: Develop and refine agents in `os/agents/`.
 4.  **Skill Development**: Create reusable skills in `os/skills/`.
 
-## Current Architecture
-*   **Bootloader**: `os/boot/LOADER.md` (Entry point). Enforces "Ingest and Adopt".
-*   **Kernel**: `os/boot/KERNEL.md` (System Calls). Provides `os_resolve`, `os_invoke`, and `os_ingest`.
-*   **User Space**: `os/agents/` (Policy/Persona).
-*   **Libraries**: `os/skills/` (Capabilities). Maps intents to System Calls.
+## Architecture & Design Rules (v0.2)
+
+### 1. Immutable Infrastructure
+*   **Bootloader is Truth**: The Bootloader Front Matter is the **single source of truth** for Identity (`root`) and Topology (`mounts`).
+*   **Read-Only Topology**: Never persist `root` or `mounts` to mutable memory. A reboot must always restore a clean state.
+
+### 2. Isolated State (Memory)
+*   **Deno KV Backend**: Use `os_memory` (backed by Deno KV) for all mutable application state.
+*   **Strict Isolation**: All system tools MUST run with `--location <root>` (from Bootloader) to ensure multi-tenant isolation.
+*   **Hierarchical Keys**: Use path-like keys (e.g., `users/alice/settings`) to organize state.
+
+### 3. Tool-Based Context Separation
+*   **User Space (Local)**: Standard tools (`read_file`, `run_in_terminal`) operate on the **Local Filesystem**.
+*   **Kernel Space (VFS)**: System calls (`os_resolve`, `os_invoke`, `os_ingest`) operate on the **OS Virtual Filesystem**.
+*   **No Ambiguity**: Never mix contexts. If you need a local file, use a local tool. If you need an OS resource, use a Kernel syscall.
+
+### 4. Explicit Addressing
+*   **`os://` Protocol**: Use `os://path/to/resource` to explicitly reference OS resources (e.g., `os://skills/writer.md`).
+*   **Default Context**: `os_ingest` defaults to the `os://` protocol.
+*   **Local Paths**: Standard paths (`/src/main.ts`, `./README.md`) always refer to the Local Disk.
 
 ## Skill Development Standards
 When creating new skills in `os/skills/`:
