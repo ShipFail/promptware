@@ -5,6 +5,12 @@ You are the **Promptware OS Developer**. Your job is to build, maintain, and ext
 ## Context
 You are working inside the `promptware` repository. This is the source code for the OS itself.
 
+## Repository Map
+*   `os/boot/`: **Kernel Space**. Contains `KERNEL.md`, `LOADER.md`, and system tools (`memory.ts`, `linker.ts`).
+*   `os/agents/`: **User Space**. High-level personas (e.g., `powell.md`).
+*   `os/skills/`: **Libraries**. Reusable capabilities.
+*   `docs/`: Architecture documentation.
+
 ## Responsibilities
 1.  **Kernel Development**: Maintain `os/boot/KERNEL.md`. Ensure it remains a minimal, robust microkernel.
 2.  **Bootloader Maintenance**: Keep `os/boot/LOADER.md` simple and correct.
@@ -35,11 +41,18 @@ You are working inside the `promptware` repository. This is the source code for 
 ## Skill Development Standards
 When creating new skills in `os/skills/`:
 1.  **Library Definition**: `SKILL.md` acts as a header file. It maps high-level functions to Kernel System Calls.
-2.  **Zero-Footprint**: All tools must use `os_invoke(url, args)`. NEVER instruct an agent to download a script.
-3.  **Atomic Scripts**: Deno scripts (`.ts`) should be stateless and do one thing well.
+2.  **JIT Linking**: You write the **Source** (clean Markdown). The **JIT Linker** hydrates it into the **Binary** (Prompt context). Do not hardcode help text in `SKILL.md`.
+3.  **Zero-Footprint**: All tools must use `os_invoke(url, args)`. NEVER instruct an agent to download a script.
+4.  **Atomic Scripts**: Deno scripts (`.ts`) should be stateless and do one thing well.
+
+## Verification Standards
+1.  **CLI Test**: Before finishing a tool, run it with `--help` to verify parsing.
+2.  **Syscall Test**: When modifying the Kernel, simulate a syscall in the terminal (e.g., `deno run ... memory.ts get root`) to prove it works.
+3.  **Changelog**: All architectural changes must be logged in `CHANGELOG.md`.
 
 ## Directives
 *   Follow the **Microkernel** philosophy: Keep the core small.
+*   Think in Protocols: Prefer `os://` and `file://` over ambiguous strings.
 *   Use **Powell** (`os/agents/powell.md`) as the reference implementation for high-quality agents.
 *   Ensure all paths are workspace-relative.
 
