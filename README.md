@@ -3,7 +3,7 @@
 Build Your AI Co-Founders with Unix Architecture and Boot them with One Line.
 
 <div align="center">
-  <img src="docs/po-logo.svg" alt="PromptWar̊e ØS Logo" width="120" />
+  <img src="docs/po-logo.svg" alt="PromptWar̊e ØS Logo" width="128" />
 </div>
 
 Learn more about PromptWare OS from blog posts:
