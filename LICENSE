@@ -1,17 +1,17 @@
-Public Prompt License - MIT Variant (PPL-M)
+Public Prompt License - Apache Variant (PPL-A)
 Version 0.2
 
 Copyright (c) 2025 Ship.Fail
 
-This project is licensed under the MIT License.
+This project is licensed under the Apache License, Version 2.0.
 
 1. STANDARD TERMS
-   This project is licensed under the MIT License (SPDX: MIT).
-   Standard License Text: https://opensource.org/licenses/MIT
+   This project is licensed under the Apache License, Version 2.0 (SPDX: Apache-2.0).
+   Standard License Text: https://www.apache.org/licenses/LICENSE-2.0
 
 2. SCOPE EXTENSION
-   The terms "Software" and "Source Code" in the MIT License are hereby 
-   extended to include "Prompt Source" and "Source Code" as defined in 
-   the Public Prompt License Definitions (Version 0.2).
+   The terms "Source" form and "Object" form in the Apache License are hereby 
+   extended to include "Prompt Source" and "Compiled Form" respectively, 
+   as defined in the Public Prompt License Definitions (Version 0.2).
 
    Definitions: https://shipfail.github.io/public-prompt-license/DEFINITIONS-0.2.md

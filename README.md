@@ -22,11 +22,8 @@ Learn more about PromptWare OS from blog posts:
 
 ## LICENSE
 
-**Public Prompt License - MIT Variant (PPL-M)**
+**Public Prompt License - Apache Variant (PPL-A)**
 
-This project uses a hybrid licensing model to protect the "Prompt Source" while maintaining ecosystem compatibility for tools.
-
-*   **Prompts (`.md`)**: Licensed under **PPL-M**. This includes the Kernel, Bootloader, Agents, and Skills.
-*   **Tools (`.ts`)**: Licensed under **MIT**. This ensures compatibility with Deno/NPM registries.
+This project is licensed under the **Public Prompt License - Apache Variant (PPL-A)**. This license extends the Apache License 2.0 to explicitly cover "Prompt Source" while maintaining full Apache 2.0 compatibility for code and tools.
 
 See [LICENSE](LICENSE) for the full text.
