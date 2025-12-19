@@ -65,4 +65,4 @@ This skill may be supported by tools that understand publishing pipelines, but t
 
 _Currently no concrete tools are defined for this skill._
 
-Refer to the **global Deno tool usage rule** in Promptware docs whenever you see tool URLs in other skills.
+Refer to the **global Deno tool usage rule** in PromptWar̊e docs whenever you see tool URLs in other skills.

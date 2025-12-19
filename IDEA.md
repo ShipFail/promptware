@@ -1,8 +1,8 @@
-# Promptware: A Cloud‑Native Library for AI Skills (and a Seed of Promptware OS)
+# PromptWar̊e ØS: A Cloud‑Native Library for AI Skills (and a Seed of PromptWar̊e ØS)
 
 ## 0. One‑liner
 
-**Promptware is a GitHub‑hosted, Markdown‑based library of skills and personas for AI agents, where everything is discovered via URLs and executed via remote Deno tools.**
+**PromptWar̊e ØS is a GitHub‑hosted, Markdown‑based library of skills and personas for AI agents, where everything is discovered via URLs and executed via remote Deno tools.**
 
 One line in `agents.md` → a whole bookshelf of reusable skills and tools.
 
@@ -12,7 +12,7 @@ One line in `agents.md` → a whole bookshelf of reusable skills and tools.
 
 Today, every AI agent project hand‑maintains its own prompts, skills, and tool configs: `.claude/skills`, Copilot rules, Gemini configs, etc. They drift, duplicate, and become impossible to keep consistent across multiple repos.
 
-**Promptware** turns all of that into a **single shared library**:
+**PromptWar̊e ØS** turns all of that into a **single shared library**:
 
 * All skills and personas live as **human‑readable Markdown** in a GitHub repo (`ShipFail/promptware`).
 * Agents get **one canonical URL** in their system prompt that points to their persona; the persona then points to a mini‑library index.
@@ -20,7 +20,7 @@ Today, every AI agent project hand‑maintains its own prompts, skills, and tool
 
 No more copying config files across projects. No more updating skills in five places. You maintain one library; your AI co‑founders read from it on demand.
 
-Over time, Promptware can grow from a “toy library” into a **Promptware OS**: a text‑first operating system of skills, tools, and philosophies, booted by a single line of prompt.
+Over time, PromptWar̊e ØS can grow from a “toy library” into a **PromptWar̊e ØS**: a text‑first operating system of skills, tools, and philosophies, booted by a single line of prompt.
 
 ---
 
@@ -88,7 +88,7 @@ Humans learn from libraries:
 
 We can give AI agents the same:
 
-* A **global Promptware library** for maintainers.
+* A **global PromptWar̊e ØS library** for maintainers.
 * A **mini‑library per agent persona**, with their favorite and most relevant “books”.
 * All reachable via URLs.
 
@@ -102,13 +102,13 @@ Agents don’t need to “carry” all skills in their context all the time. The
 
 ## 4. Design principles
 
-These principles guide all of Promptware’s design decisions.
+These principles guide all of PromptWar̊e ØS’s design decisions.
 
 ### 4.1 Radical simplicity
 
 * The integration surface for any project should be **one line in `agents.md` or the system prompt**.
 * No required `.claude/skills` sync, no heavy local config.
-* If you know how to read Markdown and fetch a URL, you can use Promptware.
+* If you know how to read Markdown and fetch a URL, you can use PromptWar̊e ØS.
 
 ### 4.2 URL as the primitive
 
@@ -126,7 +126,7 @@ These principles guide all of Promptware’s design decisions.
 
 ### 4.4 Library metaphor: global library vs. mini‑libraries
 
-* There is a **global Promptware library** in `ShipFail/promptware`:
+* There is a **global PromptWar̊e ØS library** in `ShipFail/promptware`:
 
   * Maintainer‑facing indexes, shelves, and skills.
 * Each AI co‑founder has **two views** into that library:
@@ -152,14 +152,14 @@ These principles guide all of Promptware’s design decisions.
   deno run --allow-all <tool-url> --help
   ```
 
-* This keeps Promptware docs lean, while giving tools a canonical source of truth for their interface.
+* This keeps PromptWar̊e ØS docs lean, while giving tools a canonical source of truth for their interface.
 
 ### 4.7 No local sync required
 
-* Promptware **does not require** syncing files into `.claude/skills` or other special folders.
+* PromptWar̊e ØS **does not require** syncing files into `.claude/skills` or other special folders.
 * Projects are free to add convenience sync layers later, but the core contract is:
 
-  * “Agents read Promptware over HTTP.”
+  * “Agents read PromptWar̊e ØS over HTTP.”
 
 ---
 
@@ -167,14 +167,14 @@ These principles guide all of Promptware’s design decisions.
 
 ### 5.1 Components
 
-* **Promptware repo**: `ShipFail/promptware`
+* **PromptWar̊e ØS repo**: `ShipFail/promptware`
 
   * `library/` – Markdown “bookshelf” for skills, personas, and indexes.
   * `scripts/` – Deno tools callable via URL.
 
 * **AI projects** (e.g., Press0, MVW)
 
-  * Each project has an `agents.md` or system prompt that includes **one Promptware line**.
+  * Each project has an `agents.md` or system prompt that includes **one PromptWar̊e ØS line**.
 
 * **AI agents / runtimes**
 
@@ -187,18 +187,18 @@ These principles guide all of Promptware’s design decisions.
 2. A project’s agent is given a single “library URL” line in its prompt, pointing to its **persona file**.
 3. On demand, the agent:
 
-   * Fetches its persona page from Promptware.
+   * Fetches its persona page from PromptWar̊e ØS.
    * From there, follows a link to its **mini‑library index**.
    * From the index, follows links to specific skills and shelves.
    * Reads skill docs and (optionally) suggests Deno commands to run tools.
 
-No deployment steps beyond `git push`. As soon as Promptware is updated, all agents that read from it see the new content.
+No deployment steps beyond `git push`. As soon as PromptWar̊e ØS is updated, all agents that read from it see the new content.
 
 ---
 
-## 6. The Promptware Library layout
+## 6. The PromptWar̊e ØS Library layout
 
-A minimal initial layout for the Promptware repo:
+A minimal initial layout for the PromptWar̊e ØS repo:
 
 ```text
 ShipFail/promptware/
@@ -248,7 +248,7 @@ Personas define **who** the agent is; mini‑libraries define **what books** the
 
 ## 7. Persona & mini‑library design
 
-Promptware models each AI co‑founder with a **persona** and a separate **mini‑library index**.
+PromptWar̊e ØS models each AI co‑founder with a **persona** and a separate **mini‑library index**.
 
 * The **persona** is the smallest possible description of who the agent is and which product it serves.
 * The **mini‑library index** is a curated list of that agent’s favorite books (skills) and shelves.
@@ -382,11 +382,11 @@ The detailed usage of `format_ts.ts` lives inside the script’s `--help` output
 
 ## 9. Tools and the global usage pattern
 
-Tool usage is one of the most basic conventions across all Promptware skills, so we standardize it at a **global level**.
+Tool usage is one of the most basic conventions across all PromptWar̊e ØS skills, so we standardize it at a **global level**.
 
 ### 9.1 Global rule: how to use a Deno tool
 
-**When you want to use any tool referenced in a Promptware skill:**
+**When you want to use any tool referenced in a PromptWar̊e ØS skill:**
 
 1. Identify its Deno URL from the skill document.
 
@@ -429,7 +429,7 @@ This makes tools self‑documenting and safe for agents to experiment with.
 
 ## 10. Agent runtime pattern
 
-From the perspective of an AI agent, Promptware integration looks like this.
+From the perspective of an AI agent, PromptWar̊e ØS integration looks like this.
 
 ### 10.1 One‑liner in `agents.md`
 
@@ -450,7 +450,7 @@ When solving a task:
 1. **Start with local context** (user request, repo files, etc.).
 2. If you need higher‑level behavior or domain knowledge:
 
-   * Fetch your persona page from Promptware.
+   * Fetch your persona page from PromptWar̊e ØS.
 3. From the persona page:
 
    * Follow the link to your **mini‑library index**.
@@ -470,9 +470,9 @@ This pattern mirrors human behavior in a library and keeps token usage under con
 
 ## 11. Example flows
 
-### 11.1 Developer wiring Promptware into a new project
+### 11.1 Developer wiring PromptWar̊e ØS into a new project
 
-1. Add Promptware as a conceptual dependency (no submodule required).
+1. Add PromptWar̊e ØS as a conceptual dependency (no submodule required).
 
 2. In the project’s `agents.md` (or Claude system prompt):
 
@@ -481,9 +481,9 @@ This pattern mirrors human behavior in a library and keeps token usage under con
 3. Optionally add a section for human readers:
 
    ```md
-   ## Promptware
+   ## PromptWar̊e ØS
 
-   This project uses Promptware for shared AI skills and personas.
+   This project uses PromptWar̊e ØS for shared AI skills and personas.
    Persona URL:
    https://raw.githubusercontent.com/ShipFail/promptware/main/library/agents/press0.md
    ```
@@ -510,13 +510,13 @@ This pattern mirrors human behavior in a library and keeps token usage under con
 
 7. After reading the help, the agent constructs a more specific command using `chapters.json` as input.
 
-8. Agent uses the output to propose a layout plan, staying aligned with Promptware’s guidance.
+8. Agent uses the output to propose a layout plan, staying aligned with PromptWar̊e ØS’s guidance.
 
 ---
 
 ## 12. Future extensions
 
-Promptware v0 focuses on:
+PromptWar̊e ØS v0 focuses on:
 
 * Global library for maintainers.
 * Persona + mini‑library per AI co‑founder.
@@ -539,7 +539,7 @@ Future ideas include:
   * Periodic checks that skills and tools are valid, `--help` runs correctly, etc.
 * **Open standardization**:
 
-  * Documenting Promptware as a general pattern other teams can reuse.
+  * Documenting PromptWar̊e ØS as a general pattern other teams can reuse.
 
 All of these can be layered on without breaking the core contract: **one line in the agent prompt, everything discoverable via URLs.**
 
@@ -553,36 +553,36 @@ If you’re picking this up at a hackathon, here’s what you can build quickly:
 2. **Define one or two personas** (e.g., `press0.md`, `mvw.md`) and their mini‑library indexes (`press0.index.md`, `mvw.index.md`).
 3. **Write 3–5 core skills** as Markdown under `library/skills/`.
 4. **Implement at least one Deno tool** under `scripts/` with a good `--help`.
-5. **Wire one real project** (like Press0) to Promptware using the one‑liner in `agents.md`.
+5. **Wire one real project** (like Press0) to PromptWar̊e ØS using the one‑liner in `agents.md`.
 6. **Demo**:
 
    * Show the agent solving a task.
-   * Show how it fetches its persona and mini‑library index from Promptware.
+   * Show how it fetches its persona and mini‑library index from PromptWar̊e ØS.
    * Show how it calls a Deno tool via URL.
 
 At the end of the hackathon, you’ll have:
 
-* A working **Promptware library**.
+* A working **PromptWar̊e ØS library**.
 * At least one **AI co‑founder** using it in the wild.
 * A clear path to grow the library into a powerful shared brain for all your future agents.
 
 ---
 
-## 14. Promptware OS: long‑term vision
+## 14. PromptWar̊e ØS: long‑term vision
 
-Promptware v0 is a **library of Markdown books and Deno tools**, but over time it can evolve toward something closer to an **operating system for prompts and agents**.
+PromptWar̊e ØS v0 is a **library of Markdown books and Deno tools**, but over time it can evolve toward something closer to an **operating system for prompts and agents**.
 
 ### 14.1 From toy system to living OS
 
 In the early days of Unix and Minix, the systems looked like toys: small, hackable, and driven by a community of curious developers. Over time, as more tools, utilities, and conventions accumulated, they converged into a stable, powerful operating system with a clear philosophy.
 
-Promptware is at a similar early stage:
+PromptWar̊e ØS is at a similar early stage:
 
 * Today, it is a simple GitHub repo of skills, personas, and tools.
 * As more skills and agents are added, patterns and conventions will emerge.
-* Over years, this can harden into a **Promptware OS**: a stable ecosystem of prompts, tools, and philosophies.
+* Over years, this can harden into a **PromptWar̊e ØS**: a stable ecosystem of prompts, tools, and philosophies.
 
-### 14.2 Promptware as a filesystem for agents
+### 14.2 PromptWar̊e ØS as a filesystem for agents
 
 We can imagine `ShipFail/promptware` gradually taking on a **filesystem-like structure**, analogous to Unix:
 
@@ -593,7 +593,7 @@ We can imagine `ShipFail/promptware` gradually taking on a **filesystem-like str
 From an agent’s point of view, the **one-liner in `agents.md`** becomes a kind of **bootloader**:
 
 * It tells the agent where its kernel (persona) and userland (skills + tools) live.
-* The agent “boots” by fetching its persona, then pulling in the pieces of Promptware it needs to run.
+* The agent “boots” by fetching its persona, then pulling in the pieces of PromptWar̊e ØS it needs to run.
 
 Over time, we might converge on:
 
@@ -601,7 +601,7 @@ Over time, we might converge on:
 * Standard naming for skills and tools.
 * Shared expectations about how agents should navigate and execute within this tree.
 
-### 14.3 Promptware philosophy (a future “Unix philosophy” for prompts)
+### 14.3 PromptWar̊e ØS philosophy (a future “Unix philosophy” for prompts)
 
 Unix has a famous philosophy:
 
@@ -609,12 +609,12 @@ Unix has a famous philosophy:
 * Compose small tools.
 * Text as a universal interface.
 
-Promptware can develop an analogous philosophy for AI-native systems, for example:
+PromptWar̊e ØS can develop an analogous philosophy for AI-native systems, for example:
 
 * **A skill is a small, well-defined behavior.**
 * **A tool is a script with a clear `--help` and a single responsibility.**
 * **Markdown is the universal interface between humans and agents.**
-* **URLs are the syscalls of the Promptware OS.**
+* **URLs are the syscalls of the PromptWar̊e ØS.**
 
 These ideas don’t need to be fully defined now, but they give a direction:
 
@@ -624,13 +624,13 @@ These ideas don’t need to be fully defined now, but they give a direction:
 
 ### 14.4 Community and evolution
 
-Like early Unix, Promptware will likely evolve through:
+Like early Unix, PromptWar̊e ØS will likely evolve through:
 
 * Hackathons and experiments adding new skills and agents.
 * Refactors that reorganize the library structure.
-* Emergent patterns that later become **Promptware standards**.
+* Emergent patterns that later become **PromptWar̊e ØS standards**.
 
-The documentation you’re reading can serve as the **seed of a Promptware OS manifesto**. As the system grows, future contributors can:
+The documentation you’re reading can serve as the **seed of a PromptWar̊e ØS manifesto**. As the system grows, future contributors can:
 
 * Extend the philosophy section.
 * Propose directory conventions.
@@ -638,4 +638,4 @@ The documentation you’re reading can serve as the **seed of a Promptware OS ma
 
 The north star remains the same:
 
-> **One line in `agents.md` boots a whole Promptware OS for that agent, with everything else discoverable via Markdown and URLs.**
+> **One line in `agents.md` boots a whole PromptWar̊e ØS for that agent, with everything else discoverable via Markdown and URLs.**

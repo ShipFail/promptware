@@ -25,4 +25,4 @@ This skill references tools you can run with Deno.
 - `format-ts` – Format TypeScript files in the current project.  
   Deno URL: `/skills/book/format_ts.ts`
 
-Refer to the **global Deno tool usage rule** in Promptware docs when you want to actually run this tool.
+Refer to the **global Deno tool usage rule** in PromptWar̊e docs when you want to actually run this tool.

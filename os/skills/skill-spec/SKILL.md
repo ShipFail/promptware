@@ -1,11 +1,11 @@
 ---
-name: Promptware OS Agent Skill Specification
+name: PromptWar̊e ØS Agent Skill Specification
 description: Learn how to use SKILL by following this SKILL specification.
 ---
 
-# The SKILL.md Specification for Promptware OS
+# The SKILL.md Specification for PromptWar̊e ØS
 
-Promptware OS Agent Skills are based on the Anthropic Claude Agent Skills Spec, with below modifications and enhancements:
+PromptWar̊e ØS Agent Skills are based on the Anthropic Claude Agent Skills Spec, with below modifications and enhancements:
 
 1. all `scripts`/`tools` MUST written in TypeScript with Deno as runtime. No exceptions. 
 2. all `scripts`/`tools` MUST support standand CLI `--help` command and output the detailed usage description.

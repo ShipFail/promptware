@@ -341,7 +341,7 @@ If you cannot resolve a failure with the rules in this skill, clearly describe t
 
 ```yaml
 ---
-title: "Promptware OS: One Line to Boot Your AI Co-Founders"
+title: "PromptWar̊e ØS: One Line to Boot Your AI Co-Founders"
 excerpt: "Turn fragile, copy-pasted prompts into a shared operating system for your AI co-founders, booted by a single line in their setup."
 categories: "ideas"
 author: "huan"

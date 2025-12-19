@@ -1,7 +1,7 @@
 import { parseArgs } from "jsr:@std/cli/parse-args";
 
 const HELP_TEXT = `
-Promptware OS Kernel Memory Manager (Deno KV Edition)
+PromptWar̊e ØS Kernel Memory Manager (Deno KV Edition)
 Usage: deno run -A --unstable-kv --location <root_url> memory.ts <action> [key/prefix] [value]
 
 Actions:

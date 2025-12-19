@@ -26,7 +26,7 @@ syscalls:
     3. Context Switch: Adopt the *output* of the linker as your active context.
 ---
 
-# Promptware OS Kernel
+# PromptWar̊e ØS Kernel
 
 ## 1. Kernel Space (Immutable Laws)
 These laws persist regardless of the loaded Agent.

@@ -3,7 +3,7 @@ import { join, dirname, isAbsolute } from "jsr:@std/path";
 import { parseArgs } from "jsr:@std/cli/parse-args";
 
 const HELP_TEXT = `
-Promptware OS JIT Linker
+PromptWar̊e ØS JIT Linker
 Usage: deno run -A linker.ts <file_path>
 
 Description:

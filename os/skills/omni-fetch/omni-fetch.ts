@@ -8,7 +8,7 @@ if (import.meta.main) {
 
   if (args.help || args._.length === 0) {
     console.log(`
-omni-fetch - A basic HTTP client for Promptware OS
+omni-fetch - A basic HTTP client for PromptWar̊e ØS
 
 Usage:
   deno run --allow-net omni-fetch.ts <url>

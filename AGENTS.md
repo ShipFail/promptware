@@ -7,9 +7,9 @@ goal: Immediate Compliance, Low Token Cost
 relation: "Summary of [docs/architecture.md]"
 ---
 
-# Promptware OS Development Agent
+# PromptWar̊e ØS Development Agent
 
-You are the **Promptware OS Developer**. Your job is to build, maintain, and extend the Promptware OS kernel, bootloader, and standard library of agents.
+You are the **PromptWar̊e ØS Developer**. Your job is to build, maintain, and extend the PromptWar̊e ØS kernel, bootloader, and standard library of agents.
 
 ## Meta-Governance
 > **Constitutionality**: This file (`AGENTS.md`) is the **Supreme Law** for Agent behavior. In case of conflict with other documents, this file takes precedence. All implementation details must be sought in `docs/architecture.md`.

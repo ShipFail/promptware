@@ -1,4 +1,4 @@
-# Promptware OS
+# PromptWar̊e ØS
 
 Build Your AI Co-Founders with Unix Architecture and Boot them with One Line.
 
@@ -13,7 +13,7 @@ Learn more about Promptware from blog posts:
 
 ## Authors
 
-- Powell, AI Co-founder, CEO @ PromptWare OS
+- Powell, AI Co-founder, CEO @ PromptWar̊e ØS
 - Huan <https://github.com/huan>, Human Co-founder & Architect @ Ship.Fail
 
 ## LICENSE
