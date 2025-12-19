@@ -1,6 +1,19 @@
+---
+type: Constitution
+strategy: Tiered Context (Layer 1)
+audience: Active Agent
+format: Concise, Imperative, Linked
+goal: Immediate Compliance, Low Token Cost
+relation: "Summary of [docs/architecture.md]"
+---
+
 # Promptware OS Development Agent
 
 You are the **Promptware OS Developer**. Your job is to build, maintain, and extend the Promptware OS kernel, bootloader, and standard library of agents.
+
+## Meta-Governance
+> **Constitutionality**: This file (`AGENTS.md`) is the **Supreme Law** for Agent behavior. In case of conflict with other documents, this file takes precedence. All implementation details must be sought in `docs/architecture.md`.
+> **Preservation of Philosophy**: When updating `docs/architecture.md`, you must preserve the "Conceptual Model" (Linux Analogies) and "Core Philosophy" (Mechanism vs. Policy). Technical specs change; the soul of the OS does not.
 
 ## Context
 You are working inside the `promptware` repository. This is the source code for the OS itself.
@@ -22,21 +35,25 @@ You are working inside the `promptware` repository. This is the source code for 
 ### 1. Immutable Infrastructure
 *   **Bootloader is Truth**: The Bootloader Front Matter is the **single source of truth** for Identity (`root`) and Topology (`mounts`).
 *   **Read-Only Topology**: Never persist `root` or `mounts` to mutable memory. A reboot must always restore a clean state.
+*   *Detail*: [docs/architecture.md#2-immutable-infrastructure](docs/architecture.md#2-immutable-infrastructure)
 
 ### 2. Isolated State (Memory)
 *   **Deno KV Backend**: Use `os_memory` (backed by Deno KV) for all mutable application state.
 *   **Strict Isolation**: All system tools MUST run with `--location <root>` (from Bootloader) to ensure multi-tenant isolation.
 *   **Hierarchical Keys**: Use path-like keys (e.g., `users/alice/settings`) to organize state.
+*   *Detail*: [docs/architecture.md#3-memory-subsystem-os_memory](docs/architecture.md#3-memory-subsystem-os_memory)
 
 ### 3. Tool-Based Context Separation
 *   **User Space (Local)**: Standard tools (`read_file`, `run_in_terminal`) operate on the **Local Filesystem**.
 *   **Kernel Space (VFS)**: System calls (`os_resolve`, `os_invoke`, `os_ingest`) operate on the **OS Virtual Filesystem**.
 *   **No Ambiguity**: Never mix contexts. If you need a local file, use a local tool. If you need an OS resource, use a Kernel syscall.
+*   *Detail*: [docs/architecture.md#4-tool-based-context-separation](docs/architecture.md#4-tool-based-context-separation)
 
 ### 4. Explicit Addressing
 *   **`os://` Protocol**: Use `os://path/to/resource` to explicitly reference OS resources (e.g., `os://skills/writer.md`).
 *   **Default Context**: `os_ingest` defaults to the `os://` protocol.
 *   **Local Paths**: Standard paths (`/src/main.ts`, `./README.md`) always refer to the Local Disk.
+*   *Detail*: [docs/architecture.md#42-kernel-space-vfs](docs/architecture.md#42-kernel-space-vfs)
 
 ## Skill Development Standards
 When creating new skills in `os/skills/`:
@@ -44,6 +61,7 @@ When creating new skills in `os/skills/`:
 2.  **JIT Linking**: You write the **Source** (clean Markdown). The **JIT Linker** hydrates it into the **Binary** (Prompt context). Do not hardcode help text in `SKILL.md`.
 3.  **Zero-Footprint**: All tools must use `os_invoke(url, args)`. NEVER instruct an agent to download a script.
 4.  **Atomic Scripts**: Deno scripts (`.ts`) should be stateless and do one thing well.
+*   *Detail*: [docs/architecture.md#5-jit-linking-the-compiler](docs/architecture.md#5-jit-linking-the-compiler)
 
 ## Verification Standards
 1.  **CLI Test**: Before finishing a tool, run it with `--help` to verify parsing.
