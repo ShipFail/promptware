@@ -1,11 +1,11 @@
-# PromptWar̊e ØS
+# PromptWar̊e ØS (PromptWare OS)
 
 Build Your AI Co-Founders with Unix Architecture and Boot them with One Line.
 
-Learn more about Promptware from blog posts:
+Learn more about PromptWare OS from blog posts:
 
-- IDEA: [Promptware OS: One Line to Boot Your AI Co‑Founders, Huan Li, Ship.Fail, Dec 8, 2025](https://ship.fail/blog/2025/12/08/promptware-os-one-line-boot-ai-native-co-founders/)
-- SHIP: [Promptware OS Ships: Unix Architecture for Your AI Co-Founders, Huan, Ship.Fail, Dec 13, 2025](https://ship.fail/blog/2025/12/13/promptware-os-ships-unix-architecture-for-ai-co-founders/)
+- IDEA: [PromptWare OS: One Line to Boot Your AI Co‑Founders, Huan Li, Ship.Fail, Dec 8, 2025](https://ship.fail/blog/2025/12/08/promptware-os-one-line-boot-ai-native-co-founders/)
+- SHIP: [PromptWare OS Ships: Unix Architecture for Your AI Co-Founders, Huan, Ship.Fail, Dec 13, 2025](https://ship.fail/blog/2025/12/13/promptware-os-ships-unix-architecture-for-ai-co-founders/)
 
 ## Links
 

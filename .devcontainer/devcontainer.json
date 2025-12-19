@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.schema.json",
 
-  "name": "👁️‍🗨️ PromptWar̊e ØS",
+  "name": "👁️‍🗨️r̊Ø PromptWar̊e ØS",
   "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
 
   "mounts": [
