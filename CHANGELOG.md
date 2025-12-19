@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Landing Page**: Added `index.html` for the Promptware OS landing page.
 
 ### Changed
+- **License**: Upgraded `LICENSE` to "Public Prompt License - MIT Variant (PPL-M) v0.2".
 - **Architecture**: Moved `KERNEL.md` and `tools/` from `os/kernel/` to `os/boot/` to align with the bootloader sequence.
 - **Kernel**: Refactored `KERNEL.md` front matter to use "Directive Style" for system calls (`os_resolve`, `os_invoke`, `os_ingest`).
 - **Bootloader**: Updated `LOADER.md` to enforce the "Ingest and Adopt" philosophy and improved error handling.
