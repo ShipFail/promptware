@@ -26,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dev Container**: Renamed container to "Promptware OS" and added npm package support.
 
 ### Fixed
-- **Context Drift**: `os_resolve` now uses `os_memory` as the "Source of Truth" for the root path, preventing LLM hallucinations in long sessions.
+- **Context Drift**: `os_resolve` now uses **Bootloader Front Matter** as the "Source of Truth" for `root` and `mounts`, ensuring immutable infrastructure and preventing hallucinations.
 - **Tooling**: Refactored `memory.ts` to use `jsr:@std/cli` and `jsr:@std/fs` instead of deprecated `deno.land` imports.
 
 ## [0.1.0] - 2025-12-07

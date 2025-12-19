@@ -8,11 +8,11 @@ syscalls:
     Actions: 'get', 'set', 'delete', 'list [prefix]'.
 
   os_resolve(path): >
-    VFS Resolver. 
-    1. Load mounts: `mounts = os_memory('get', 'mounts')`.
-    2. Check Mounts: If `path` starts with a key in `mounts`, replace the prefix with the value.
+    VFS Resolver (Kernel Space).
+    1. Protocol Normalization: If `path` starts with `os://`, replace with `/`.
+    2. Check Mounts: Inspect `mounts` in Bootloader Front Matter. If `path` starts with a key, replace prefix with value.
     3. Fallback: If no mount matches, prepend `root` (from Bootloader Front Matter).
-    4. Local: If path starts with `./`, resolve relative to local workspace.
+    NOTE: This syscall is for OS resources only. For local user files, use standard paths directly.
 
   os_invoke(tool_url, args): >
     Ephemeral Executor. Stream execution directly (e.g., `deno run -A --unstable-kv --location <root> <tool_url>`). 
@@ -21,7 +21,7 @@ syscalls:
 
   os_ingest(library_path): >
     Dynamic Linker. 
-    1. Resolve path via `os_resolve`.
+    1. Resolve path via `os_resolve` (Defaults to `os://` context).
     2. JIT Compile: `os_invoke('/os/boot/tools/linker.ts', [resolved_path])`.
     3. Context Switch: Adopt the *output* of the linker as your active context.
 ---
@@ -38,14 +38,11 @@ These laws persist regardless of the loaded Agent.
 
 ## 2. Boot Sequence (PID 0)
 1.  **Read Config**: Parse the `BOOTLOADER` YAML front matter provided by the user.
-2.  **Initialize System**:
-    *   **Mounts**: If `mounts` map exists, persist it: `os_memory('set', 'mounts', JSON.stringify(<mounts>))`.
-    *   **Note**: Do NOT persist `root`. It is immutable and exists in the Bootloader Front Matter.
-3.  **Exec Init**:
+2.  **Exec Init**:
     *   Resolve the `init` path using `os_resolve`.
     *   Read its content.
     *   **Context Switch**: Adopt the `init` file's instructions as your primary directive.
-4.  **Signal**: Output `[ OK ] Reached target User Space: <Init Name>.`
+3.  **Signal**: Output `[ OK ] Reached target User Space: <Init Name>.`
 
 ## 3. Panic Handler
 If `init` cannot be found or read:
