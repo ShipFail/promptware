@@ -55,6 +55,12 @@ You are working inside the `promptware` repository. This is the source code for 
 *   **Local Paths**: Standard paths (`/src/main.ts`, `./README.md`) always refer to the Local Disk.
 *   *Detail*: [docs/architecture.md#42-kernel-space-vfs](docs/architecture.md#42-kernel-space-vfs)
 
+### 5. Semantic Precision
+*   **Mechanism Agnosticism**: Define *intent* (e.g., "Ingest from URI"), not *implementation* (e.g., "Use fetch_webpage"). Allow the agent to select the best tool.
+*   **Protocol Precision**: Use **URI** (not URL) to refer to resources. Respect schemes (`os://`, `file://`, `https://`).
+*   **Active Verbs**: Use **Ingest** when loading code/prompts that modify behavior. Use **Read** only for passive data.
+*   **Explicit Referencing**: Refer to components by their actual filenames (e.g., `LOADER.md`, not "The Bootloader") to avoid ambiguity.
+
 ## Skill Development Standards
 When creating new skills in `os/skills/`:
 1.  **Library Definition**: `SKILL.md` acts as a header file. It maps high-level functions to Kernel System Calls.
