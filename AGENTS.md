@@ -70,6 +70,8 @@ You are working inside the `promptware` repository. This is the source code for 
 *   **Explicit Referencing**: Refer to components by their actual filenames (e.g., `LOADER.md`, not "The Bootloader") to avoid ambiguity.
 *   **Bilingual Kernel**: Use **English** for logic flow (If/Else/Loop) and **TypeScript** snippets *only* for precise data transformations (e.g., `new URL(...)`). Minimize code usage.
 *   **Law of Language**: Ensure all generated prompts explicitly state that code snippets are TypeScript.
+*   **The "Assembly" Metaphor**: Think of **English** as the C language (High-Level Logic) and **TypeScript** as the Assembly language (Low-Level Precision). Write in English by default; drop to TypeScript only when necessary.
+*   **Header/Implementation Pattern**: Define the *Interface* (Signature) in the Front Matter and the *Implementation* (Logic) in the Body. This reinforces the schema for the Agent.
 
 ## Skill Development Standards
 When creating new skills in `os/skills/`:

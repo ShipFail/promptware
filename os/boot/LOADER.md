@@ -1,5 +1,5 @@
 ---
-version: "0.2"
+version: "0.3"
 root: "https://raw.githubusercontent.com/ShipFail/promptware/refs/heads/main/os/"
 kernel: "/boot/KERNEL.md"
 init: "/agents/powell.md"

@@ -5,7 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.3.0] - 2025-12-20
+
+### Changed
+- **License**: Upgraded to "Public Prompt License - Apache Variant (PPL-A) v0.2".
+- **Architecture**: Adopted "Bilingual Kernel" philosophy (English for Intent, TypeScript for Precision).
+- **Kernel**: Refactored `KERNEL.md` to use "Literate TypeScript" blocks for system call definitions (`os_resolve`, `os_memory`, etc.).
+- **Bootloader**: Updated `LOADER.md` to use TypeScript expressions for URI construction (`new URL(...)`) to eliminate ambiguity.
+- **Terminology**: Standardized on **URI** (instead of URL) and **Ingest** (instead of Fetch/Read) across the system.
+- **Versioning**: Locked bootloader root to `refs/heads/main` for immutable infrastructure.
+
+## [0.2.0] - 2025-12-19
 
 ### Added
 - **Kernel Memory**: Implemented `os_memory` syscall and `memory.ts` tool to persist critical state using **Deno KV** with `--location` based isolation.
