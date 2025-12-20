@@ -4,8 +4,8 @@ Title: PromptWar̊e ØS Skill Specification
 Author: Huan Li
 Status: Draft
 Type: Standards Track
-Created: 2025-01-XX
-Updated: 2025-01-XX
+Created: 2025-12-20
+Updated: 2025-12-20
 ---
 
 # PromptWare OS Skill Specification (RFC v0.1)

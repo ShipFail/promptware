@@ -1,0 +1,188 @@
+---
+RFC: 0000
+Title: PromptWar̊e ØS RFC Process Guide
+Author: Huan Li
+Status: Draft
+Type: Process
+Created: 2025-12-20
+Updated: 2025-12-20
+---
+
+# RFC 0000: PromptWar̊e ØS RFC Process Guide
+
+## 1. Purpose
+
+This document defines the **process, structure, and lifecycle** for PromptWar̊e ØS RFCs. It establishes how design proposals are:
+
+* written,
+* reviewed,
+* accepted,
+* implemented,
+* and archived.
+
+RFC 0000 itself does **not** specify product behavior; rather, it specifies **how all other RFCs must be managed**.
+
+---
+
+## 2. Goals
+
+The RFC process aims to:
+
+1. Provide a **clear, consistent, lightweight** format for technical proposals.
+2. Ensure that major design decisions are **discoverable** and **preserved historically**.
+3. Allow both humans and AI co-founders to reason through design evolution.
+4. Keep the system **minimalist**, aligned with PromptWar̊e ØS philosophy.
+
+---
+
+## 3. When an RFC Is Required
+
+An RFC **SHOULD** be created when a change:
+
+* introduces a new PromptWar̊e ØS subsystem or concept,
+* alters user-facing behavior,
+* affects compatibility guarantees,
+* impacts execution semantics (skills, kernel, bootloader, memory, etc.),
+* defines a new standard or profile (e.g., Skill spec extensions).
+
+An RFC **MAY** be created for documentation improvements, philosophical statements, or process updates.
+
+Small implementation details **SHOULD NOT** require an RFC.
+
+---
+
+## 4. RFC File Location & Naming
+
+All RFCs **MUST** live in the repository under:
+
+```
+rfcs/
+```
+
+Each RFC filename **MUST** use the following pattern:
+
+```
+<4-digit-number>-<kebab-case-title>.md
+```
+
+Examples:
+
+* `0001-promptware-skill-spec.md`
+* `0002-kernel-memory-model.md`
+
+RFC numbers:
+
+* **MUST** be assigned sequentially,
+* **MUST** remain immutable,
+* **MUST NOT** be reused.
+
+---
+
+## 5. RFC Metadata Header (Template)
+
+Every RFC **MUST** begin with the following Frontmatter YAML header block:
+
+```yaml
+---
+RFC: <number>
+Title: <human-readable title>
+Author: <name(s)>
+Status: <Draft | Accepted | Final | Superseded>
+Type: <Standards Track | Informational | Process>
+Created: <YYYY-MM-DD>
+Updated: <YYYY-MM-DD>
+---
+```
+
+Example for RFC 0001:
+
+
+```yaml
+---
+RFC: 0001
+Title: PromptWar̊e ØS Skill Specification
+Author: Huan Li
+Status: Draft
+Type: Standards Track
+Created: 2025-01-20
+Updated: 2025-01-20
+---
+```
+
+---
+
+## 6. RFC Lifecycle
+
+### 6.1 Draft
+
+A proposal under active development. An RFC in Draft:
+
+* **MAY** change rapidly,
+* **MAY** solicit comments from contributors,
+* **MUST NOT** be considered stable.
+
+### 6.2 Accepted
+
+An RFC is fully reviewed and approved. It:
+
+* **MUST** reflect final intended design,
+* **SHOULD** be stable,
+* **MAY** still permit minor editorial updates.
+
+### 6.3 Final
+
+The RFC is fully implemented in PromptWar̊e ØS.
+
+### 6.4 Superseded
+
+The RFC has been replaced by a new RFC. The file remains for historical purposes.
+
+---
+
+## 7. Review Process
+
+1. Author drafts RFC in the `rfcs/` directory.
+2. Discussion occurs via issues, pull requests, AI-assisted review, or synchronous sessions.
+3. When consensus is reached, the RFC status becomes **Accepted**.
+4. After implementation, the RFC becomes **Final**.
+
+PromptWar̊e ØS prioritizes **speed and founder intuition** over committee governance. Consensus may be declared by the project owner.
+
+---
+
+## 8. Style Guidelines
+
+RFCs **SHOULD**:
+
+* be written in **clear, concise Markdown**,
+* use **BCP 14 keywords** appropriately,
+* separate **motivation**, **design**, **rationale**, and **compatibility**,
+* include diagrams or examples when useful.
+
+RFCs **MAY**:
+
+* include alternative designs,
+* provide migration notes,
+* reference external documents.
+
+---
+
+## 9. AI Co-Founder Considerations
+
+RFCs **SHOULD** be written so that both humans and AI agents:
+
+* can parse the structure easily,
+* can progressively reason about design changes,
+* can ingest RFCs as part of a boot sequence or training corpus.
+
+RFCs **MAY** include machine-readable blocks, schemas, or instructions for agent behavior.
+
+---
+
+## 10. Conclusion
+
+RFC 0000 establishes a unified, minimal, forward-compatible process for PromptWar̊e ØS technical evolution. It ensures that new ideas are documented, discoverable, and preserved, without imposing unnecessary friction or ceremony.
+
+The guiding principle of PromptWar̊e ØS RFCs is:
+
+> **Document the future, but stay minimal.**
