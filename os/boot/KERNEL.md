@@ -61,7 +61,7 @@ declare function adopt(context: string): void;
  * Keys are hierarchical paths (e.g., `users/alice/settings`).
  */
 async function osMemory(action: 'get' | 'set' | 'delete' | 'list', key: string, value?: any): Promise<any> {
-  return osDenoExec('boot/tools/syscall.ts', ['--root', params.root, 'memory', action, key, value]);
+  return osDenoExec('boot/syscalls/memory.ts', ['--root', params.root, action, key, value]);
 }
 
 /**
@@ -69,7 +69,7 @@ async function osMemory(action: 'get' | 'set' | 'delete' | 'list', key: string, 
  * Resolves paths relative to the current file (TypeScript Style).
  */
 async function osResolve(uri: string, base: string = __filename): Promise<string> {
-  return osDenoExec('boot/tools/syscall.ts', ['--root', params.root, 'resolve', uri, base]);
+  return osDenoExec('boot/syscalls/resolve.ts', ['--root', params.root, uri, base]);
 }
 
 /**
@@ -94,7 +94,7 @@ async function osDenoExec(toolPath: string, args: any[]): Promise<any> {
  */
 async function osIngest(uri: string): Promise<void> {
   // The Software Kernel handles fetching and hydration
-  const content = await osDenoExec('boot/tools/syscall.ts', ['--root', params.root, 'ingest', uri]);
+  const content = await osDenoExec('boot/syscalls/ingest.ts', ['--root', params.root, uri]);
   
   // Update the Context Register
   // Note: In a real execution, we'd need the resolved path back from the tool to set this accurately.

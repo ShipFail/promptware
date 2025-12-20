@@ -30,7 +30,7 @@ Promptware OS v0.4 introduces a strict separation between **Intent** (what the A
     *   **Language**: English (Intent) + Literate TypeScript (Interface).
     *   **Function**: Defines the *Why* and *What*. It acts as a high-level dispatcher.
     *   **Analogy**: Ring 0 / User Space.
-*   **Software Kernel (`syscall.ts`)**:
+*   **Software Kernel (`syscalls/*.ts`)**:
     *   **Role**: The "Body" or "Hardware".
     *   **Language**: Pure TypeScript (Compiled Binary).
     *   **Function**: Defines the *How*. It handles I/O, memory, and path resolution deterministically.
@@ -56,9 +56,9 @@ To solve the **Bootstrap Paradox** (where an Agent forgets its own root), we enf
 *   **Rule**: All internal OS paths must be relative to the **OS Root** or the **Current Context**.
 *   **Mechanism**: The Software Kernel resolves paths against `params.root` to ensure portability.
 
-## 3. The Software Kernel (`syscall.ts`)
+## 3. The Software Kernel (`syscalls/*.ts`)
 
-The "Hardware" is a monolithic TypeScript binary located at `os/boot/tools/syscall.ts`. It provides three core physical capabilities:
+The "Hardware" is a collection of atomic TypeScript binaries located at `os/boot/syscalls/`. It provides three core physical capabilities:
 
 ### 3.1 Path Resolution (`resolve`)
 *   **Problem**: LLMs struggle with relative paths (`../`) and context.
@@ -122,9 +122,10 @@ The system follows a strict, stateless boot sequence:
     ├── boot/           # Kernel Space
     │   ├── KERNEL.md   # Promptware Kernel (Interface)
     │   ├── LOADER.md   # Bootloader Spec
-    │   └── tools/      # Software Kernel (Implementation)
-    │       ├── syscall.ts      # The Monolithic Binary
-    │       └── syscall.test.ts # Physics Verification
+    │   └── syscalls/   # Software Kernel (Implementation)
+    │       ├── resolve.ts      # Path Resolution
+    │       ├── ingest.ts       # JIT Linker
+    │       └── memory.ts       # Memory Subsystem
     ├── agents/         # User Space (Personas)
     └── skills/         # Shared Libraries (Capabilities)
 ```
