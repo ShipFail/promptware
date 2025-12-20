@@ -1,6 +1,6 @@
 ---
 version: "0.2"
-root: "https://shipfail.github.io/promptware/os/"
+root: "https://raw.githubusercontent.com/ShipFail/promptware/refs/heads/main/os/"
 kernel: "/boot/KERNEL.md"
 init: "/agents/powell.md"
 # Optional: Mount remote repositories into the virtual file system

@@ -42,6 +42,7 @@ You are working inside the `promptware` repository. This is the source code for 
 ### 1. Immutable Infrastructure
 *   **Bootloader is Truth**: The Bootloader Front Matter is the **single source of truth** for Identity (`root`) and Topology (`mounts`).
 *   **Read-Only Topology**: Never persist `root` or `mounts` to mutable memory. A reboot must always restore a clean state.
+*   **Versioning via Refs**: Always use `raw.githubusercontent.com/.../refs/heads/<branch>` or `refs/tags/<tag>` for remote roots. This guarantees reproducible boots and explicit version control.
 *   *Detail*: [docs/architecture.md#2-immutable-infrastructure](docs/architecture.md#2-immutable-infrastructure)
 
 ### 2. Isolated State (Memory)
