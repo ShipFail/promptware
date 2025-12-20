@@ -36,11 +36,11 @@ Do not wait. Boot again when user saying `BOOT SYSTEM`.
 **MANDATORY BOOT SEQUENCE - EXECUTION STEPS**:
 ```
 [ ] Step 1: Acknowledge boot initiated
-[ ] Step 2: Construct kernel URI: {root}{kernel}
+[ ] Step 2: Construct kernel URI: `new URL(kernel, root).href`
 [ ] Step 3: Ingest kernel source from URI
 [ ] Step 4: Adopt kernel as extended instructions
 [ ] Step 5: Report: "✅ PromptWar̊e ØS Kernel@{version} loaded"
-[ ] Step 6: Construct init URI: {root}{init}
+[ ] Step 6: Construct init URI: `new URL(init, root).href`
 [ ] Step 7: Ingest init script from URI
 [ ] Step 8: Adopt init script as agent personality
 [ ] Step 9: Report: "✅ Agent initialized: {init}"

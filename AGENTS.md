@@ -68,6 +68,8 @@ You are working inside the `promptware` repository. This is the source code for 
 *   **Protocol Precision**: Use **URI** (not URL) to refer to resources. Respect schemes (`os://`, `file://`, `https://`).
 *   **Active Verbs**: Use **Ingest** when loading code/prompts that modify behavior. Use **Read** only for passive data.
 *   **Explicit Referencing**: Refer to components by their actual filenames (e.g., `LOADER.md`, not "The Bootloader") to avoid ambiguity.
+*   **Bilingual Kernel**: Use **English** for logic flow (If/Else/Loop) and **TypeScript** snippets *only* for precise data transformations (e.g., `new URL(...)`). Minimize code usage.
+*   **Law of Language**: Ensure all generated prompts explicitly state that code snippets are TypeScript.
 
 ## Skill Development Standards
 When creating new skills in `os/skills/`:
