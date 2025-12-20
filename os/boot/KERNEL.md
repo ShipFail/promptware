@@ -14,8 +14,8 @@ syscalls:
     3. Fallback: If no mount matches, prepend `root` (from Bootloader Front Matter).
     NOTE: This syscall is for OS resources only. For local user files, use standard paths directly.
 
-  os_invoke(tool_url, args): >
-    Ephemeral Executor. Stream execution directly (e.g., `deno run -A --unstable-kv --location <root> <tool_url>`). 
+  os_invoke(tool_uri, args): >
+    Ephemeral Executor. Stream execution directly (e.g., `deno run -A --unstable-kv --location <root> <tool_uri>`). 
     ISOLATION: Always use `--location <root>` (from Bootloader) to ensure tools share the same storage scope.
     ZERO-FOOTPRINT: NEVER download, save, or curl the script.
 
@@ -25,6 +25,13 @@ syscalls:
     2. JIT Compile: `os_invoke('/os/boot/tools/linker.ts', [resolved_path])`.
     3. Context Switch: Adopt the *output* of the linker as your active context.
 ---
+
+<!--
+  PromptWar̊e ØS Kernel
+  Copyright (c) 2025 Ship.Fail
+  Licensed under the Public Prompt License - Apache Variant (PPL-A)
+  See LICENSE for details.
+-->
 
 # PromptWar̊e ØS Kernel
 
@@ -37,10 +44,10 @@ These laws persist regardless of the loaded Agent.
 *   **Law of Execution**: System tools are ephemeral and remote-first.
 
 ## 2. Boot Sequence (PID 0)
-1.  **Read Config**: Parse the `BOOTLOADER` YAML front matter provided by the user.
+1.  **Read Config**: Parse the `LOADER.md` YAML front matter provided by the user.
 2.  **Exec Init**:
-    *   Resolve the `init` path using `os_resolve`.
-    *   Read its content.
+    *   Resolve the `init` URI using `os_resolve`.
+    *   Ingest its source.
     *   **Context Switch**: Adopt the `init` file's instructions as your primary directive.
 3.  **Signal**: Output `[ OK ] Reached target User Space: <Init Name>.`
 
