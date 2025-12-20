@@ -10,7 +10,7 @@ Updated: 2025-09-20
 
 # RFC 0001: Unified Consistent Naming Convention for Multi-Tech Stack
 
-# 1. Summary
+## 1. Summary
 
 This RFC defines a **unified naming convention** for the Ship.Fail umbrella project, covering **Swift (iOS)**, **TypeScript (Firebase)**, **RESTful APIs**, **Firestore/RTDB**, and **environment variables**. The goal is to maintain uniformity and reduce cognitive load by adopting a single naming convention across all layers of the stack.
 
@@ -18,7 +18,7 @@ This RFC defines a **unified naming convention** for the Ship.Fail umbrella proj
 
 ---
 
-# 2. Motivation
+## 2. Motivation
 
 In a multi-stack environment, inconsistent naming leads to confusion, unnecessary translation between layers, and potential errors. A unified approach:
 
@@ -29,7 +29,7 @@ In a multi-stack environment, inconsistent naming leads to confusion, unnecessar
 
 ---
 
-# 3. Goals & Non-Goals
+## 3. Goals & Non-Goals
 
 ### Goals
 
@@ -45,7 +45,7 @@ In a multi-stack environment, inconsistent naming leads to confusion, unnecessar
 
 ---
 
-# 4. Detailed Design
+## 4. Detailed Design
 
 This section specifies the global naming rules and provides a quick reference table for clarity.
 
@@ -84,7 +84,7 @@ This section specifies the global naming rules and provides a quick reference ta
 
 ---
 
-# 5. Compatibility
+## 5. Compatibility
 
 *   **Backward Compatibility**: This RFC is not backward compatible with code that uses different conventions. Legacy code will require refactoring to comply.
 *   **Migration**: All pre-release snake\_case identifiers have been migrated. Introducing new snake\_case internally is considered a **regression** and must be rejected in code review.
@@ -92,7 +92,7 @@ This section specifies the global naming rules and provides a quick reference ta
 
 ---
 
-# 6. Rationale
+## 6. Rationale
 
 *   **Consistency**: camelCase across all layers prevents translation overhead.
 *   **Clarity**: PascalCase for types aligns with OOP conventions.
@@ -103,7 +103,7 @@ This section specifies the global naming rules and provides a quick reference ta
 
 ---
 
-# 7. Alternatives Considered
+## 7. Alternatives Considered
 
 *   **snake\_case for Firestore fields**: rejected — inconsistent with app/API.
 *   **PascalCase API routes**: rejected — not idiomatic REST.
@@ -111,13 +111,13 @@ This section specifies the global naming rules and provides a quick reference ta
 
 ---
 
-# 8. Security Considerations
+## 8. Security Considerations
 
 This RFC has no direct security implications, as it pertains only to naming conventions and code style.
 
 ---
 
-# 9. Implementation Plan
+## 9. Implementation Plan
 
 1.  Apply convention to all new code.
 2.  Refactor legacy names gradually during active development.
@@ -126,26 +126,34 @@ This RFC has no direct security implications, as it pertains only to naming conv
 
 ---
 
-# 10. Future Directions
+## 10. Future Directions
 
 None.
 
 ---
 
-# 11. Unresolved Questions
+## 11. Unresolved Questions
 
 None.
 
 ---
 
-# 12. References
+## 12. References
 
 *   [RFC 0000: RFC Process Guide](0000-rfc-process-guide.md)
 
 ---
-# Appendix B: Examples
+## Appendix B: Examples
 
 1.  **Swift (iOS)**: The app uses `userProfile` and sends a request with the `userId` parameter.
 2.  **REST API (TypeScript/Firebase)**: Processes the request and accesses Firestore using `userProfile`.
 3.  **Firestore**: Stores fields such as `userId`, `userProfile`, and `userStatus`, under collection `user-profiles`.
 4.  **Response**: Returns JSON with camelCase keys, e.g. `userProfile`.
+
+## Appendix: Errata & Notes
+
+None.
+
+---
+
+End of RFC 0001

@@ -59,6 +59,10 @@ Updated: <YYYY-MM-DD>
 * **Final**: Implemented.
 * **Superseded**: Replaced by a later RFC.
 
+### 🧾 Errata
+
+Accepted and Final RFCs are **normatively frozen**. Non-breaking clarifications are appended in an internal `Appendix: Errata & Notes` section.
+
 ### 🎯 Design Principles
 
 PromptWar̊e ØS RFCs prioritize:

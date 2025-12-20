@@ -10,7 +10,7 @@ Updated: <YYYY-MM-DD>
 
 # RFC 0000-TEMPLATE: <Title of Proposal>
 
-# 1. Summary
+## 1. Summary
 
 A short, clear explanation of *what this RFC proposes*.
 
@@ -18,7 +18,7 @@ This SHOULD be no more than a few sentences, understandable to both humans and A
 
 ---
 
-# 2. Motivation
+## 2. Motivation
 
 Explain **why** this change is needed.
 
@@ -30,7 +30,7 @@ This section SHOULD include:
 
 ---
 
-# 3. Goals & Non-Goals
+## 3. Goals & Non-Goals
 
 ### Goals
 
@@ -42,7 +42,7 @@ List explicitly what this RFC does **not** intend to solve.
 
 ---
 
-# 4. Detailed Design
+## 4. Detailed Design
 
 This is the core of the RFC.
 
@@ -57,7 +57,7 @@ Diagrams, pseudocode, schemas, or examples MAY be included when helpful.
 
 ---
 
-# 5. Compatibility
+## 5. Compatibility
 
 Describe how this proposal interacts with:
 
@@ -73,7 +73,7 @@ The RFC MUST specify whether it is:
 
 ---
 
-# 6. Rationale
+## 6. Rationale
 
 Explain *why this design was chosen*, especially when alternatives exist.
 
@@ -81,7 +81,7 @@ This SHOULD describe tradeoffs, constraints, simplicity, and alignment with Prom
 
 ---
 
-# 7. Alternatives Considered
+## 7. Alternatives Considered
 
 List and briefly evaluate other designs or approaches.
 
@@ -93,7 +93,7 @@ These MAY include:
 
 ---
 
-# 8. Security Considerations
+## 8. Security Considerations
 
 If applicable, explain any security implications.
 
@@ -107,7 +107,7 @@ If this RFC has no security implications, state so.
 
 ---
 
-# 9. Implementation Plan
+## 9. Implementation Plan
 
 Outline steps required to implement this RFC.
 
@@ -120,19 +120,19 @@ This MAY include:
 
 ---
 
-# 10. Future Directions
+## 10. Future Directions
 
 Optional section for plausible extensions or long-term considerations.
 
 ---
 
-# 11. Unresolved Questions
+## 11. Unresolved Questions
 
 List any open concerns or issues that require further discussion.
 
 ---
 
-# 12. References
+## 12. References
 
 List related RFCs, specs, external documents, or research.
 
@@ -144,12 +144,35 @@ This MAY include:
 
 ---
 
-# Appendix A: Glossary (Optional)
+## Appendix A: Glossary (Optional)
 
 Define any specialized terms introduced by this RFC.
 
 ---
 
-# Appendix B: Examples (Optional)
+## Appendix B: Examples (Optional)
 
 Provide concrete, implementation-level examples when valuable.
+
+---
+
+## Appendix: Errata & Notes (Append-Only)
+
+If this RFC is **Accepted** or **Final**, append errata here.
+
+If none, write:
+
+```
+None.
+```
+
+Erratum format:
+
+```
+Erratum 0001 (YYYY-MM-DD):
+- <Clarification or non-normative note.>
+```
+
+---
+
+End of RFC XXXX

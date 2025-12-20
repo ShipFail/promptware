@@ -1,6 +1,6 @@
 ---
 RFC: 0000
-Title: PromptWar̊e ØS RFC Process Guide
+Title: PromptWar̊e ØS (Pr̊ØS) RFC Process Guide
 Author: Huan Li
 Status: Draft
 Type: Process
@@ -12,7 +12,7 @@ Updated: 2025-12-20
 
 ## 1. Purpose
 
-This document defines the **process, structure, and lifecycle** for PromptWar̊e ØS RFCs. It establishes how design proposals are:
+This document defines the **process, structure, and lifecycle** for Pr̊ØS (PromptWar̊e ØS) RFCs. It establishes how design proposals are:
 
 * written,
 * reviewed,
@@ -139,7 +139,41 @@ The RFC has been replaced by a new RFC. The file remains for historical purposes
 
 ---
 
-## 7. Review Process
+## 7. Immutability & Errata
+
+Once an RFC reaches **Accepted** or **Final**, the **normative sections are immutable**. Edits to normative meaning are not permitted.
+
+### 7.1 Errata (Append-Only)
+
+Non-breaking improvements **MAY** be appended under an internal appendix section titled:
+
+```
+Appendix: Errata & Notes
+```
+
+Errata entries:
+
+* **MUST** be append-only.
+* **MUST NOT** modify or contradict normative sections.
+* **MUST** be clearly dated and scoped.
+* **SHOULD** clarify intent, fix minor errors, or add non-normative examples.
+
+Example format:
+
+```
+Appendix: Errata & Notes
+
+Erratum 0001 (2026-03-01):
+- Clarifies that URL-first execution may fall back to local scripts.
+```
+
+### 7.2 When a New RFC Is Required
+
+Any change that affects **normative behavior** (MUST/SHOULD/MAY semantics) or introduces a **breaking or semantic** change **MUST** be published as a new RFC, which may supersede the prior one.
+
+---
+
+## 8. Review Process
 
 1. Author drafts RFC in the `rfcs/` directory.
 2. Discussion occurs via issues, pull requests, AI-assisted review, or synchronous sessions.
@@ -150,7 +184,7 @@ PromptWar̊e ØS prioritizes **speed and founder intuition** over committee gove
 
 ---
 
-## 8. Style Guidelines
+## 9. Style Guidelines
 
 RFCs **SHOULD**:
 
@@ -167,7 +201,7 @@ RFCs **MAY**:
 
 ---
 
-## 9. AI Co-Founder Considerations
+## 10. AI Co-Founder Considerations
 
 RFCs **SHOULD** be written so that both humans and AI agents:
 
@@ -179,10 +213,14 @@ RFCs **MAY** include machine-readable blocks, schemas, or instructions for agent
 
 ---
 
-## 10. Conclusion
+## 11. Conclusion
 
 RFC 0000 establishes a unified, minimal, forward-compatible process for PromptWar̊e ØS technical evolution. It ensures that new ideas are documented, discoverable, and preserved, without imposing unnecessary friction or ceremony.
 
 The guiding principle of PromptWar̊e ØS RFCs is:
 
 > **Document the future, but stay minimal.**
+
+---
+
+End of RFC 0000
