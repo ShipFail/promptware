@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2025-12-20
+
+### Changed
+- **Architecture**: Upgraded to "Promptware/Software Dualism".
+    - **Promptware Kernel**: `KERNEL.md` (Interface/Intent).
+    - **Software Kernel**: `syscall.ts` (Implementation/Physics).
+- **Kernel**: Refactored `KERNEL.md` to use `camelCase` (`osResolve`, `osIngest`) and `osDenoExec`.
+- **Hardware**: Created monolithic `os/boot/tools/syscall.ts` to handle all low-level operations (resolve, ingest, memory).
+- **Path Resolution**: Implemented "TypeScript Import" style resolution (relative to `__filename`) backed by the Software Kernel.
+- **Testing**: Added `syscall.test.ts` to verify kernel physics.
+- **Cleanup**: Removed obsolete `linker.ts` and `memory.ts`.
+
 ## [0.3.0] - 2025-12-20
 
 ### Changed

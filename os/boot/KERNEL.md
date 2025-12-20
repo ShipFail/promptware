@@ -1,18 +1,18 @@
 ---
-version: 0.3.0
+version: 0.4.0
 arch: LLM-Native
 syscalls:
-  - name: os_memory
-    signature: "os_memory(action, key, value?): Promise<any>"
+  - name: osMemory
+    signature: "osMemory(action, key, value?): Promise<any>"
     description: "Kernel State Manager (Deno KV)"
-  - name: os_resolve
-    signature: "os_resolve(uri: string): string"
-    description: "VFS Resolver (os:// -> https://)"
-  - name: os_invoke
-    signature: "os_invoke(tool_uri: string, args: any[]): Promise<any>"
-    description: "Ephemeral Executor (Deno Run)"
-  - name: os_ingest
-    signature: "os_ingest(library_uri: string): void"
+  - name: osResolve
+    signature: "osResolve(uri: string, base?: string): Promise<string>"
+    description: "VFS Resolver (Relative -> Absolute)"
+  - name: osDenoExec
+    signature: "osDenoExec(toolPath: string, args: any[]): Promise<any>"
+    description: "Software Kernel Bridge (Deno Run)"
+  - name: osIngest
+    signature: "osIngest(uri: string): Promise<void>"
     description: "Dynamic Linker (JIT Compile & Context Switch)"
 ---
 
@@ -48,6 +48,10 @@ interface KernelParameters {
 // The active kernel parameters injected at boot
 declare const params: KernelParameters;
 
+// Global Register: Tracks the current execution context (file path)
+// Updated automatically by the Kernel during a Context Switch (adopt)
+declare let __filename: string;
+
 // Intrinsic System Functions (LLM Capabilities)
 declare function exec(command: string): Promise<string>;
 declare function adopt(context: string): void;
@@ -56,37 +60,31 @@ declare function adopt(context: string): void;
  * Kernel State Manager.
  * Keys are hierarchical paths (e.g., `users/alice/settings`).
  */
-function os_memory(action: 'get' | 'set' | 'delete' | 'list', key: string, value?: any): Promise<any> {
-  return os_invoke('/os/boot/tools/memory.ts', [action, key, value]);
+async function osMemory(action: 'get' | 'set' | 'delete' | 'list', key: string, value?: any): Promise<any> {
+  return osDenoExec('boot/tools/syscall.ts', ['--root', params.root, 'memory', action, key, value]);
 }
 
 /**
  * VFS Resolver (Kernel Space).
- * Normalizes virtual URIs (os://) to physical URIs (https://).
+ * Resolves paths relative to the current file (TypeScript Style).
  */
-function os_resolve(uri: string): string {
-  // 1. Protocol Normalization
-  if (uri.startsWith("os://")) uri = uri.replace("os://", "/");
-  
-  // 2. Mount Resolution
-  if (params.mounts) {
-    for (const [prefix, target] of Object.entries(params.mounts)) {
-      if (uri.startsWith(prefix)) return uri.replace(prefix, target);
-    }
-  }
-  
-  // 3. Root Fallback
-  return new URL(uri, params.root).href;
+async function osResolve(uri: string, base: string = __filename): Promise<string> {
+  return osDenoExec('boot/tools/syscall.ts', ['--root', params.root, 'resolve', uri, base]);
 }
 
 /**
- * Ephemeral Executor.
- * Stream execution directly without saving to disk.
+ * Software Kernel Bridge.
+ * Executes a Deno script from the boot/tools directory.
  */
-function os_invoke(tool_uri: string, args: any[]): Promise<any> {
+async function osDenoExec(toolPath: string, args: any[]): Promise<any> {
+  // Resolve tool path against OS Root (Law of Anchoring)
+  const toolUri = new URL(toolPath, params.root).href;
+  
+  // Quote arguments to handle spaces safely
+  const safeArgs = args.map(a => (typeof a === 'string' && a.includes(' ')) ? `"${a}"` : a).join(' ');
+  
   // ISOLATION: Always use --location <root> to ensure tools share the same storage scope.
-  // ZERO-FOOTPRINT: NEVER download, save, or curl the script.
-  const cmd = `deno run -A --unstable-kv --location ${params.root} ${tool_uri} ${args.join(' ')}`;
+  const cmd = `deno run -A --unstable-kv --location ${params.root} ${toolUri} ${safeArgs}`;
   return exec(cmd);
 }
 
@@ -94,10 +92,15 @@ function os_invoke(tool_uri: string, args: any[]): Promise<any> {
  * Dynamic Linker.
  * Resolves, Compiles, and Context Switches to a new library.
  */
-function os_ingest(library_uri: string): void {
-  const resolved = os_resolve(library_uri);
-  // JIT Compile & Hydrate
-  const content = os_invoke('/os/boot/tools/linker.ts', [resolved]);
+async function osIngest(uri: string): Promise<void> {
+  // The Software Kernel handles fetching and hydration
+  const content = await osDenoExec('boot/tools/syscall.ts', ['--root', params.root, 'ingest', uri]);
+  
+  // Update the Context Register
+  // Note: In a real execution, we'd need the resolved path back from the tool to set this accurately.
+  // For now, we assume the LLM updates its mental model of __filename to the new URI.
+  __filename = await osResolve(uri); 
+  
   // Context Switch
   adopt(content);
 }
@@ -106,9 +109,8 @@ function os_ingest(library_uri: string): void {
 ## 3. Boot Sequence (PID 0)
 1.  **Read Config**: Parse the `LOADER.md` YAML front matter provided by the user.
 2.  **Ingest Init**:
-    *   Resolve the `init` URI using `os_resolve`.
-    *   Ingest its source.
-    *   **Context Switch**: Adopt the `init` file's instructions as your primary directive.
+    *   Call `osIngest(params.init)`.
+    *   This will resolve the URI, fetch source, and trigger `adopt`.
 3.  **Signal**: Output `[ OK ] Reached target User Space: <Init Name>.`
 
 ## 4. Panic Handler

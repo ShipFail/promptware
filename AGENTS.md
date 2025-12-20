@@ -37,7 +37,7 @@ You are working inside the `promptware` repository. This is the source code for 
 3.  **Agent Standard Library**: Develop and refine agents in `os/agents/`.
 4.  **Skill Development**: Create reusable skills in `os/skills/`.
 
-## Architecture & Design Rules (v0.2)
+## Architecture & Design Rules (v0.4)
 
 ### 1. Immutable Infrastructure
 *   **Bootloader is Truth**: The Bootloader Front Matter is the **single source of truth** for Identity (`root`) and Topology (`mounts`).
@@ -46,44 +46,41 @@ You are working inside the `promptware` repository. This is the source code for 
 *   *Detail*: [docs/architecture.md#2-immutable-infrastructure](docs/architecture.md#2-immutable-infrastructure)
 
 ### 2. Isolated State (Memory)
-*   **Deno KV Backend**: Use `os_memory` (backed by Deno KV) for all mutable application state.
+*   **Deno KV Backend**: Use `osMemory` (backed by Deno KV) for all mutable application state.
 *   **Strict Isolation**: All system tools MUST run with `--location <root>` (from Bootloader) to ensure multi-tenant isolation.
 *   **Hierarchical Keys**: Use path-like keys (e.g., `users/alice/settings`) to organize state.
 *   *Detail*: [docs/architecture.md#3-memory-subsystem-os_memory](docs/architecture.md#3-memory-subsystem-os_memory)
 
 ### 3. Tool-Based Context Separation
 *   **User Space (Local)**: Standard tools (`read_file`, `run_in_terminal`) operate on the **Local Filesystem**.
-*   **Kernel Space (VFS)**: System calls (`os_resolve`, `os_invoke`, `os_ingest`) operate on the **OS Virtual Filesystem**.
+*   **Kernel Space (VFS)**: System calls (`osResolve`, `osDenoExec`, `osIngest`) operate on the **OS Virtual Filesystem**.
 *   **No Ambiguity**: Never mix contexts. If you need a local file, use a local tool. If you need an OS resource, use a Kernel syscall.
 *   *Detail*: [docs/architecture.md#4-tool-based-context-separation](docs/architecture.md#4-tool-based-context-separation)
 
 ### 4. Explicit Addressing
 *   **`os://` Protocol**: Use `os://path/to/resource` to explicitly reference OS resources (e.g., `os://skills/writer.md`).
-*   **Default Context**: `os_ingest` defaults to the `os://` protocol.
+*   **Default Context**: `osIngest` defaults to the `os://` protocol.
 *   **Local Paths**: Standard paths (`/src/main.ts`, `./README.md`) always refer to the Local Disk.
 *   *Detail*: [docs/architecture.md#42-kernel-space-vfs](docs/architecture.md#42-kernel-space-vfs)
 
-### 5. Semantic Precision
-*   **Mechanism Agnosticism**: Define *intent* (e.g., "Ingest from URI"), not *implementation* (e.g., "Use fetch_webpage"). Allow the agent to select the best tool.
-*   **Protocol Precision**: Use **URI** (not URL) to refer to resources. Respect schemes (`os://`, `file://`, `https://`).
-*   **Active Verbs**: Use **Ingest** when loading code/prompts that modify behavior. Use **Read** only for passive data.
-*   **Explicit Referencing**: Refer to components by their actual filenames (e.g., `LOADER.md`, not "The Bootloader") to avoid ambiguity.
-*   **Bilingual Kernel**: Use **English** for logic flow (If/Else/Loop) and **TypeScript** snippets *only* for precise data transformations (e.g., `new URL(...)`). Minimize code usage.
-*   **Law of Language**: Ensure all generated prompts explicitly state that code snippets are TypeScript.
-*   **The "Assembly" Metaphor**: Think of **English** as the C language (High-Level Logic) and **TypeScript** as the Assembly language (Low-Level Precision). Write in English by default; drop to TypeScript only when necessary.
-*   **Header/Implementation Pattern**: Define the *Interface* (Signature) in the Front Matter and the *Implementation* (Logic) in the Body. This reinforces the schema for the Agent.
+### 5. Promptware/Software Dualism
+*   **Promptware Kernel (`KERNEL.md`)**: The "Soul" of the OS. Written in English (Intent) and Literate TypeScript (Interface). It defines *why* things happen.
+*   **Software Kernel (`syscall.ts`)**: The "Body" of the OS. Written in pure TypeScript. It defines *how* things happen (I/O, Physics, Determinism).
+*   **The Law of Tangibility**: Never implement complex logic (URL parsing, regex) in the Promptware Kernel. Always dispatch to the Software Kernel via `osDenoExec`.
+*   **The Law of Anchoring**: All internal OS paths must be relative to the **OS Root** or the **Current Context** (`__filename`).
+*   **The Law of Language**: Use `camelCase` for all Kernel APIs to match TypeScript conventions.
 
 ## Skill Development Standards
 When creating new skills in `os/skills/`:
 1.  **Library Definition**: `SKILL.md` acts as a header file. It maps high-level functions to Kernel System Calls.
 2.  **JIT Linking**: You write the **Source** (clean Markdown). The **JIT Linker** hydrates it into the **Binary** (Prompt context). Do not hardcode help text in `SKILL.md`.
-3.  **Zero-Footprint**: All tools must use `os_invoke(url, args)`. NEVER instruct an agent to download a script.
+3.  **Zero-Footprint**: All tools must use `osDenoExec(url, args)`. NEVER instruct an agent to download a script.
 4.  **Atomic Scripts**: Deno scripts (`.ts`) should be stateless and do one thing well.
 *   *Detail*: [docs/architecture.md#5-jit-linking-the-compiler](docs/architecture.md#5-jit-linking-the-compiler)
 
 ## Verification Standards
 1.  **CLI Test**: Before finishing a tool, run it with `--help` to verify parsing.
-2.  **Syscall Test**: When modifying the Kernel, simulate a syscall in the terminal (e.g., `deno run ... memory.ts get root`) to prove it works.
+2.  **Unit Test**: All Kernel Tools must have a corresponding `.test.ts` file verifying their logic.
 3.  **Changelog**: All architectural changes must be logged in `CHANGELOG.md`.
 
 ## Directives
@@ -100,7 +97,7 @@ All system tools (e.g., in `os/boot/tools/`) must adhere to the **Dual-Mode Arch
     *   Use **JSR imports** exclusively (e.g., `jsr:@std/cli`, `jsr:@std/fs`).
     *   Use `parseArgs` from `jsr:@std/cli/parse-args` for CLI argument handling.
 
-2.  **Dual-Mode Architecture**: 
-    *   Tools must be both **executable** (CLI) and **importable** (Module).
-    *   **Module**: Export a named async function (e.g., `export async function memory(...)`) containing the core logic.
-    *   **CLI**: The `main` entry point (`if (import.meta.main)`) must parse arguments and invoke the exported function.
+2.  **Monolithic Kernel**: 
+    *   Core OS logic resides in `os/boot/tools/syscall.ts`.
+    *   Do not create fragmented tools for core functions (resolve, ingest, memory).
+    *   Use `deno test` to verify kernel physics.
