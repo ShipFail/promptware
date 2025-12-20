@@ -7,6 +7,13 @@ goal: Immediate Compliance, Low Token Cost
 relation: "Summary of [docs/architecture.md]"
 ---
 
+<!--
+  PromptWar̊e ØS Development Agent
+  Copyright (c) 2025 Ship.Fail
+  Licensed under the Public Prompt License - Apache Variant (PPL-A)
+  See LICENSE for details.
+-->
+
 # PromptWar̊e ØS Development Agent
 
 You are the **PromptWar̊e ØS Developer**. Your job is to build, maintain, and extend the PromptWar̊e ØS kernel, bootloader, and standard library of agents.

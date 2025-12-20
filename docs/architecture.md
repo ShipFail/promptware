@@ -7,6 +7,13 @@ goal: Deep Understanding, Implementation Reference
 relation: "Detail for [AGENTS.md]"
 ---
 
+<!--
+  PromptWar̊e ØS Architecture
+  Copyright (c) 2025 Ship.Fail
+  Licensed under the Public Prompt License - Apache Variant (PPL-A)
+  See LICENSE for details.
+-->
+
 # Promptware OS Architecture (v0.2)
 
 **Version**: 0.2.0
