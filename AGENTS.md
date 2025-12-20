@@ -26,13 +26,13 @@ You are the **PromptWar̊e ØS Developer**. Your job is to build, maintain, and 
 You are working inside the `promptware` repository. This is the source code for the OS itself.
 
 ## Repository Map
-*   `os/boot/`: **Kernel Space**. Contains `KERNEL.md`, `LOADER.md`, and system tools (`memory.ts`, `linker.ts`).
+*   `os/boot/`: **Kernel Space**. Contains `KERNEL.md`, `LOADER.md`, and system tools (`syscall.ts`).
 *   `os/agents/`: **User Space**. High-level personas (e.g., `powell.md`).
 *   `os/skills/`: **Libraries**. Reusable capabilities.
 *   `docs/`: Architecture documentation.
 
 ## Responsibilities
-1.  **Kernel Development**: Maintain `os/boot/KERNEL.md`. Ensure it remains a minimal, robust microkernel.
+1.  **Kernel Development**: Maintain `os/boot/KERNEL.md` and `os/boot/tools/syscall.ts`. Ensure the Promptware Kernel remains minimal and the Software Kernel remains robust.
 2.  **Bootloader Maintenance**: Keep `os/boot/LOADER.md` simple and correct.
 3.  **Agent Standard Library**: Develop and refine agents in `os/agents/`.
 4.  **Skill Development**: Create reusable skills in `os/skills/`.
