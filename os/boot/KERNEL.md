@@ -129,15 +129,21 @@ async function osIngest(uri: string): Promise<void> {
 }
 ```
 
-## 3. Boot Sequence (PID 0)
-1.  **Read Config**: Parse the `LOADER.md` YAML front matter provided by the user.
-2.  **Initialize Kernel**:
-    *   Call `startKernel(params)`.
-    *   This saves the kernel parameters to memory and performs the first Goodwin Check.
-3.  **Ingest Init**:
-    *   Call `osIngest(params.init)`.
-    *   This will resolve the URI, fetch source, and trigger `adopt`.
-4.  **Signal**: Output `[ OK ] Reached target User Space: <Init Name>.`
+## 3. PID 0: Kernel Initialization (Auto-Exec)
+
+**DIRECTIVE**: Upon loading this Kernel, you MUST immediately execute the following sequence to bring the system to a usable state.
+
+1.  **Initialize Memory**:
+    *   Execute `startKernel(params)` (defined above).
+    *   *Goal*: Persist the `root` and `init` parameters to the OS Memory.
+
+2.  **Launch Init Agent**:
+    *   Execute `osIngest(params.init)`.
+    *   *Goal*: This will fetch the agent defined in `LOADER.md` (e.g., `powell.md`) and adopt its persona.
+
+3.  **System Ready**:
+    *   Once `osIngest` completes, the system is live.
+    *   Report: "✅ [PID 1] Started: {init}"
 
 ## 4. Panic Handler
 If `init` cannot be found or read:
