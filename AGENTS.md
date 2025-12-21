@@ -101,3 +101,5 @@ All system tools (e.g., in `os/boot/tools/`) must adhere to the **Dual-Mode Arch
     *   Core OS logic is split into atomic microservices: `resolve.ts`, `ingest.ts`, `memory.ts`.
     *   All tools must run via the Supervisor (`deno-exec.ts`) to enforce the Goodwin Check.
     *   Use `deno test` to verify kernel physics.
+
+3.  **Naming Standard**: Follow idiomatic TypeScript conventions (`kebab-case` for files, `camelCase` for symbols). Exception: System Artifacts use `UPPER_CASE` (e.g., `KERNEL.md`).
