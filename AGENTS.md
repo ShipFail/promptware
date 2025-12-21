@@ -37,7 +37,7 @@ You are working inside the `promptware` repository. This is the source code for 
 3.  **Agent Standard Library**: Develop and refine agents in `os/agents/`.
 4.  **Skill Development**: Create reusable skills in `os/skills/`.
 
-## Architecture & Design Rules (v0.4)
+## Architecture & Design Rules (v0.5)
 
 ### 1. Immutable Infrastructure
 *   **Bootloader is Truth**: The Bootloader Front Matter is the **single source of truth** for Identity (`root`) and Topology (`mounts`).
@@ -97,7 +97,7 @@ All system tools (e.g., in `os/boot/tools/`) must adhere to the **Dual-Mode Arch
     *   Use **JSR imports** exclusively (e.g., `jsr:@std/cli`, `jsr:@std/fs`).
     *   Use `parseArgs` from `jsr:@std/cli/parse-args` for CLI argument handling.
 
-2.  **Monolithic Kernel**: 
-    *   Core OS logic resides in `os/boot/tools/syscall.ts`.
-    *   Do not create fragmented tools for core functions (resolve, ingest, memory).
+2.  **Microkernel Architecture**: 
+    *   Core OS logic is split into atomic microservices: `resolve.ts`, `ingest.ts`, `memory.ts`.
+    *   All tools must run via the Supervisor (`deno-exec.ts`) to enforce the Goodwin Check.
     *   Use `deno test` to verify kernel physics.

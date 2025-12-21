@@ -1,10 +1,12 @@
 import { parseArgs } from "jsr:@std/cli/parse-args";
 import { join, dirname } from "jsr:@std/path";
+import { getKernelParams } from "./goodwin.ts";
 
 /**
  * PromptWar̊e ØS Syscall: Resolve
  * Resolves a URI against a Base and Root.
  * Implements the "Law of Anchoring" and "TypeScript Import" style.
+ * Loads mounts from Memory (Goodwin Check assumed passed by Supervisor).
  */
 
 const HELP_TEXT = `
@@ -31,12 +33,35 @@ function isUrl(path: string): boolean {
 /**
  * Resolves a URI against a Base and Root.
  */
-export function resolveUri(root: string, uri: string, base?: string): string {
+export async function resolveUri(root: string, uri: string, base?: string): Promise<string> {
   // 1. Absolute URLs (http://, https://, file://)
   if (isUrl(uri)) {
     // Handle os:// protocol
     if (uri.startsWith("os://")) {
+      const kv = await Deno.openKv();
+      let mounts: Record<string, string> | undefined;
+      try {
+        const params = await getKernelParams(kv);
+        mounts = params.mounts;
+      } finally {
+        kv.close();
+      }
+
       const path = uri.replace("os://", "");
+      
+      // Check mounts first
+      if (mounts) {
+        const parts = path.split("/");
+        const topLevel = parts[0];
+        if (mounts[topLevel]) {
+           const rest = parts.slice(1).join("/");
+           // If mount is a URL, resolve against it
+           if (isUrl(mounts[topLevel])) {
+             return new URL(rest, mounts[topLevel]).href;
+           }
+        }
+      }
+
       return new URL(path, root).href;
     }
     return uri;
@@ -91,7 +116,7 @@ async function main() {
   }
 
   try {
-    console.log(resolveUri(root, uri, base));
+    console.log(await resolveUri(root, uri, base));
   } catch (e: any) {
     console.error(`Error: ${e.message}`);
     Deno.exit(1);

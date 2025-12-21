@@ -1,8 +1,10 @@
 import { parseArgs } from "jsr:@std/cli/parse-args";
+// import { goodwinCheck } from "./goodwin.ts"; // Removed: Supervisor handles check
 
 /**
  * PromptWar̊e ØS Syscall: Memory
  * Manages OS memory using Deno KV.
+ * Goodwin Check assumed passed by Supervisor.
  */
 
 const HELP_TEXT = `
@@ -18,36 +20,37 @@ Options:
   --help, -h      Show this help message.
 `;
 
-export async function memory(action: string, keyStr?: string, value?: string): Promise<void> {
-  const kv = await Deno.openKv(); // Uses default location or --location flag (passed via Deno args in real usage, but here we rely on caller context or default)
-  // Note: In a real deployment, we'd want to pass the location based on root, but Deno KV location is a CLI flag to the Deno process, not an API option.
-  // So we assume the caller (Kernel) runs this script with --location <root_hash> if needed.
-  
-  try {
-    const parseKey = (k: string) => k.split("/").filter(p => p.length > 0);
+export async function memory(kv: Deno.Kv, action: string, keyStr?: string, value?: string): Promise<void> {
+  const parseKey = (k: string) => k.split("/").filter(p => p.length > 0);
 
-    if (action === "set") {
-      if (!keyStr || value === undefined) throw new Error("Missing key or value");
-      await kv.set(parseKey(keyStr), value);
-      console.log(`[ OK ] Set ${keyStr}`);
-    } else if (action === "get") {
-      if (!keyStr) throw new Error("Missing key");
-      const res = await kv.get(parseKey(keyStr));
-      console.log(res.value === null ? "[ NULL ]" : res.value);
-    } else if (action === "delete") {
-      if (!keyStr) throw new Error("Missing key");
-      await kv.delete(parseKey(keyStr));
-      console.log(`[ OK ] Deleted ${keyStr}`);
-    } else if (action === "list") {
-      const prefix = keyStr ? parseKey(keyStr) : [];
-      for await (const entry of kv.list({ prefix })) {
-        console.log(`${entry.key.join("/")}: ${entry.value}`);
-      }
-    } else {
-      throw new Error(`Unknown action: ${action}`);
+  if (action === "set") {
+    if (!keyStr || value === undefined) throw new Error("Missing key or value");
+    
+    let valToSave: any = value;
+    try {
+      // Try to parse as JSON to save structured data
+      valToSave = JSON.parse(value);
+    } catch {
+      // If parsing fails, save as string
     }
-  } finally {
-    kv.close();
+
+    await kv.set(parseKey(keyStr), valToSave);
+    console.log(`[ OK ] Set ${keyStr}`);
+  } else if (action === "get") {
+    if (!keyStr) throw new Error("Missing key");
+    const res = await kv.get(parseKey(keyStr));
+    console.log(res.value === null ? "[ NULL ]" : res.value);
+  } else if (action === "delete") {
+    if (!keyStr) throw new Error("Missing key");
+    await kv.delete(parseKey(keyStr));
+    console.log(`[ OK ] Deleted ${keyStr}`);
+  } else if (action === "list") {
+    const prefix = keyStr ? parseKey(keyStr) : [];
+    for await (const entry of kv.list({ prefix })) {
+      console.log(`${entry.key.join("/")}: ${entry.value}`);
+    }
+  } else {
+    throw new Error(`Unknown action: ${action}`);
   }
 }
 
@@ -63,8 +66,6 @@ async function main() {
     Deno.exit(0);
   }
 
-  // Root is technically not used inside the function logic (Deno KV handles isolation via --location flag on process start),
-  // but we keep it for consistency with the syscall signature.
   const root = args.root;
   if (!root) {
     console.error("Error: --root <url> is required.");
@@ -80,11 +81,17 @@ async function main() {
     Deno.exit(1);
   }
 
+  const kv = await Deno.openKv();
   try {
-    await memory(action, key, value);
+    // Goodwin Check removed (Supervisor handles it)
+    // await goodwinCheck(kv);
+    
+    await memory(kv, action, key, value);
   } catch (e: any) {
     console.error(`Error: ${e.message}`);
     Deno.exit(1);
+  } finally {
+    kv.close();
   }
 }
 

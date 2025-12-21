@@ -1,5 +1,5 @@
 ---
-version: 0.4.0
+version: 0.5.0
 arch: LLM-Native
 syscalls:
   - name: osMemory
@@ -57,6 +57,24 @@ declare function exec(command: string): Promise<string>;
 declare function adopt(context: string): void;
 
 /**
+ * INTERNAL KERNEL ROUTINE (PID 0 ONLY)
+ * Initializes the Memory Subsystem and performs the initial Goodwin Check.
+ * BYPASSES Supervisor (deno-exec.ts) because it establishes the truth.
+ */
+async function startKernel(params: KernelParameters): Promise<void> {
+  // Bootstrap: Save params to memory (Bypassing Supervisor)
+  // We use memory.ts directly to save the structured params object.
+  const toolUri = new URL('boot/syscalls/memory.ts', params.root).href;
+  
+  // Serialize params to JSON (escaping quotes for CLI)
+  const serialized = JSON.stringify(params).replace(/"/g, '\\"');
+  
+  // ISOLATION: Always use --location <root>
+  const cmd = `deno run -A --unstable-kv --location ${params.root} ${toolUri} --root ${params.root} set /proc/cmdline "${serialized}"`;
+  return exec(cmd);
+}
+
+/**
  * Kernel State Manager.
  * Keys are hierarchical paths (e.g., `users/alice/settings`).
  */
@@ -74,7 +92,8 @@ async function osResolve(uri: string, base: string = __filename): Promise<string
 
 /**
  * Software Kernel Bridge.
- * Executes a Deno script from the boot/tools directory.
+ * Executes a Deno script via the Supervisor (deno-exec.ts).
+ * Enforces Goodwin Check.
  */
 async function osDenoExec(toolPath: string, args: any[]): Promise<any> {
   // Resolve tool path against OS Root (Law of Anchoring)
@@ -83,8 +102,12 @@ async function osDenoExec(toolPath: string, args: any[]): Promise<any> {
   // Quote arguments to handle spaces safely
   const safeArgs = args.map(a => (typeof a === 'string' && a.includes(' ')) ? `"${a}"` : a).join(' ');
   
+  // SUPERVISOR: Run via deno-exec.ts to enforce Goodwin Check
+  const supervisorUri = new URL('boot/syscalls/deno-exec.ts', params.root).href;
+  
   // ISOLATION: Always use --location <root> to ensure tools share the same storage scope.
-  const cmd = `deno run -A --unstable-kv --location ${params.root} ${toolUri} ${safeArgs}`;
+  // Note: We pass --root to supervisor, which passes it to the child.
+  const cmd = `deno run -A --unstable-kv --location ${params.root} ${supervisorUri} --root ${params.root} ${toolUri} ${safeArgs}`;
   return exec(cmd);
 }
 
@@ -108,10 +131,13 @@ async function osIngest(uri: string): Promise<void> {
 
 ## 3. Boot Sequence (PID 0)
 1.  **Read Config**: Parse the `LOADER.md` YAML front matter provided by the user.
-2.  **Ingest Init**:
+2.  **Initialize Kernel**:
+    *   Call `startKernel(params)`.
+    *   This saves the kernel parameters to memory and performs the first Goodwin Check.
+3.  **Ingest Init**:
     *   Call `osIngest(params.init)`.
     *   This will resolve the URI, fetch source, and trigger `adopt`.
-3.  **Signal**: Output `[ OK ] Reached target User Space: <Init Name>.`
+4.  **Signal**: Output `[ OK ] Reached target User Space: <Init Name>.`
 
 ## 4. Panic Handler
 If `init` cannot be found or read:
