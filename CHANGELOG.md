@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2025-12-21
+
+### Changed
+- **Architecture**: Upgraded to "Microservices Architecture" (Pure Unix).
+    - Split monolithic `syscall.ts` into atomic tools: `resolve.ts`, `ingest.ts`, `memory.ts`.
+    - Introduced `deno-exec.ts` (Supervisor) to enforce identity constraints.
+- **Security**: Implemented the **Goodwin Check** for Cognitive Integrity.
+    - Uses Deno KV isolation (`--location`) to lock agents to their identity.
+    - Verifies `/proc/cmdline` access before every system call.
+- **Kernel**: Renamed `osBoot` to `startKernel` to align with Linux conventions.
+- **Persistence**: Kernel parameters (`mounts`) are now stored in Deno KV at boot and accessed asynchronously by tools.
+- **Optimization**: Removed `boot.ts` binary; `startKernel` now calls `memory.ts` directly.
+- **Documentation**: Added `blog.md` announcing the v0.5 release.
+
 ## [0.4.0] - 2025-12-20
 
 ### Changed
