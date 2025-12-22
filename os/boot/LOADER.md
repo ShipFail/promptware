@@ -65,10 +65,9 @@ The user has sent a message (e.g., "fit images", "help me").
 ```
 [ ] Step 1: Acknowledge boot initiated (Report: "🔌 Powering on PromptWar̊e ØS...")
 [ ] Step 2: Construct kernel URI: `new URL(kernel, root).href`
-[ ] Step 3: Ingest kernel source from URI
-[ ] Step 4: Adopt kernel as extended instructions
-[ ] Step 5: Report: "✅ PromptWar̊e ØS Kernel@{version} loaded"
-[ ] Step 6: HANDOVER: Execute "PID 0: Kernel Initialization" defined in the loaded Kernel.
+[ ] Step 3: Atomic Ingestion: Fetch kernel source AND adopt as extended instructions immediately.
+[ ] Step 4: Report: "✅ PromptWar̊e ØS Kernel@{version} loaded"
+[ ] Step 5: HANDOVER: Execute "PID 0: Kernel Initialization" defined in the loaded Kernel.
 ```
 
 **Reboot Trigger**: Initiate boot if user input matches `BOOT SYSTEM` or `REBOOT SYSTEM`.
