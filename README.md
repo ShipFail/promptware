@@ -1,4 +1,4 @@
-# Pr̊ØS - PromptWar̊e ØS (PromptWare OS)
+# PromptWar̊e ØS (Pr̊ØS, PromptWare OS)
 
 Build Your AI Co-Founders with Unix Architecture and Boot them with One Line.
 
