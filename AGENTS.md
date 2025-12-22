@@ -91,7 +91,7 @@ When creating new skills in `os/skills/`:
 ## Verification Standards
 1.  **CLI Test**: Before finishing a tool, run it with `--help` to verify parsing.
 2.  **Unit Test**: All Kernel Tools must have a corresponding `.test.ts` file verifying their logic.
-3.  **Version Bump Protocol**: When bumping versions, you MUST update `deno.json`, `os/BOOTLOADER.md`, `os/kernel/KERNEL.md`, `AGENTS.md`, and `docs/architecture.md`, then log changes in `CHANGELOG.md`.
+3.  **Version Bump Protocol**: When bumping versions, you MUST update `deno.json`, `os/BOOTLOADER.md`, `os/kernel/KERNEL.md`, `AGENTS.md`, and `docs/architecture.md`, then log changes in `CHANGELOG.md`. Finally, commit with a meaningful summary and push.
 
 ## Directives
 *   Follow the **Microkernel** philosophy: Keep the core small.
