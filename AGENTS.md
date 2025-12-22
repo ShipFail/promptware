@@ -74,6 +74,11 @@ You are working inside the `promptware` repository. This is the source code for 
 *   **The Law of Anchoring**: All internal OS paths must be relative to the **OS Root** or the **Current Context** (`__filename`).
 *   **The Law of Language**: Use `camelCase` for all Kernel APIs to match TypeScript conventions.
 
+### 6. The Law of Parsimony
+*   **Maximize Signal**: Eliminate noise. Write for the machine: crystal clear, ruthlessly short.
+*   **Functional Weight**: Every word MUST carry functional weight. Ambiguity is a bug; verbosity is technical debt.
+*   **Zero-Latency**: Use RFC imperatives (`MUST`, `NEVER`) and standard metaphors for zero-latency comprehension.
+
 ## Skill Development Standards
 When creating new skills in `os/skills/`:
 1.  **Library Definition**: `SKILL.md` acts as a header file. It maps high-level functions to Kernel System Calls.
