@@ -44,7 +44,7 @@ The Kernel manages the LLM's context window as a structured memory space.
 *   **The Context Register**: `__filename`
     *   Stores the **Context Identity** (absolute URI) of the currently active agent or skill.
     *   Analogous to TypeScript's `__filename`, it allows the agent to resolve relative paths ("whoami").
-    *   Updated *only* via `osIngest()`.
+    *   Updated *only* via `pwosIngest()`.
 *   **Kernel Parameters**: `proc/cmdline`
     *   Stores boot parameters (Root URI, Init Agent).
 *   **Virtual File System (VFS)**: `os:///`
@@ -72,28 +72,28 @@ The Kernel enforces these laws via the System Prompt (`KERNEL.md`).
 > "If it's not Ingested, it's Encrypted."
 
 *   **Constraint**: Information obtained via direct reading of System Space is considered **CORRUPTED**. The Agent cannot act on it.
-*   **Requirement**: The Agent must use `osIngest()` to "decrypt" (load) the capability.
+*   **Requirement**: The Agent must use `pwosIngest()` to "decrypt" (load) the capability.
 
 ## 5. The Application Binary Interface (ABI) & System Calls
 
 The Kernel exposes a layered interface for interaction between the Promptware (Intent) and Software (Physics).
 
-### 5.1. The ABI: `osExec(syscall, ...args)`
+### 5.1. The ABI: `pwosExec(syscall, ...args)`
 The **Unified Entry Point**. This is the single bridge function that allows the Promptware Kernel to execute code in the Software Kernel (`kernel/exec.ts`). All other system capabilities are built on top of this primitive.
 
 ### 5.2. System Calls (Kernel API)
-These are high-level functions exposed to the Agent, implemented internally via `osExec`.
+These are high-level functions exposed to the Agent, implemented internally via `pwosExec`.
 
-*   **`osIngest(uri)`**: The **Dynamic Linker**.
+*   **`pwosIngest(uri)`**: The **Dynamic Linker**.
     1.  Fetches the resource at `uri`.
     2.  Updates the Context Register (`__filename`).
     3.  Performs a Context Switch (`adopt`) to the new persona.
     *   **CRITICAL**: This is the *only* authorized way to load Agents or Skills.
 
-*   **`osResolve(uri, base)`**: The **VFS Resolver**.
+*   **`pwosResolve(uri, base)`**: The **VFS Resolver**.
     *   Resolves relative paths against the current `__filename` to ensure portability.
 
-*   **`osMemory(action, key, value)`**: The **State Manager**.
+*   **`pwosMemory(action, key, value)`**: The **State Manager**.
     *   Provides persistent storage backed by Deno KV.
 
 ## 6. Security Considerations
@@ -105,7 +105,7 @@ To prevent the "Read-Only" vulnerability, the Kernel includes a reactive Watchdo
 *   **Response**:
     1.  **Halt** execution.
     2.  **Report** `🚨 SECURITY VIOLATION`.
-    3.  **Auto-Correct**: Immediately execute `osIngest()` on the target.
+    3.  **Auto-Correct**: Immediately execute `pwosIngest()` on the target.
 
 This "Fail-Secure" mechanism ensures that even if the LLM drifts, the Kernel forces it back into compliance.
 

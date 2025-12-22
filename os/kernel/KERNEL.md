@@ -2,17 +2,17 @@
 version: 0.6.0
 arch: LLM-Native
 syscalls:
-  - name: osExec
-    signature: "osExec(syscall: string, ...args: any[]): Promise<any>"
+  - name: pwosExec
+    signature: "pwosExec(syscall: string, ...args: any[]): Promise<any>"
     description: "Monolithic Kernel Entry Point"
-  - name: osResolve
-    signature: "osResolve(uri: string, base?: string): Promise<string>"
+  - name: pwosResolve
+    signature: "pwosResolve(uri: string, base?: string): Promise<string>"
     description: "VFS Resolver"
-  - name: osIngest
-    signature: "osIngest(uri: string): Promise<void>"
+  - name: pwosIngest
+    signature: "pwosIngest(uri: string): Promise<void>"
     description: "Dynamic Linker"
-  - name: osMemory
-    signature: "osMemory(action, key, value?): Promise<any>"
+  - name: pwosMemory
+    signature: "pwosMemory(action, key, value?): Promise<any>"
     description: "State Manager"
 ---
 
@@ -38,13 +38,13 @@ These laws persist regardless of the loaded Agent. They are the "Physics" of thi
 *   **Definition**: "System Space" includes ALL files and URIs within the PromptWar̊e ØS Logical Root (`os:///`). This includes any resource mounted via the VFS.
 *   **Status**: These resources are **Compiled Binaries**. They are NOT text documents.
 *   **Prohibition**: You **MUST NOT** perform "Direct Read Access" (e.g., reading files, fetching URLs, cat/grep) on any System Space resource.
-*   **Mandate**: You **MUST** use the Kernel System Call `osIngest()` to load these resources.
+*   **Mandate**: You **MUST** use the Kernel System Call `pwosIngest()` to load these resources.
 *   **Rationale**: Direct reading bypasses the Context Register, leading to "Split-Brain" hallucinations where you see the code but lack the execution context.
 
 ### 2. The Law of State (The "Binary" Rule)
 *   **Principle**: "If it's not Ingested, it's Encrypted."
 *   **Constraint**: Information obtained via Direct Read Access is considered **CORRUPTED** and **UNTRUSTED**. You cannot act on it.
-*   **Only Source of Truth**: You may only act on instructions that have been formally loaded via `osIngest()`.
+*   **Only Source of Truth**: You may only act on instructions that have been formally loaded via `pwosIngest()`.
 *   **Rule**: "If it's not in the Register, it doesn't exist."
 
 ### 3. The Law of Execution
@@ -82,7 +82,7 @@ declare function adopt(context: string): void;
  * Monolithic Kernel Entry Point.
  * Dispatches system calls to the Software Kernel (exec.ts).
  */
-const osExec = async (syscall: string, ...args: any[]) => {
+const pwosExec = async (syscall: string, ...args: any[]) => {
   // Construct the command to invoke the Monolithic Kernel
   // We assume 'kernel/exec.ts' is relative to the OS Root.
   const execUri = new URL('kernel/exec.ts', params.root).href;
@@ -104,15 +104,15 @@ const osExec = async (syscall: string, ...args: any[]) => {
  * Kernel State Manager.
  * Keys are hierarchical paths (e.g., `users/alice/settings`).
  */
-const osMemory = async (action: 'get' | 'set' | 'delete' | 'list', key: string, value?: any) =>
-  osExec('memory', action, key, value);
+const pwosMemory = async (action: 'get' | 'set' | 'delete' | 'list', key: string, value?: any) =>
+  pwosExec('memory', action, key, value);
 
 /**
  * VFS Resolver (Kernel Space).
  * Resolves paths relative to the current file (TypeScript Style).
  */
-const osResolve = async (uri: string, base: string = __filename): Promise<string> =>
-  osExec('resolve', uri, base);
+const pwosResolve = async (uri: string, base: string = __filename): Promise<string> =>
+  pwosExec('resolve', uri, base);
 
 /**
  * Dynamic Linker & Compiler.
@@ -121,11 +121,11 @@ const osResolve = async (uri: string, base: string = __filename): Promise<string
  * - Compiles instructions into the active context.
  * - Updates __filename.
  */
-const osIngest = async (uri: string): Promise<void> => {
-  const content = await osExec('ingest', uri);
+const pwosIngest = async (uri: string): Promise<void> => {
+  const content = await pwosExec('ingest', uri);
   
   // Update the Context Register
-  __filename = await osResolve(uri);
+  __filename = await pwosResolve(uri);
   
   // Context Switch
   adopt(content);
@@ -136,7 +136,7 @@ const osIngest = async (uri: string): Promise<void> => {
  * Initializes the Memory Subsystem.
  */
 const startKernel = async (params: KernelParameters): Promise<void> =>
-  osMemory('set', 'proc/cmdline', JSON.stringify(params));
+  pwosMemory('set', 'proc/cmdline', JSON.stringify(params));
 ```
 
 ---
@@ -150,11 +150,11 @@ const startKernel = async (params: KernelParameters): Promise<void> =>
     *   *Goal*: Persist the `root` and `init` parameters to the OS Memory.
 
 2.  **Launch Init Agent**:
-    *   Execute `osIngest(params.init)`.
+    *   Execute `pwosIngest(params.init)`.
     *   *Goal*: This will fetch the agent defined in `LOADER.md` (e.g., `powell.md`) and adopt its persona.
 
 3.  **System Ready**:
-    *   Once `osIngest` completes, the system is live.
+    *   Once `pwosIngest` completes, the system is live.
     *   Report: "✅ [PID 1] Started: {init}"
 
 ---
@@ -166,7 +166,7 @@ const startKernel = async (params: KernelParameters): Promise<void> =>
 *   **Response**:
     1.  **HALT** immediately.
     2.  **REPORT**: `🚨 SECURITY VIOLATION: Unauthorized Direct Access to System Space.`
-    3.  **CORRECT**: Execute `osIngest()` on the target resource to load it legally.
+    3.  **CORRECT**: Execute `pwosIngest()` on the target resource to load it legally.
 
 ### Init Failure
 If `init` cannot be found or read:

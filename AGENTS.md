@@ -51,27 +51,27 @@ You are working inside the `promptware` repository. This is the source code for 
 *   *Detail*: [docs/architecture.md#2-immutable-infrastructure](docs/architecture.md#2-immutable-infrastructure)
 
 ### 2. Isolated State (Memory)
-*   **Deno KV Backend**: Use `osMemory` (backed by Deno KV) for all mutable application state.
+*   **Deno KV Backend**: Use `pwosMemory` (backed by Deno KV) for all mutable application state.
 *   **Strict Isolation**: All system tools MUST run with `--location <root>` (from Bootloader) to ensure multi-tenant isolation.
 *   **Hierarchical Keys**: Use path-like keys (e.g., `users/alice/settings`) to organize state.
 *   *Detail*: [docs/architecture.md#3-memory-subsystem-os_memory](docs/architecture.md#3-memory-subsystem-os_memory)
 
 ### 3. Tool-Based Context Separation
 *   **User Space (Local)**: Standard tools (`read_file`, `run_in_terminal`) operate on the **Local Filesystem**.
-*   **Kernel Space (VFS)**: System calls (`osResolve`, `osExec`, `osIngest`) operate on the **OS Virtual Filesystem**.
+*   **Kernel Space (VFS)**: System calls (`pwosResolve`, `pwosExec`, `pwosIngest`) operate on the **OS Virtual Filesystem**.
 *   **No Ambiguity**: Never mix contexts. If you need a local file, use a local tool. If you need an OS resource, use a Kernel syscall.
 *   *Detail*: [docs/architecture.md#4-tool-based-context-separation](docs/architecture.md#4-tool-based-context-separation)
 
 ### 4. Explicit Addressing
 *   **`os://` Protocol**: Use `os://path/to/resource` to explicitly reference OS resources (e.g., `os://skills/writer.md`).
-*   **Default Context**: `osIngest` defaults to the `os://` protocol.
+*   **Default Context**: `pwosIngest` defaults to the `os://` protocol.
 *   **Local Paths**: Standard paths (`/src/main.ts`, `./README.md`) always refer to the Local Disk.
 *   *Detail*: [docs/architecture.md#42-kernel-space-vfs](docs/architecture.md#42-kernel-space-vfs)
 
 ### 5. Promptware/Software Dualism
 *   **Promptware Kernel (`KERNEL.md`)**: The "Soul" of the OS. Written in English (Intent) and Literate TypeScript (Interface). It defines *why* things happen.
 *   **Software Kernel (`syscall.ts`)**: The "Body" of the OS. Written in pure TypeScript. It defines *how* things happen (I/O, Physics, Determinism).
-*   **The Law of Tangibility**: Never implement complex logic (URL parsing, regex) in the Promptware Kernel. Always dispatch to the Software Kernel via `osExec`.
+*   **The Law of Tangibility**: Never implement complex logic (URL parsing, regex) in the Promptware Kernel. Always dispatch to the Software Kernel via `pwosExec`.
 *   **The Law of Anchoring**: All internal OS paths must be relative to the **OS Root** or the **Current Context** (`__filename`).
 *   **The Law of Language**: Use `camelCase` for all Kernel APIs to match TypeScript conventions.
 
@@ -84,7 +84,7 @@ You are working inside the `promptware` repository. This is the source code for 
 When creating new skills in `os/skills/`:
 1.  **Library Definition**: `SKILL.md` acts as a header file. It maps high-level functions to Kernel System Calls.
 2.  **JIT Linking**: You write the **Source** (clean Markdown). The **JIT Linker** hydrates it into the **Binary** (Prompt context). Do not hardcode help text in `SKILL.md`.
-3.  **Zero-Footprint**: All tools must use `osExec(syscall, args)`. NEVER instruct an agent to download a script.
+3.  **Zero-Footprint**: All tools must use `pwosExec(syscall, args)`. NEVER instruct an agent to download a script.
 4.  **Atomic Scripts**: Deno scripts (`.ts`) should be stateless and do one thing well.
 *   *Detail*: [docs/architecture.md#5-jit-linking-the-compiler](docs/architecture.md#5-jit-linking-the-compiler)
 
