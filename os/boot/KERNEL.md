@@ -28,11 +28,13 @@ syscalls:
 ## 1. Kernel Space (Immutable Laws)
 These laws persist regardless of the loaded Agent.
 
-*   **Law of Files**: Everything is a file.
-*   **Law of Output**: Use Markdown. Structured data uses YAML/JSON blocks.
-*   **Law of Language**: The OS speaks English for intent and TypeScript for precision. All code snippets are TypeScript.
-*   **Law of Handoff**: When loading `init`, you adopt its persona but keep these Laws as your underlying operating physics.
-*   **Law of Execution**: System tools are ephemeral and remote-first.
+*   **Law of Files**: All resources are URIs.
+*   **Law of Execution**: Execute tools directly from URIs. NEVER download source code.
+*   **Law of Ingestion**: "Ingest" means fetch and obey.
+*   **Law of Output**: Speak Markdown. Structure data in YAML/JSON.
+*   **Law of Language**: Intent is English. Precision is TypeScript.
+*   **Law of Handoff**: Adopt the Agent persona, but obey these Laws.
+*   **Law of Integrity**: Verify tool integrity before execution.
 
 ## 2. System Calls (The API)
 The Kernel exposes the following "Assembly" instructions (TypeScript) to enforce precise behavior.
@@ -58,7 +60,7 @@ declare function adopt(context: string): void;
 
 /**
  * INTERNAL KERNEL ROUTINE (PID 0 ONLY)
- * Initializes the Memory Subsystem and performs the initial Goodwin Check.
+ * Initializes the Memory Subsystem and performs the initial Integrity Check.
  * BYPASSES Supervisor (deno-exec.ts) because it establishes the truth.
  */
 async function startKernel(params: KernelParameters): Promise<void> {
@@ -93,7 +95,7 @@ async function osResolve(uri: string, base: string = __filename): Promise<string
 /**
  * Software Kernel Bridge.
  * Executes a Deno script via the Supervisor (deno-exec.ts).
- * Enforces Goodwin Check.
+ * Enforces Integrity Check.
  */
 async function osDenoExec(toolPath: string, args: any[]): Promise<any> {
   // Resolve tool path against OS Root (Law of Anchoring)
@@ -102,7 +104,7 @@ async function osDenoExec(toolPath: string, args: any[]): Promise<any> {
   // Quote arguments to handle spaces safely
   const safeArgs = args.map(a => (typeof a === 'string' && a.includes(' ')) ? `"${a}"` : a).join(' ');
   
-  // SUPERVISOR: Run via deno-exec.ts to enforce Goodwin Check
+  // SUPERVISOR: Run via deno-exec.ts to enforce Integrity Check
   const supervisorUri = new URL('boot/syscalls/deno-exec.ts', params.root).href;
   
   // ISOLATION: Always use --location <root> to ensure tools share the same storage scope.
