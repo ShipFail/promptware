@@ -1,6 +1,6 @@
 # PromptWar̊e ØS (Pr̊ØS, PromptWare OS)
 
-Prompt as Ring 0 - Build Your AI Co-Founders with Unix Architecture and Boot them with One Line.
+**Prompt at Ring 0** - Build Your AI Co-Founders with Unix Architecture and Boot them with One Line.
 
 <div align="center">
   <img src="docs/po-logo.svg" alt="PromptWar̊e ØS Logo" width="128" />
