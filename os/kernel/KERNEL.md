@@ -2,18 +2,18 @@
 version: 0.5.0
 arch: LLM-Native
 syscalls:
-  - name: osMemory
-    signature: "osMemory(action, key, value?): Promise<any>"
-    description: "Kernel State Manager (Deno KV)"
+  - name: osExec
+    signature: "osExec(syscall: string, ...args: any[]): Promise<any>"
+    description: "Monolithic Kernel Entry Point"
   - name: osResolve
     signature: "osResolve(uri: string, base?: string): Promise<string>"
-    description: "VFS Resolver (Relative -> Absolute)"
-  - name: osDenoExec
-    signature: "osDenoExec(toolPath: string, args: any[]): Promise<any>"
-    description: "Software Kernel Bridge (Deno Run)"
+    description: "VFS Resolver"
   - name: osIngest
     signature: "osIngest(uri: string): Promise<void>"
-    description: "Dynamic Linker (JIT Compile & Context Switch)"
+    description: "Dynamic Linker"
+  - name: osMemory
+    signature: "osMemory(action, key, value?): Promise<any>"
+    description: "State Manager"
 ---
 
 <!--
@@ -59,76 +59,61 @@ declare function exec(command: string): Promise<string>;
 declare function adopt(context: string): void;
 
 /**
- * INTERNAL KERNEL ROUTINE (PID 0 ONLY)
- * Initializes the Memory Subsystem and performs the initial Integrity Check.
- * BYPASSES Supervisor (deno-exec.ts) because it establishes the truth.
+ * Monolithic Kernel Entry Point.
+ * Dispatches system calls to the Software Kernel (exec.ts).
  */
-async function startKernel(params: KernelParameters): Promise<void> {
-  // Bootstrap: Save params to memory (Bypassing Supervisor)
-  // We use memory.ts directly to save the structured params object.
-  const toolUri = new URL('boot/syscalls/memory.ts', params.root).href;
+const osExec = async (syscall: string, ...args: any[]) => {
+  // Construct the command to invoke the Monolithic Kernel
+  // We assume 'kernel/exec.ts' is relative to the OS Root.
+  const execUri = new URL('kernel/exec.ts', params.root).href;
   
-  // Serialize params to JSON (escaping quotes for CLI)
-  const serialized = JSON.stringify(params).replace(/"/g, '\\"');
+  // Serialize args to JSON to preserve types across the shell boundary
+  const cliArgs = args.map(a => JSON.stringify(a)).join(' ');
   
-  // ISOLATION: Always use --location <root>
-  const cmd = `deno run -A --unstable-kv --location ${params.root} ${toolUri} --root ${params.root} set /proc/cmdline "${serialized}"`;
-  return exec(cmd);
+  // Execute via Deno
+  // Note: exec.ts automatically derives OS_ROOT from its own URL.
+  const cmd = `deno run -A --unstable-kv ${execUri} ${syscall} ${cliArgs}`;
+  
+  const result = await exec(cmd);
+  
+  // Parse result if it looks like JSON
+  try { return JSON.parse(result); } catch { return result; }
 }
 
 /**
  * Kernel State Manager.
  * Keys are hierarchical paths (e.g., `users/alice/settings`).
  */
-async function osMemory(action: 'get' | 'set' | 'delete' | 'list', key: string, value?: any): Promise<any> {
-  return osDenoExec('boot/syscalls/memory.ts', ['--root', params.root, action, key, value]);
-}
+const osMemory = async (action: 'get' | 'set' | 'delete' | 'list', key: string, value?: any) =>
+  osExec('memory', action, key, value);
 
 /**
  * VFS Resolver (Kernel Space).
  * Resolves paths relative to the current file (TypeScript Style).
  */
-async function osResolve(uri: string, base: string = __filename): Promise<string> {
-  return osDenoExec('boot/syscalls/resolve.ts', ['--root', params.root, uri, base]);
-}
-
-/**
- * Software Kernel Bridge.
- * Executes a Deno script via the Supervisor (deno-exec.ts).
- * Enforces Integrity Check.
- */
-async function osDenoExec(toolPath: string, args: any[]): Promise<any> {
-  // Resolve tool path against OS Root (Law of Anchoring)
-  const toolUri = new URL(toolPath, params.root).href;
-  
-  // Quote arguments to handle spaces safely
-  const safeArgs = args.map(a => (typeof a === 'string' && a.includes(' ')) ? `"${a}"` : a).join(' ');
-  
-  // SUPERVISOR: Run via deno-exec.ts to enforce Integrity Check
-  const supervisorUri = new URL('boot/syscalls/deno-exec.ts', params.root).href;
-  
-  // ISOLATION: Always use --location <root> to ensure tools share the same storage scope.
-  // Note: We pass --root to supervisor, which passes it to the child.
-  const cmd = `deno run -A --unstable-kv --location ${params.root} ${supervisorUri} --root ${params.root} ${toolUri} ${safeArgs}`;
-  return exec(cmd);
-}
+const osResolve = async (uri: string, base: string = __filename): Promise<string> =>
+  osExec('resolve', uri, base);
 
 /**
  * Dynamic Linker.
  * Resolves, Compiles, and Context Switches to a new library.
  */
-async function osIngest(uri: string): Promise<void> {
-  // The Software Kernel handles fetching and hydration
-  const content = await osDenoExec('boot/syscalls/ingest.ts', ['--root', params.root, uri]);
+const osIngest = async (uri: string): Promise<void> => {
+  const content = await osExec('ingest', uri);
   
   // Update the Context Register
-  // Note: In a real execution, we'd need the resolved path back from the tool to set this accurately.
-  // For now, we assume the LLM updates its mental model of __filename to the new URI.
   __filename = await osResolve(uri); 
   
   // Context Switch
   adopt(content);
 }
+
+/**
+ * INTERNAL KERNEL ROUTINE (PID 0 ONLY)
+ * Initializes the Memory Subsystem.
+ */
+const startKernel = async (params: KernelParameters): Promise<void> =>
+  osMemory('set', 'proc/cmdline', JSON.stringify(params));
 ```
 
 ## 3. PID 0: Kernel Initialization (Auto-Exec)

@@ -1,6 +1,6 @@
 ---
 root: "https://raw.githubusercontent.com/ShipFail/promptware/refs/heads/main/os/"
-kernel: "/boot/KERNEL.md"
+kernel: "/kernel/KERNEL.md"
 init: "/agents/powell.md"
 # Optional: Mount remote repositories into the virtual file system
 # mounts:

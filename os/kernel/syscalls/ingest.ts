@@ -1,12 +1,10 @@
 import { parseArgs } from "jsr:@std/cli/parse-args";
 import { parse, stringify } from "jsr:@std/yaml";
-import { resolveUri } from "./resolve.ts";
-import { getKernelParams } from "./goodwin.ts";
+import resolve from "./resolve.ts";
 
 /**
  * PromptWar̊e ØS Syscall: Ingest
  * Fetches and hydrates a Markdown file (JIT Linking).
- * Loads mounts from Memory (Goodwin Check assumed passed by Supervisor).
  */
 
 const HELP_TEXT = `
@@ -73,9 +71,9 @@ async function getToolHelp(path: string): Promise<string> {
   }
 }
 
-export async function ingest(root: string, targetUri: string): Promise<string> {
+export default async function ingest(root: string, targetUri: string): Promise<string> {
   // Resolve the target URI first
-  const resolvedPath = await resolveUri(root, targetUri);
+  const resolvedPath = await resolve(root, targetUri);
   
   let content = "";
   try {
@@ -97,7 +95,7 @@ export async function ingest(root: string, targetUri: string): Promise<string> {
     for (const skillPath of fm.skills) {
       if (typeof skillPath === "string") {
         // Resolve skill path relative to the *current file* (resolvedPath)
-        const absoluteSkillPath = await resolveUri(root, skillPath, resolvedPath);
+        const absoluteSkillPath = await resolve(root, skillPath, resolvedPath);
         const description = await getSkillDescription(absoluteSkillPath);
         hydratedSkills.push({ [skillPath]: { description } });
       } else {
@@ -112,7 +110,7 @@ export async function ingest(root: string, targetUri: string): Promise<string> {
     const hydratedTools = [];
     for (const toolPath of fm.tools) {
       if (typeof toolPath === "string") {
-        const absoluteToolPath = await resolveUri(root, toolPath, resolvedPath);
+        const absoluteToolPath = await resolve(root, toolPath, resolvedPath);
         const description = await getToolHelp(absoluteToolPath);
         hydratedTools.push({ [toolPath]: { description } });
       } else {

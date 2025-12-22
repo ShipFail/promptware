@@ -1,12 +1,10 @@
 import { parseArgs } from "jsr:@std/cli/parse-args";
 import { join, dirname } from "jsr:@std/path";
-import { getKernelParams } from "./goodwin.ts";
 
 /**
  * PromptWar̊e ØS Syscall: Resolve
  * Resolves a URI against a Base and Root.
  * Implements the "Law of Anchoring" and "TypeScript Import" style.
- * Loads mounts from Memory (Goodwin Check assumed passed by Supervisor).
  */
 
 const HELP_TEXT = `
@@ -30,23 +28,30 @@ function isUrl(path: string): boolean {
   }
 }
 
+async function getMounts(): Promise<Record<string, string> | undefined> {
+  const kv = await Deno.openKv();
+  try {
+    const res = await kv.get(["proc", "cmdline"]);
+    if (res.value) {
+      return (res.value as any).mounts;
+    }
+  } catch {
+    // Ignore errors
+  } finally {
+    kv.close();
+  }
+  return undefined;
+}
+
 /**
  * Resolves a URI against a Base and Root.
  */
-export async function resolveUri(root: string, uri: string, base?: string): Promise<string> {
+export default async function resolve(root: string, uri: string, base?: string): Promise<string> {
   // 1. Absolute URLs (http://, https://, file://)
   if (isUrl(uri)) {
     // Handle os:// protocol
     if (uri.startsWith("os://")) {
-      const kv = await Deno.openKv();
-      let mounts: Record<string, string> | undefined;
-      try {
-        const params = await getKernelParams(kv);
-        mounts = params.mounts;
-      } finally {
-        kv.close();
-      }
-
+      const mounts = await getMounts();
       const path = uri.replace("os://", "");
       
       // Check mounts first
@@ -89,7 +94,8 @@ export async function resolveUri(root: string, uri: string, base?: string): Prom
   return new URL(uri, root).href;
 }
 
-async function main() {
+// CLI Entry Point
+if (import.meta.main) {
   const args = parseArgs(Deno.args, {
     string: ["root"],
     boolean: ["help"],
@@ -116,13 +122,9 @@ async function main() {
   }
 
   try {
-    console.log(await resolveUri(root, uri, base));
+    console.log(await resolve(root, uri, base));
   } catch (e: any) {
     console.error(`Error: ${e.message}`);
     Deno.exit(1);
   }
-}
-
-if (import.meta.main) {
-  main();
 }
