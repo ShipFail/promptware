@@ -8,6 +8,7 @@
 
 Learn more about PromptWare OS from blog posts:
 
+- ROOT: [When English Hits Ring 0: A Field Guide to PromptWar̊e ØS](https://ship.fail/blog/2025/12/03/when-english-hits-ring-0/)
 - IDEA: [PromptWare OS: One Line to Boot Your AI Co‑Founders, Huan Li, Ship.Fail, Dec 8, 2025](https://ship.fail/blog/2025/12/08/promptware-os-one-line-boot-ai-native-co-founders/)
 - SHIP: [PromptWare OS Ships: Unix Architecture for Your AI Co-Founders, Huan, Ship.Fail, Dec 13, 2025](https://ship.fail/blog/2025/12/13/promptware-os-ships-unix-architecture-for-ai-co-founders/)
 
