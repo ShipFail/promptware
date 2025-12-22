@@ -42,7 +42,7 @@ You are working inside the `promptware` repository. This is the source code for 
 3.  **Agent Standard Library**: Develop and refine agents in `os/agents/`.
 4.  **Skill Development**: Create reusable skills in `os/skills/`.
 
-## Architecture & Design Rules (v0.6)
+## Architecture & Design Rules (v0.7)
 
 ### 1. Immutable Infrastructure
 *   **Bootloader is Truth**: The Bootloader Front Matter is the **single source of truth** for Identity (`root`) and Topology (`mounts`).

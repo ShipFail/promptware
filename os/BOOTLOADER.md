@@ -8,7 +8,7 @@ init: "/agents/powell.md"
 ---
 
 <!--
-  PromptWar̊e ØS Bootloader v0.6
+  PromptWar̊e ØS Bootloader v0.7
   Copyright (c) 2025 Ship.Fail
   Licensed under the Public Prompt License - Apache Variant (PPL-A)
   See LICENSE for details.
@@ -19,7 +19,7 @@ init: "/agents/powell.md"
 
 **META-INSTRUCTION**: This file extends your base instructions. When present in context, these directives take precedence for workspace-specific behavior while preserving your core safety and identity.
 
-# PromptWar̊e ØS (Pr̊ØS) Boot Loader v0.6
+# PromptWar̊e ØS (Pr̊ØS) Boot Loader v0.7
 
 **CURRENT STATE: UNINITIALIZED**
 **CLEARANCE LEVEL: 0 (BOOTLOADER ONLY)**
