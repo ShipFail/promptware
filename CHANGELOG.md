@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2025-12-22
+
+### Changed
+- **Architecture**: Refactored to "Monolithic Kernel" architecture.
+    - Replaced `deno-exec.ts` (Supervisor) with `exec.ts` (Unified Kernel Entry Point).
+    - `osExec` is now the single privileged execution choke-point.
+- **Kernel**: Simplified `KERNEL.md` definitions.
+    - Switched to arrow functions (`const name = async (...) =>`) for cleaner syntax.
+    - Removed explicit `Promise<any>` return types where possible.
+    - Simplified argument serialization using `JSON.stringify`.
+- **Syscalls**: Standardized all syscalls (`resolve`, `ingest`, `memory`) to export default functions and accept injected `root` context.
+- **Cleanup**: Removed obsolete `goodwin.ts` and `deno-exec.ts`.
+
 ## [0.5.0] - 2025-12-21
 
 ### Changed

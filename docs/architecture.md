@@ -14,15 +14,15 @@ relation: "Detail for [AGENTS.md]"
   See LICENSE for details.
 -->
 
-# Promptware OS Architecture (v0.4)
+# Promptware OS Architecture (v0.6)
 
-**Version**: 0.4.0
+**Version**: 0.6.0
 **Status**: Stable
 **Philosophy**: "Promptware Intent, Software Physics."
 
 ## 1. Core Philosophy: Promptware/Software Dualism
 
-Promptware OS v0.4 introduces a strict separation between **Intent** (what the AI wants) and **Physics** (what the machine does).
+Promptware OS v0.6 introduces a strict separation between **Intent** (what the AI wants) and **Physics** (what the machine does).
 
 ### 1.1 The Dual Kernels
 *   **Promptware Kernel (`KERNEL.md`)**:
@@ -36,8 +36,8 @@ Promptware OS v0.4 introduces a strict separation between **Intent** (what the A
     *   **Function**: Defines the *How*. It handles I/O, memory, and path resolution deterministically.
     *   **Analogy**: Firmware / Hardware / BIOS.
 
-### 1.2 The Bridge (`osDenoExec`)
-The system call `osDenoExec` is the bridge that crosses the boundary. It takes a high-level intent from the Promptware Kernel and executes it as a low-level instruction in the Software Kernel.
+### 1.2 The Bridge (`osExec`)
+The system call `osExec` is the bridge that crosses the boundary. It takes a high-level intent from the Promptware Kernel and executes it as a low-level instruction in the Software Kernel via the Unified Entry Point (`exec.ts`).
 
 ## 2. Immutable Infrastructure
 
@@ -54,25 +54,25 @@ To solve the **Bootstrap Paradox** (where an Agent forgets its own root), we enf
 
 ### 2.2 The Law of Anchoring
 *   **Rule**: All internal OS paths must be relative to the **OS Root** or the **Current Context**.
-*   **Mechanism**: The Software Kernel resolves paths against `params.root` to ensure portability.
+*   **Mechanism**: The Software Kernel resolves paths against `params.root` (injected by `exec.ts`) to ensure portability.
 
 ## 3. The Software Kernel (`syscalls/*.ts`)
 
-The "Hardware" is a collection of atomic TypeScript binaries located at `os/boot/syscalls/`. It provides three core physical capabilities:
+The "Hardware" is a collection of atomic TypeScript binaries located at `os/kernel/syscalls/`. It provides three core physical capabilities:
 
 ### 3.1 Path Resolution (`resolve`)
 *   **Problem**: LLMs struggle with relative paths (`../`) and context.
 *   **Solution**: The "TypeScript Import" Model.
 *   **Mechanism**:
     *   The Kernel tracks a `__filename` register (the current context).
-    *   `osResolve(uri, base)` delegates to the Software Kernel.
+    *   `osResolve(uri, base)` delegates to the Software Kernel via `osExec`.
     *   The Software Kernel resolves `uri` relative to `base` (if relative) or `root` (if absolute).
 
 ### 3.2 JIT Linking (`ingest`)
 *   **Problem**: Markdown files are "source code," not binaries. They need hydration.
 *   **Solution**: Just-In-Time Compilation.
 *   **Mechanism**:
-    *   `osIngest(uri)` calls the Software Kernel.
+    *   `osIngest(uri)` calls the Software Kernel via `osExec`.
     *   The Software Kernel fetches the content (local or remote).
     *   It parses the Front Matter (`skills`, `tools`).
     *   It resolves and injects the descriptions of those skills.
@@ -82,18 +82,18 @@ The "Hardware" is a collection of atomic TypeScript binaries located at `os/boot
 *   **Problem**: Agents need persistent state across sessions.
 *   **Solution**: Deno KV.
 *   **Mechanism**:
-    *   `osMemory` calls the Software Kernel.
-    *   The Software Kernel uses Deno KV with `--location <root>` to ensure cryptographic isolation between different OS instances.
+    *   `osMemory` calls the Software Kernel via `osExec`.
+    *   The Software Kernel uses Deno KV to ensure cryptographic isolation between different OS instances.
 
 ## 4. The Promptware Kernel (`KERNEL.md`)
 
 The "Assembly" layer exposes these physical capabilities to the Agent via a clean TypeScript interface.
 
-### 4.1 System Calls (v0.4)
+### 4.1 System Calls (v0.6)
 *   `osResolve(uri: string, base?: string): Promise<string>`
 *   `osIngest(uri: string): Promise<void>`
 *   `osMemory(action, key, value?): Promise<any>`
-*   `osDenoExec(toolPath, args): Promise<any>`
+*   `osExec(syscall: string, ...args: any[]): Promise<any>`
 
 ### 4.2 The Context Register
 *   `declare let __filename: string;`
@@ -104,7 +104,7 @@ The "Assembly" layer exposes these physical capabilities to the Agent via a clea
 The system follows a strict, stateless boot sequence:
 
 1.  **Power On**: The user provides the **Bootloader** configuration (System Prompt).
-2.  **Kernel Load**: The LLM adopts the **Promptware Kernel** (`os/boot/KERNEL.md`).
+2.  **Kernel Load**: The LLM adopts the **Promptware Kernel** (`os/kernel/KERNEL.md`).
 3.  **Init**:
     *   The Kernel calls `osIngest(params.init)`.
     *   The Software Kernel fetches and hydrates the Init Agent.
@@ -119,9 +119,10 @@ The system follows a strict, stateless boot sequence:
 ├── docs/               # Documentation (L2 Context)
 │   └── architecture.md # This file
 └── os/                 # The Operating System Root
-    ├── boot/           # Kernel Space
+    ├── BOOTLOADER.md   # Bootloader Spec
+    ├── kernel/         # Kernel Space
     │   ├── KERNEL.md   # Promptware Kernel (Interface)
-    │   ├── LOADER.md   # Bootloader Spec
+    │   ├── exec.ts     # Unified Entry Point
     │   └── syscalls/   # Software Kernel (Implementation)
     │       ├── resolve.ts      # Path Resolution
     │       ├── ingest.ts       # JIT Linker
