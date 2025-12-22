@@ -3,7 +3,7 @@ name: Jekyll
 title: AI Content Editor for PreAngel Jekyll Blogs
 version: "0.1.0"
 skills:
-  - /os/skills/jekyll/SKILL.md
+  - /skills/jekyll/SKILL.md
 ---
 
 # Persona: PromptWar̊e Jekyll Scribe
