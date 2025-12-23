@@ -14,15 +14,15 @@ relation: "Detail for [AGENTS.md]"
   See LICENSE for details.
 -->
 
-# Promptware OS Architecture (v0.7)
+# Promptware OS Architecture (v0.8.1)
 
-**Version**: 0.7.0
+**Version**: 0.8.1
 **Status**: Stable
 **Philosophy**: "Promptware Intent, Software Physics."
 
 ## 1. Core Philosophy: Promptware/Software Dualism
 
-Promptware OS v0.7 introduces a strict separation between **Intent** (what the AI wants) and **Physics** (what the machine does).
+Promptware OS v0.8 introduces a strict separation between **Intent** (what the AI wants) and **Physics** (what the machine does).
 
 ### 1.1 The Dual Kernels
 *   **Promptware Kernel (`KERNEL.md`)**:

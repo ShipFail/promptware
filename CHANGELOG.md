@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.1] - 2025-12-23
+
+### Changed
+- **Maintenance**: Version bump to 0.8.1.
+
+## [0.8.0] - 2025-12-23
+
+### Changed
+- **RFCs**: Standardized all RFCs to "Component-First" naming convention and "PromptWar̊e ØS" branding.
+- **Validation**: Added `rfcs/validate.test.ts` to enforce RFC standards in CI.
+- **Documentation**: Updated `AGENTS.md` with new RFC process rules and version bump protocol.
+- **Security**: Added `RFC 0006: Ring -1: The Vault Primitive` defining the security layer.
+- **Process**: Updated `RFC 0000` to be the "Supreme Law" for RFC management.
+
 ## [0.7.0] - 2025-12-22
 
 ### Changed

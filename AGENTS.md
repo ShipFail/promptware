@@ -42,7 +42,7 @@ You are working inside the `promptware` repository. This is the source code for 
 3.  **Agent Standard Library**: Develop and refine agents in `os/agents/`.
 4.  **Skill Development**: Create reusable skills in `os/skills/`.
 
-## Architecture & Design Rules (v0.7)
+## Architecture & Design Rules (v0.8.1)
 
 ### 1. Immutable Infrastructure
 *   **Bootloader is Truth**: The Bootloader Front Matter is the **single source of truth** for Identity (`root`) and Topology (`mounts`).
@@ -91,7 +91,7 @@ When creating new skills in `os/skills/`:
 ## Verification Standards
 1.  **CLI Test**: Before finishing a tool, run it with `--help` to verify parsing.
 2.  **Unit Test**: All Kernel Tools must have a corresponding `.test.ts` file verifying their logic.
-3.  **Version Bump Protocol**: When bumping versions, you MUST update `deno.json`, `os/BOOTLOADER.md`, `os/kernel/KERNEL.md`, `AGENTS.md`, and `docs/architecture.md`, then log changes in `CHANGELOG.md`. Finally, commit with a meaningful summary and push.
+3.  **Version Bump Protocol**: When bumping versions, you **MUST** update `deno.json`, `os/BOOTLOADER.md`, `os/kernel/KERNEL.md`, `AGENTS.md`, and `docs/architecture.md`, then log changes in `CHANGELOG.md`. **Finally, execute `git commit` and `git push` immediately to seal the release.**
 
 ## Directives
 *   Follow the **Microkernel** philosophy: Keep the core small.
