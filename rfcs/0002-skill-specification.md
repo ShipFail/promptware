@@ -1,6 +1,6 @@
 ---
 RFC: 0002
-Title: PromptWar̊e ØS Skill Specification
+Title: Skill Specification
 Author: Huan Li
 Status: Draft
 Type: Standards Track
@@ -8,7 +8,7 @@ Created: 2025-12-20
 Updated: 2025-12-20
 ---
 
-# PromptWar̊e ØS Skill Specification (Delta to Claude Agent Skills)
+# RFC 0002: Skill Specification
 
 ## 1. Introduction
 

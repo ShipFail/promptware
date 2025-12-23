@@ -1,6 +1,6 @@
 ---
 RFC: 0003
-Title: PromptWare OS SYS and PROC Spec
+Title: SYS and PROC Virtual Filesystems
 Author: Huan Li, ChatGPT 5.2 Thinking
 Status: Draft
 Type: Standards Track
@@ -8,7 +8,7 @@ Created: 2025-12-20
 Updated: 2025-12-20
 ---
 
-# RFC 0003: PromptWareOS SYS and PROC Virtual Filesystems
+# RFC 0003: SYS and PROC Virtual Filesystems
 
 ## 1. Summary
 

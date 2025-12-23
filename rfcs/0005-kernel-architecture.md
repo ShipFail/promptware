@@ -1,6 +1,6 @@
 ---
 RFC: 0005
-Title: The PromptWar̊e ØS Kernel Architecture
+Title: Kernel Architecture
 Author: Ship.Fail Crew
 Status: Draft
 Type: Standards Track
@@ -8,7 +8,7 @@ Created: 2025-12-22
 Updated: 2025-12-22
 ---
 
-# RFC 0005: The PromptWar̊e ØS (Pr̊ØS) Kernel Architecture
+# RFC 0005: Kernel Architecture
 
 ## 1. Abstract
 

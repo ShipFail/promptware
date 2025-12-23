@@ -1,6 +1,6 @@
 ---
 RFC: 0004
-Title: PromptWareOS Bootloader Protocol
+Title: Bootloader Protocol
 Author: Ship.Fail Crew
 Status: Draft
 Type: Standards Track
@@ -8,7 +8,7 @@ Created: 2025-12-22
 Version: 0.5.0
 ---
 
-# RFC 0004: PromptWareOS Bootloader Protocol
+# RFC 0004: Bootloader Protocol
 
 ## Abstract
 

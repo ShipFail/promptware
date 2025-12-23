@@ -1,6 +1,6 @@
 ---
 RFC: 0000
-Title: PromptWar̊e ØS (Pr̊ØS) RFC Process Guide
+Title: RFC Process Guide
 Author: Huan Li
 Status: Draft
 Type: Process
@@ -8,7 +8,7 @@ Created: 2025-12-20
 Updated: 2025-12-20
 ---
 
-# RFC 0000: PromptWar̊e ØS RFC Process Guide
+# RFC 0000: RFC Process Guide
 
 ## 1. Purpose
 

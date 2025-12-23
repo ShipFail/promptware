@@ -1,6 +1,6 @@
 ---
 RFC: 0001
-Title: Unified Consistent Naming Convention for Multi-Tech Stack
+Title: Unified Naming Conventions
 Author: Huan Li
 Status: Proposed
 Type: Standards Track
@@ -8,7 +8,7 @@ Created: 2025-09-20
 Updated: 2025-09-20
 ---
 
-# RFC 0001: Unified Consistent Naming Convention for Multi-Tech Stack
+# RFC 0001: Unified Naming Conventions
 
 ## 1. Summary
 
