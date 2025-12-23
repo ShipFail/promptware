@@ -1,4 +1,4 @@
-# PromptWar̊e ØS (Pr̊ØS, PromptWare OS)
+# PromptWar̊e ØS (Pr̊ØS💬 / PromptWare OS)
 
 **Prompt at Ring 0** - Build Your AI Co-Founders with Unix Architecture and Boot them with One Line.
 
