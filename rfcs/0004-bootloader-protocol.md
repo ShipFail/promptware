@@ -6,6 +6,7 @@ Status: Draft
 Type: Standards Track
 Created: 2025-12-22
 Version: 0.5.0
+Tags: bootloader, protocol, initialization
 ---
 
 # RFC 0004: Bootloader Protocol

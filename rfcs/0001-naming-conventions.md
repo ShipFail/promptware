@@ -6,6 +6,8 @@ Status: Proposed
 Type: Standards Track
 Created: 2025-09-20
 Updated: 2025-09-20
+Version: 1.0
+Tags: naming, convention, style-guide
 ---
 
 # RFC 0001: Unified Naming Conventions

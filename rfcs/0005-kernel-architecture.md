@@ -6,6 +6,8 @@ Status: Draft
 Type: Standards Track
 Created: 2025-12-22
 Updated: 2025-12-22
+Version: 0.6
+Tags: kernel, architecture, syscalls
 ---
 
 # RFC 0005: Kernel Architecture

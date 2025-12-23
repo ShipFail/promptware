@@ -6,6 +6,8 @@ Status: Draft
 Type: Standards Track
 Created: 2025-12-20
 Updated: 2025-12-20
+Version: 0.1
+Tags: vfs, sys, proc, kernel
 ---
 
 # RFC 0003: SYS and PROC Virtual Filesystems

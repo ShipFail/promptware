@@ -6,6 +6,8 @@ Status: Draft
 Type: Standards Track
 Created: 2025-12-20
 Updated: 2025-12-20
+Version: 0.1
+Tags: skills, claude, specification
 ---
 
 # RFC 0002: Skill Specification
