@@ -1,14 +1,16 @@
 ---
 RFC: XXXX
-Title: <Human-Readable Title>
+Title: <Noun Phrase Title>
 Author: <Name(s)>
 Status: Draft
 Type: <Standards Track | Informational | Process>
 Created: <YYYY-MM-DD>
 Updated: <YYYY-MM-DD>
+Version: <Major.Minor>
+Tags: <comma, separated, tags>
 ---
 
-# RFC 0000-TEMPLATE: <Title of Proposal>
+# RFC XXXX: <Noun Phrase Title>
 
 ## 1. Summary
 
@@ -50,7 +52,7 @@ It SHOULD clearly describe:
 
 * New concepts or terminology
 * Data formats, structures, workflows, or execution semantics
-* How this interacts with existing PromptWareOS components
+* How this interacts with existing PromptWar̊e ØS components
 * Any optional extensions or variations
 
 Diagrams, pseudocode, schemas, or examples MAY be included when helpful.
@@ -61,7 +63,7 @@ Diagrams, pseudocode, schemas, or examples MAY be included when helpful.
 
 Describe how this proposal interacts with:
 
-* Existing PromptWareOS RFCs
+* Existing PromptWar̊e ØS RFCs
 * Existing behaviors, runtimes, or modules
 * Claude Agent Skills (if applicable)
 
@@ -77,7 +79,7 @@ The RFC MUST specify whether it is:
 
 Explain *why this design was chosen*, especially when alternatives exist.
 
-This SHOULD describe tradeoffs, constraints, simplicity, and alignment with PromptWareOS philosophy.
+This SHOULD describe tradeoffs, constraints, simplicity, and alignment with PromptWar̊e ØS philosophy.
 
 ---
 
@@ -97,7 +99,7 @@ These MAY include:
 
 If applicable, explain any security implications.
 
-For PromptWareOS, this MAY reaffirm:
+For PromptWar̊e ØS, this MAY reaffirm:
 
 * The co-founder trust model
 * The absence of permission gating
@@ -138,7 +140,7 @@ List related RFCs, specs, external documents, or research.
 
 This MAY include:
 
-* Prior PromptWareOS RFCs
+* Prior PromptWar̊e ØS RFCs
 * Claude Agent Skills specification
 * Academic or industry references
 

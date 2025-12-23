@@ -21,21 +21,22 @@ All RFCs live in this directory using the following naming pattern:
 
 ```
 rfcs/
-  0000-rfc-process.md
-  0001-promptware-skill-spec.md
-  0002-<future-rfc>.md
+  0000-process-guide.md
+  0001-naming-conventions.md
+  0002-skill-specification.md
 ```
 
-### 📄 RFC Filename Convention
+### 📄 RFC Filename Convention (Component-First)
 
 * Filenames use **4‑digit sequential numbers**.
 * Numbers **MUST NOT** change once assigned.
-* Titles use **kebab-case** for readability.
+* Filenames **MUST** omit the project name (`promptware`, `promptwareos`).
+* Format: `NNNN-<component>-<subtopic>.md`.
 
 Example:
 
 ```
-0001-promptware-skill-spec.md
+0002-skill-specification.md
 ```
 
 ### 🧱 RFC Metadata Header
@@ -44,12 +45,14 @@ Each RFC begins with a metadata header:
 
 ```
 RFC: <number>
-Title: <human-readable title>
+Title: <Noun Phrase Title>
 Author: <name(s)>
 Status: <Draft | Accepted | Final | Superseded>
 Type: <Standards Track | Informational | Process>
 Created: <YYYY-MM-DD>
 Updated: <YYYY-MM-DD>
+Version: <Major.Minor>
+Tags: <comma, separated, tags>
 ```
 
 ### 🌀 RFC Lifecycle
