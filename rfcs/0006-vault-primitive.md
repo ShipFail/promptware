@@ -1,6 +1,6 @@
 ---
 RFC: 0006
-Title: Security Layer Specification
+Title: "Ring -1: The Vault Primitive"
 Author: Huan Li, ChatGPT
 Status: Draft
 Type: Standards Track
@@ -10,7 +10,7 @@ Version: 0.1
 Tags: promptwareos, security, oauth, ssh-agent, sign-to-derive, proxy
 ---
 
-# RFC 0006: Security Layer Specification
+# RFC 0006: Ring -1: The Vault Primitive
 
 ## Abstract
 

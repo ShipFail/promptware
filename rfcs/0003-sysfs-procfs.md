@@ -1,6 +1,6 @@
 ---
 RFC: 0003
-Title: SYS and PROC Virtual Filesystems
+Title: Sysfs and Procfs
 Author: Huan Li, ChatGPT 5.2 Thinking
 Status: Draft
 Type: Standards Track
@@ -10,7 +10,7 @@ Version: 0.1
 Tags: vfs, sys, proc, kernel
 ---
 
-# RFC 0003: SYS and PROC Virtual Filesystems
+# RFC 0003: Sysfs and Procfs
 
 ## 1. Summary
 

@@ -1,6 +1,6 @@
 ---
 RFC: 0005
-Title: Kernel Architecture
+Title: The Prompt Kernel
 Author: Ship.Fail Crew
 Status: Draft
 Type: Standards Track
@@ -10,7 +10,7 @@ Version: 0.6
 Tags: kernel, architecture, syscalls
 ---
 
-# RFC 0005: Kernel Architecture
+# RFC 0005: The Prompt Kernel
 
 ## 1. Abstract
 
