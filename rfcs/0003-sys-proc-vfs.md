@@ -14,7 +14,7 @@ Tags: vfs, sys, proc, kernel
 
 ## 1. Summary
 
-This RFC defines two virtual filesystem surfaces for interacting with a PromptWareOS runtime: `/sys` as the validated control plane for mutation, and `/proc` as the read-only belief surface for introspection. It sets core invariants, naming and hierarchy rules, extension points, and stability boundaries, with explicit lessons from Linux procfs/sysfs/debugfs and the namespaces era.
+This RFC defines two virtual filesystem surfaces for interacting with a PromptWar̊e ØS runtime: `/sys` as the validated control plane for mutation, and `/proc` as the read-only belief surface for introspection. It sets core invariants, naming and hierarchy rules, extension points, and stability boundaries, with explicit lessons from Linux procfs/sysfs/debugfs and the namespaces era.
 
 ---
 
@@ -22,7 +22,7 @@ This RFC defines two virtual filesystem surfaces for interacting with a PromptWa
 
 Linux procfs began as introspection but grew writable knobs, creating accidental ABIs, brittle automation, and unsafe mutation-by-inspection. Sysfs later introduced a cleaner object model with single-value attributes and validation, improving control-plane clarity. Containers and namespaces further showed that process-visible state depends on viewpoint.
 
-PromptWareOS adopts these lessons: strict separation of observation and control, explicit stability boundaries, and a first-class concept that `/proc` reflects a viewpoint-relative belief.
+PromptWar̊e ØS adopts these lessons: strict separation of observation and control, explicit stability boundaries, and a first-class concept that `/proc` reflects a viewpoint-relative belief.
 
 ---
 

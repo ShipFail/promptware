@@ -14,11 +14,11 @@ Tags: skills, claude, specification
 
 ## 1. Introduction
 
-PromptWar̊e ØS (Pr̊ØS) adopts the **Claude Agent Skill specification** as its normative foundation. PromptWare Skills are defined as **extensions** to Claude Skills rather than a competing or alternative standard.
+PromptWar̊e ØS (Pr̊ØS) adopts the **Claude Agent Skill specification** as its normative foundation. PromptWar̊e ØS Skills are defined as **extensions** to Claude Skills rather than a competing or alternative standard.
 
 Pr̊ØS follows one core principle:
 
-> **All Claude Agent Skills are PromptWare Skills, but not all PromptWare Skills are Claude Agent Skills.**
+> **All Claude Agent Skills are PromptWar̊e ØS Skills, but not all PromptWar̊e ØS Skills are Claude Agent Skills.**
 
 This means:
 

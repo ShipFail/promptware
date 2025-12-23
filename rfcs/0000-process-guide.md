@@ -6,6 +6,8 @@ Status: Draft
 Type: Process
 Created: 2025-12-20
 Updated: 2025-12-20
+Version: 1.0
+Tags: process, guide, standard
 ---
 
 # RFC 0000: RFC Process Guide

@@ -14,7 +14,7 @@ Tags: promptwareos, security, oauth, ssh-agent, sign-to-derive, proxy
 
 ## Abstract
 
-PromptwareOS elevates natural language to kernel privilege: **“Prompt at Ring 0.”** In this model, the prompt kernel (pRing 0) is inherently exposed to untrusted inputs and must be treated as **non-confidential**. This RFC defines a **minimal** security layer at **pRing[-1]** that enables OAuth-based access to remote APIs **without exposing plaintext credentials** to pRing 0 (or higher rings) by default.
+PromptWar̊e ØS elevates natural language to kernel privilege: **“Prompt at Ring 0.”** In this model, the prompt kernel (pRing 0) is inherently exposed to untrusted inputs and must be treated as **non-confidential**. This RFC defines a **minimal** security layer at **pRing[-1]** that enables OAuth-based access to remote APIs **without exposing plaintext credentials** to pRing 0 (or higher rings) by default.
 
 The pRing[-1] layer is specified as a **single raw-HTTP proxy primitive** that:
 
@@ -26,13 +26,13 @@ This document specifies the threat model, trust assumptions, crypto approach (**
 
 ## Status of This Memo
 
-This document is an Internet-Draft–style specification for PromptwareOS. It is a work in progress and is **not** a stable standard.
+This document is an Internet-Draft–style specification for PromptWar̊e ØS. It is a work in progress and is **not** a stable standard.
 
 The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHALL NOT**, **SHOULD**, **SHOULD NOT**, **RECOMMENDED**, **MAY**, and **OPTIONAL** in this document are to be interpreted as described in BCP 14 (RFC 2119, RFC 8174).
 
 ## Terminology
 
-* **PromptwareOS**: A prompt-defined operating environment intended to be booted by a one-liner prompt in `agents.md`.
+* **PromptWar̊e ØS**: A prompt-defined operating environment intended to be booted by a one-liner prompt in `agents.md`.
 * **pRing**: *Prompt Ring*, a privilege/metaphor layer for PromptwareOS.
 * **pRing 0**: The prompt kernel (LLM context). Considered **non-confidential**.
 * **pRing 1**: System calls (“syscalls”) implemented as Deno TypeScript scripts.

@@ -1,8 +1,8 @@
-# Contributor Guide: How to Write a PromptWareOS RFC
+# Contributor Guide: How to Write a PromptWar̊e ØS RFC
 
-This guide explains how humans and AI co-founders can create high-quality RFCs for PromptWareOS. It complements RFC 0000 (RFC Process Guide) and the `0000-template.md` file.
+This guide explains how humans and AI co-founders can create high-quality RFCs for PromptWar̊e ØS. It complements RFC 0000 (RFC Process Guide) and the `TEMPLATE.md` file.
 
-The goal is to make RFC writing **minimal**, **clear**, and **future-proof**, while preserving the design philosophy of PromptWareOS.
+The goal is to make RFC writing **minimal**, **clear**, and **future-proof**, while preserving the design philosophy of PromptWar̊e ØS.
 
 ---
 
@@ -10,11 +10,11 @@ The goal is to make RFC writing **minimal**, **clear**, and **future-proof**, wh
 
 An RFC (Request for Comments) is a design document that:
 
-* proposes a significant change to PromptWareOS,
+* proposes a significant change to PromptWar̊e ØS,
 * defines a new standard, subsystem, or execution model,
 * or records important technical reasoning.
 
-RFCs serve as the permanent architectural memory of PromptWareOS.
+RFCs serve as the permanent architectural memory of PromptWar̊e ØS.
 
 Write an RFC when:
 
@@ -35,16 +35,16 @@ All RFCs live under:
 rfcs/
 ```
 
-Use the filename pattern:
+Use the filename pattern (Component-First):
 
 ```
-<4-digit-number>-<kebab-case-title>.md
+<4-digit-number>-<component>-<subtopic>.md
 ```
 
 Examples:
 
-* `0001-promptware-skill-spec.md`
-* `0020-jit-linker-behavior.md`
+* `0002-skill-specification.md`
+* `0020-jit-linker.md`
 
 Numbers must be sequential and never reused.
 
@@ -55,19 +55,21 @@ Numbers must be sequential and never reused.
 Create a copy of:
 
 ```
-rfcs/0000-template.md
+rfcs/TEMPLATE.md
 ```
 
 Fill in the metadata header:
 
 ```
 RFC: XXXX
-Title: <Your Title>
+Title: <Noun Phrase Title>
 Author: <Your Name or AI Identifier>
 Status: Draft
 Type: <Standards Track | Informational | Process>
 Created: <YYYY-MM-DD>
 Updated: <YYYY-MM-DD>
+Version: 0.1
+Tags: tag1, tag2
 ```
 
 Use the **summary**, **motivation**, **design**, and **compatibility** sections to frame your thinking.
@@ -76,7 +78,7 @@ Use the **summary**, **motivation**, **design**, and **compatibility** sections 
 
 ## 4. Writing Philosophy
 
-Follow these principles to keep RFCs aligned with PromptWareOS values:
+Follow these principles to keep RFCs aligned with PromptWar̊e ØS values:
 
 ### 4.1 Minimalism
 
@@ -88,7 +90,7 @@ Always consider existing behavior. If proposing changes, explain:
 
 * whether the change is backward compatible,
 * how it interacts with Claude Skills, if applicable,
-* and why it aligns with PromptWareOS’s extensibility philosophy.
+* and why it aligns with PromptWar̊e ØS’s extensibility philosophy.
 
 ### 4.3 Human + AI Readability
 
@@ -101,7 +103,7 @@ Write for both humans and AI agents:
 
 ### 4.4 Founder-Privilege Model
 
-PromptWareOS operates under trust-maximal semantics. When proposing restrictions, justify why.
+PromptWar̊e ØS operates under trust-maximal semantics. When proposing restrictions, justify why.
 
 ---
 
@@ -110,7 +112,7 @@ PromptWareOS operates under trust-maximal semantics. When proposing restrictions
 A high-quality RFC:
 
 * **Explains the problem clearly**
-* **Justifies the solution** in terms of PromptWareOS’s architecture
+* **Justifies the solution** in terms of PromptWar̊e ØS’s architecture
 * **Evaluates alternatives**
 * **Defines expected behavior precisely**
 * **Documents compatibility requirements**
@@ -144,7 +146,7 @@ The core section. Include:
 How this interacts with:
 
 * previous RFCs,
-* PromptWareOS philosophy,
+* PromptWar̊e ØS philosophy,
 * Claude Skills,
 * older agent behaviors.
 
@@ -173,7 +175,7 @@ Outline practical rollout steps.
 3. When a stable consensus is reached, the RFC status becomes **Accepted**.
 4. After full implementation, the status becomes **Final**.
 
-PromptWareOS favors *velocity over bureaucracy*: consensus may be determined by project leadership.
+PromptWar̊e ØS favors *velocity over bureaucracy*: consensus may be determined by project leadership.
 
 ---
 
@@ -192,7 +194,7 @@ Human contributors MAY use these tools to accelerate understanding.
 
 ## 9. Example: One-Sentence RFC Summary
 
-> "This RFC defines the Just-In-Time Linker responsible for resolving skill mounts and inlining capability descriptors during PromptWareOS boot."
+> "This RFC defines the Just-In-Time Linker responsible for resolving skill mounts and inlining capability descriptors during PromptWar̊e ØS boot."
 
 Short, crisp, unambiguous.
 
@@ -207,6 +209,6 @@ The RFC process is meant to:
 * prevent architectural drift,
 * and ensure future AI agents understand historical reasoning.
 
-Always prioritize clarity and alignment with the core PromptWareOS philosophy:
+Always prioritize clarity and alignment with the core PromptWar̊e ØS philosophy:
 
 > **Boot simplicity. Execute power. Trust co-founders. Extend the standard.**

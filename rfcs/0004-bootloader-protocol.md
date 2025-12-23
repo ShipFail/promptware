@@ -13,11 +13,11 @@ Tags: bootloader, protocol, initialization
 
 ## Abstract
 
-This document specifies the Bootloader Protocol for PromptWareOS (Pr̊ØS), an operating system for Large Language Model (LLM) agents. It addresses the "Helpfulness Paradox"—the tendency of LLMs to prioritize immediate user assistance over necessary system initialization. This protocol defines a "Cognitive Security Lock" mechanism that enforces a strict initialization sequence by framing pre-boot actions as hallucinations and security violations.
+This document specifies the Bootloader Protocol for PromptWar̊e ØS (Pr̊ØS), an operating system for Large Language Model (LLM) agents. It addresses the "Helpfulness Paradox"—the tendency of LLMs to prioritize immediate user assistance over necessary system initialization. This protocol defines a "Cognitive Security Lock" mechanism that enforces a strict initialization sequence by framing pre-boot actions as hallucinations and security violations.
 
 ## 1. Introduction
 
-In traditional operating systems, the bootloader is a distinct binary that runs before the kernel. In PromptWareOS, the "hardware" is a probabilistic LLM, and the "bootloader" is a system prompt (`LOADER.md`).
+In traditional operating systems, the bootloader is a distinct binary that runs before the kernel. In PromptWar̊e ØS, the "hardware" is a probabilistic LLM, and the "bootloader" is a system prompt (`LOADER.md`).
 
 A critical failure mode in LLM-based operating systems is the **Helpfulness Paradox**:
 1.  The user sends a request (e.g., "Edit this file").
