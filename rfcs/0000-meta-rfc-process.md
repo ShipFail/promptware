@@ -64,19 +64,25 @@ rfcs/
 Each RFC filename **MUST** use the following pattern:
 
 ```
-<4-digit-number>-<component>-<subtopic>.md
+<4-digit-number>-<domain>-<subsystem>-<concept>.md
 ```
 
-### 4.1 The Component-First Rule
+### 4.1 Hierarchy Definitions
+To ensure discoverability, use these categories:
+*   **Domain**: The broad field (e.g., `security`, `memory`, `process`, `net`).
+*   **Subsystem**: The specific machinery (e.g., `crypto`, `vault`, `rfc`, `http`).
+*   **Concept**: The specific leaf node (e.g., `primitives`, `storage`, `guide`, `client`).
+
+### 4.2 The Taxonomy Rule
 To reduce cognitive load and redundancy:
 *   **Drop the Brand**: Filenames **MUST NOT** include the project name (`promptware`, `promptwareos`, `pr0s`).
 *   **Kebab-Case**: Use lowercase with hyphens.
-*   **Concise**: Filenames **SHOULD** be 2-4 words max.
+*   **Length Constraint**: Target **3 slugs** for optimal readability. Use **4 slugs** if needed. **Max: 5 slugs**.
 
 **Examples**:
-*   ✅ `0005-kernel-architecture.md`
-*   ✅ `0006-security-layer.md`
-*   ❌ `0005-promptware-kernel-architecture.md` (Redundant)
+*   ✅ `0007-security-crypto-primitives.md` (Domain-Subsystem-Concept)
+*   ✅ `0008-memory-vault-storage.md` (Clear hierarchy)
+*   ❌ `0005-kernel.md` (Too short, missing hierarchy)
 *   ❌ `0006-promptwareos-security-layer-definition-specification.md` (Too verbose)
 
 ### 4.2 Numbering

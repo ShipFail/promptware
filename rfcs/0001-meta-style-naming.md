@@ -142,7 +142,7 @@ None.
 
 ## 12. References
 
-*   [RFC 0000: RFC Process Guide](0000-rfc-process-guide.md)
+*   [RFC 0000: RFC Process Guide](0000-meta-rfc-process.md)
 
 ---
 ## Appendix B: Examples

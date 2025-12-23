@@ -38,13 +38,13 @@ rfcs/
 Use the filename pattern (Component-First):
 
 ```
-<4-digit-number>-<component>-<subtopic>.md
+<4-digit-number>-<domain>-<subsystem>-<concept>.md
 ```
 
 Examples:
 
-* `0002-skill-specification.md`
-* `0020-jit-linker.md`
+* `0002-sys-skill-spec.md`
+* `0020-sys-linker-jit.md`
 
 Numbers must be sequential and never reused.
 
