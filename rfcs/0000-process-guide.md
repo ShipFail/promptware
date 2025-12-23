@@ -51,7 +51,7 @@ Small implementation details **SHOULD NOT** require an RFC.
 
 ---
 
-## 4. RFC File Location & Naming
+## 4. RFC File Location & Naming (The Component-First Standard)
 
 All RFCs **MUST** live in the repository under:
 
@@ -62,19 +62,27 @@ rfcs/
 Each RFC filename **MUST** use the following pattern:
 
 ```
-<4-digit-number>-<kebab-case-title>.md
+<4-digit-number>-<component>-<subtopic>.md
 ```
 
-Examples:
+### 4.1 The Component-First Rule
+To reduce cognitive load and redundancy:
+*   **Drop the Brand**: Filenames **MUST NOT** include the project name (`promptware`, `promptwareos`, `pr0s`).
+*   **Kebab-Case**: Use lowercase with hyphens.
+*   **Concise**: Filenames **SHOULD** be 2-4 words max.
 
-* `0001-promptware-skill-spec.md`
-* `0002-kernel-memory-model.md`
+**Examples**:
+*   ✅ `0005-kernel-architecture.md`
+*   ✅ `0006-security-layer.md`
+*   ❌ `0005-promptware-kernel-architecture.md` (Redundant)
+*   ❌ `0006-promptwareos-security-layer-definition-specification.md` (Too verbose)
 
+### 4.2 Numbering
 RFC numbers:
-
-* **MUST** be assigned sequentially,
-* **MUST** remain immutable,
-* **MUST NOT** be reused.
+*   **MUST** be assigned sequentially.
+*   **MUST** remain immutable.
+*   **MUST NOT** be reused.
+*   **Agent Protocol**: Agents **MUST** list the `rfcs/` directory to find the next available number before creating a file.
 
 ---
 
@@ -85,14 +93,21 @@ Every RFC **MUST** begin with the following Frontmatter YAML header block:
 ```yaml
 ---
 RFC: <number>
-Title: <human-readable title>
+Title: <Noun Phrase Title>
 Author: <name(s)>
 Status: <Draft | Accepted | Final | Superseded>
 Type: <Standards Track | Informational | Process>
 Created: <YYYY-MM-DD>
 Updated: <YYYY-MM-DD>
+Version: <Major.Minor> (Optional)
+Tags: <comma, separated, tags> (Optional)
 ---
 ```
+
+### 5.1 Title Style (Drop the Brand)
+*   **Format**: `# RFC NNNN: <Noun Phrase>`
+*   **Rule**: Titles **SHOULD** omit "PromptWare OS" unless necessary for external context.
+*   **Example**: Use "Kernel Architecture", not "The PromptWare OS Kernel Architecture".
 
 Example for RFC 0001:
 
@@ -100,7 +115,7 @@ Example for RFC 0001:
 ```yaml
 ---
 RFC: 0001
-Title: PromptWar̊e ØS Skill Specification
+Title: Skill Specification
 Author: Huan Li
 Status: Draft
 Type: Standards Track
@@ -199,6 +214,11 @@ RFCs **MAY**:
 * provide migration notes,
 * reference external documents.
 
+### 9.1 Project Naming Convention
+*   **Official Name**: Always use the stylized name **PromptWar̊e ØS** or the abbreviation **Pr̊ØS**.
+*   **Prohibition**: Do **NOT** use the ASCII "PromptWare OS" unless strictly required by technical limitations (e.g., filenames, URLs, code variables).
+*   **Rationale**: Preserves the unique brand identity and "Ring 0" philosophy.
+
 ---
 
 ## 10. AI Co-Founder Considerations
@@ -210,6 +230,13 @@ RFCs **SHOULD** be written so that both humans and AI agents:
 * can ingest RFCs as part of a boot sequence or training corpus.
 
 RFCs **MAY** include machine-readable blocks, schemas, or instructions for agent behavior.
+
+### 10.1 Agent Protocols (Pre-Flight Checks)
+When creating or modifying RFCs, AI Agents **MUST**:
+1.  **List Directory**: Run `list_dir rfcs/` to identify the next sequential number.
+2.  **Check Style**: Verify the proposed filename against the **Component-First Rule** (Section 4.1).
+3.  **Resolve Conflicts**: If a number conflict exists, increment to `NNNN+1`.
+4.  **Refactor**: If existing RFCs violate the naming convention, propose a rename.
 
 ---
 
