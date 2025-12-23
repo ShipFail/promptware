@@ -1,5 +1,5 @@
 ---
-RFC: 0007
+RFC: 0017
 Title: Sealed Handling & sealedFetch Helper Specification
 Author: Huan Li, ChatGPT
 Status: Draft
@@ -10,7 +10,7 @@ Version: 0.2
 Tags: promptwareos, sealed, pwenc, fetch, sealedfetch, ergonomics
 ---
 
-# RFC 0007: Sealed Handling & sealedFetch Helper Specification
+# RFC 0017: Sealed Handling & sealedFetch Helper Specification
 
 ## Abstract
 
@@ -152,7 +152,7 @@ All other errors (HTTP errors, network errors) MUST pass through exactly as stan
 
 ### Why `sealedFetch` instead of a Proxy?
 
-Early designs (RFC 0007 v0.1) proposed a "Ring -1" proxy that enforced allowlists and automatically encrypted response tokens. This proved too rigid:
+Early designs (RFC 0017 v0.1) proposed a "Ring -1" proxy that enforced allowlists and automatically encrypted response tokens. This proved too rigid:
 1.  **SDK Friction**: Developers use SDKs (e.g., OpenAI, AWS), which manage their own networking. A proxy requires rewriting SDK internals. `sealedFetch` is just a function that can be passed as a custom `fetch` implementation.
 2.  **Magic is Harmful**: Automatic response encryption creates "magic" behavior that reduces trust and compatibility. Explicit `Sealed` handling is predictable.
 
@@ -229,8 +229,8 @@ await sealed.use(async (token) => {
 
 ### PromptWar̊e ØS References
 
-* [RFC 0006: Crypto Primitives Specification](0006-security-crypto-primitives.md)
-* [RFC 0008: Memory Subsystem Specification](0008-kernel-memory-spec.md)
+* [RFC 0016: Crypto Primitives Specification](0016-security-crypto-primitives.md)
+* [RFC 0018: Memory Subsystem Specification](0018-kernel-memory-spec.md)
 
 ### External References
 

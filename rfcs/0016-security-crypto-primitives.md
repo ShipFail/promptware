@@ -1,5 +1,5 @@
 ---
-RFC: 0006
+RFC: 0016
 Title: Crypto Primitives Specification
 Author: Huan Li, ChatGPT
 Status: Draft
@@ -10,7 +10,7 @@ Version: 0.1
 Tags: security, cryptography, pwenc, sign-to-derive, aead
 ---
 
-# RFC 0006: Crypto Primitives Specification
+# RFC 0016: Crypto Primitives Specification
 
 ## Abstract
 

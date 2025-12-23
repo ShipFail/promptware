@@ -23,7 +23,7 @@ All RFCs live in this directory using the following naming pattern:
 rfcs/
   0000-meta-rfc-process.md
   0001-meta-style-naming.md
-  0002-sys-skill-spec.md
+  0012-sys-skill-spec.md
 ```
 
 ### 📄 RFC Filename Convention (Taxonomy)
@@ -36,7 +36,7 @@ rfcs/
 Example:
 
 ```
-0002-sys-skill-spec.md
+0012-sys-skill-spec.md
 ```
 
 ### 🧱 RFC Metadata Header

@@ -1,5 +1,5 @@
 ---
-RFC: 0005
+RFC: 0015
 Title: The Prompt Kernel
 Author: Ship.Fail Crew
 Status: Draft
@@ -10,7 +10,7 @@ Version: 0.6
 Tags: kernel, architecture, syscalls
 ---
 
-# RFC 0005: The Prompt Kernel
+# RFC 0015: The Prompt Kernel
 
 ## 1. Abstract
 
@@ -118,4 +118,4 @@ This "Fail-Secure" mechanism ensures that even if the LLM drifts, the Kernel for
 *   **Signed Binaries**: Cryptographic verification of Skills before Ingestion.
 
 ---
-*End of RFC 0005*
+*End of RFC 0015*

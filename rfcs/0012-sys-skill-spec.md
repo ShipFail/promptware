@@ -1,5 +1,5 @@
 ---
-RFC: 0002
+RFC: 0012
 Title: Skill Specification
 Author: Huan Li
 Status: Draft
@@ -10,7 +10,7 @@ Version: 0.1
 Tags: skills, claude, specification
 ---
 
-# RFC 0002: Skill Specification
+# RFC 0012: Skill Specification
 
 ## 1. Introduction
 
@@ -127,4 +127,4 @@ None.
 
 ---
 
-End of RFC 0002
+End of RFC 0012

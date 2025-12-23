@@ -80,10 +80,10 @@ To reduce cognitive load and redundancy:
 *   **Length Constraint**: Target **3 slugs** for optimal readability. Use **4 slugs** if needed. **Max: 5 slugs**.
 
 **Examples**:
-*   ✅ `0006-security-crypto-primitives.md` (Domain-Subsystem-Concept)
-*   ✅ `0008-memory-vault-storage.md` (Clear hierarchy)
-*   ❌ `0005-kernel.md` (Too short, missing hierarchy)
-*   ❌ `0006-promptwareos-security-layer-definition-specification.md` (Too verbose)
+*   ✅ `0016-security-crypto-primitives.md` (Domain-Subsystem-Concept)
+*   ✅ `0018-memory-vault-storage.md` (Clear hierarchy)
+*   ❌ `0015-kernel.md` (Too short, missing hierarchy)
+*   ❌ `0016-promptwareos-security-layer-definition-specification.md` (Too verbose)
 
 ### 4.2 Numbering
 RFC numbers:
@@ -229,7 +229,7 @@ RFCs **MAY**:
 
 ### 9.2 Reference Style
 To maintain clarity between internal laws and external standards, the **References** section **MUST** be split into two subsections:
-1.  **PromptWar̊e ØS References**: Links to other internal RFCs (e.g., `RFC 0006`).
+1.  **PromptWar̊e ØS References**: Links to other internal RFCs (e.g., `RFC 0016`).
 2.  **External References**: Links to IETF/W3C standards (e.g., `RFC 2119`).
 
 **Example**:
@@ -237,7 +237,7 @@ To maintain clarity between internal laws and external standards, the **Referenc
 ## References
 
 ### PromptWar̊e ØS References
-* [RFC 0006: Crypto Primitives Specification](0006-security-crypto-primitives.md)
+* [RFC 0016: Crypto Primitives Specification](0016-security-crypto-primitives.md)
 
 ### External References
 * [RFC 2119: Key words for use in RFCs](https://www.rfc-editor.org/rfc/rfc2119)

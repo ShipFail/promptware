@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **RFCs**: Standardized all RFCs to "Component-First" naming convention and "PromptWar̊e ØS" branding.
 - **Validation**: Added `rfcs/validate.test.ts` to enforce RFC standards in CI.
 - **Documentation**: Updated `AGENTS.md` with new RFC process rules and version bump protocol.
-- **Security**: Added `RFC 0006: Ring -1: The Vault Primitive` defining the security layer.
+- **Security**: Added `RFC 0016: Ring -1: The Vault Primitive` defining the security layer.
 - **Process**: Updated `RFC 0000` to be the "Supreme Law" for RFC management.
 
 ## [0.7.0] - 2025-12-22
@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Kernel**: Renamed all system calls to `pwos*` prefix (e.g., `osExec` -> `pwosExec`) to prevent LLM hallucinations and improve observability.
 - **Security**: Implemented "Security Watchdog" in `KERNEL.md` to detect and panic on unauthorized `read_file` access to System Space.
 - **Testing**: Added `os/agents/hello.md` and `os/agents/diagnostic.md` for system self-verification.
-- **RFC**: Added `RFC 0005: Kernel Architecture` defining the "Prompts as Binaries" model.
+- **RFC**: Added `RFC 0015: Kernel Architecture` defining the "Prompts as Binaries" model.
 
 ## [0.6.0] - 2025-12-22
 

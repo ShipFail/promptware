@@ -1,5 +1,5 @@
 ---
-RFC: 0003
+RFC: 0013
 Title: Sysfs and Procfs
 Author: Huan Li, ChatGPT 5.2 Thinking
 Status: Draft
@@ -10,7 +10,7 @@ Version: 0.1
 Tags: vfs, sys, proc, kernel
 ---
 
-# RFC 0003: Sysfs and Procfs
+# RFC 0013: Sysfs and Procfs
 
 ## 1. Summary
 
@@ -295,4 +295,4 @@ None.
 
 ---
 
-End of RFC 0003
+End of RFC 0013

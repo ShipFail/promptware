@@ -43,7 +43,7 @@ Use the filename pattern (Component-First):
 
 Examples:
 
-* `0002-sys-skill-spec.md`
+* `0012-sys-skill-spec.md`
 * `0020-sys-linker-jit.md`
 
 Numbers must be sequential and never reused.

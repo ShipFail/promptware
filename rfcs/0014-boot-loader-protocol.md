@@ -1,5 +1,5 @@
 ---
-RFC: 0004
+RFC: 0014
 Title: Bootloader Protocol
 Author: Ship.Fail Crew
 Status: Draft
@@ -9,7 +9,7 @@ Version: 0.5.0
 Tags: bootloader, protocol, initialization
 ---
 
-# RFC 0004: Bootloader Protocol
+# RFC 0014: Bootloader Protocol
 
 ## Abstract
 
@@ -147,4 +147,4 @@ None.
 
 ---
 
-End of RFC 0004
+End of RFC 0014
