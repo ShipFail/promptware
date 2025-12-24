@@ -35,6 +35,7 @@ The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHALL NOT**, **
 * **Plaintext**: Any value not encoded as `pwenc:v1:...`.
 * **CLI surface**: The command-line interface form invoked by agents/tools.
 * **Module surface**: The importable function interface used by other syscalls or pRing 3 code.
+* **Origin**: The security principal for State (KV), as defined in **RFC 0015**.
 
 ## Design Goals
 

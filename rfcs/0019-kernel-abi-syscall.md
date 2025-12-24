@@ -67,15 +67,29 @@ To prevent collisions between Kernel Core and User Space extensions, the followi
 All syscall implementations MUST adhere to the following signature:
 
 ```typescript
-export default async function(root: string, ...args: any[]): Promise<any> {
+export default async function(...args: any[]): Promise<any> {
   // Implementation
 }
 ```
 
-*   **`root`**: The absolute URI of the OS Root. Injected by the dispatcher to ensure the syscall operates within the correct context.
+*   **Service Locator Pattern**: Syscalls **MUST NOT** rely on caller-injected configuration for core OS parameters (like Root). They **MUST** self-configure by reading the **Kernel Parameter Block** stored in `proc/cmdline`.
 *   **`args`**: The arguments passed from `pwosSyscall`.
 
-## 5. The Ingest Pipeline
+## 6. Execution Modes (Dual-Mode)
+
+All System Tools **MUST** implement two execution modes to facilitate both production use and testing/recovery.
+
+### 6.1. Kernel Mode (Production)
+*   **Invocation**: Via `syscall.ts` (The Monolithic Dispatcher).
+*   **Configuration**: Self-configured via `proc/cmdline` (Service Locator).
+*   **CLI Args**: Minimal (business logic only).
+
+### 6.2. CLI Mode (Fallback)
+*   **Invocation**: Direct execution (e.g., `deno run ingest.ts`).
+*   **Configuration**: Explicitly provided via CLI flags (e.g., `--root`).
+*   **Requirement**: If Kernel Memory is inaccessible, tools **MUST** accept configuration via CLI arguments.
+
+## 7. The Ingest Pipeline
 
 The `ingest` syscall implements the "Lifecycle of Authority" defined in RFC 0015. It MUST execute the following phases in order:
 
@@ -84,7 +98,7 @@ The `ingest` syscall implements the "Lifecycle of Authority" defined in RFC 0015
 3.  **Load**: Materialize the content into the Execution Context (Memory).
 4.  **Adopt**: Perform the identity switch (State).
 
-## 6. The Wire Protocol (JSON-RPC 2.0)
+## 8. The Wire Protocol (JSON-RPC 2.0)
 
 To ensure deterministic communication between the Prompt Kernel (Intent) and the Software Kernel (Precision), all System Calls MUST communicate via **Standard JSON-RPC 2.0** over stdout.
 
@@ -125,22 +139,22 @@ We adopt standard JSON-RPC error codes where applicable, and define OS-specific 
 *   `-32601`: Method Not Found (Syscall not registered).
 *   `-32000`: Server Error (Generic Kernel Panic).
 
-## 7. CLI vs. API
+## 9. CLI vs. API
 
 It is critical to distinguish between the **Syscall** (the semantic event) and the **CLI** (the invocation mechanism).
 
 *   **The Syscall**: `pwosSyscall("ingest", uri)`
     *   This is the API used by the Promptware Kernel.
-*   **The CLI**: `deno run syscall.ts ingest <uri>`
+*   **The CLI**: `deno run -A --location <origin> syscall.ts ingest <uri>`
     *   This is a **Debug & Transport Surface**. It allows external tools or human operators to invoke syscalls, but it is *not* the syscall itself.
 
-## 7. Forward Compatibility
+## 10. Forward Compatibility
 
 To ensure long-term stability:
 1.  **Opaque Dispatch**: Agents MUST NOT rely on the physical location of syscall files. They MUST only use the string identifier.
 2.  **Namespace Protection**: Agents MUST use full paths (e.g., `os/skills/search`) for non-kernel resources. Short names are exclusively reserved for the Kernel.
 
-## 8. Security Considerations
+## 11. Security Considerations
 
 *   **The Singular Entry Law**: The dispatcher (`syscall.ts`) is the only code authorized to import syscall modules.
 *   **Root Injection**: Syscalls MUST NOT calculate the OS Root themselves. They MUST rely on the `root` argument provided by the trusted dispatcher.

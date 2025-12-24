@@ -65,7 +65,21 @@ The Kernel manages the LLM's context window as a structured memory space.
     *   A logical addressing scheme for all System Resources.
     *   Abstracts physical locations (GitHub URLs, local files) into a unified namespace.
 
-### 4.3. Privilege Separation (The Rings)
+### 4.3. Core Concepts: Code (Root) vs. State (Origin)
+
+Pr̊ØS enforces a strict separation between the immutable code and the mutable state.
+
+*   **Root (Code)**: The immutable source of truth for the Operating System's source code (VFS).
+    *   Defined by the `root` parameter.
+    *   Example: `https://raw.githubusercontent.com/ShipFail/promptware/main/os/`
+*   **Origin (State)**: The security principal that defines the scope of mutable storage (KV).
+    *   Defined by the `origin` parameter.
+    *   Example: `https://my-os.local/`
+    *   **Storage Isolation**: The System **MUST** enforce storage isolation using the Runtime's Location capability (e.g., Deno `--location`).
+    *   **The Fallback**: If no Origin is defined, the System **MUST** default to using the **Root URL** as the Origin.
+    *   **Origin Normalization**: If the provided Origin is not a valid URL, the Kernel **MUST** normalize it to a local domain format (`name` -> `https://<normalized-name>.local/`) to ensure W3C compatibility.
+
+### 4.4. Privilege Separation (The Rings)
 
 | Ring | Name | Access | Description |
 | :--- | :--- | :--- | :--- |
@@ -104,14 +118,38 @@ The Bootloader (a static Markdown file) injects the `KernelParameters` (Root, In
 ### 5.2. The Init Sequence
 PID 0 MUST immediately execute the following sequence to bring the system to a usable state:
 
-1.  **Initialize Memory**:
+1.  **Initialize Memory (Bootstrap)**:
     *   Persist the boot parameters to `proc/cmdline` via the Memory Syscall.
+    *   **Requirement**: This MUST happen *before* invoking any other syscall (like `ingest`). This enables the **Service Locator** pattern, where subsystems self-configure by reading `proc/cmdline`.
     *   *Goal*: Ensure the OS Root is known to the Software Kernel.
 2.  **Launch Init Agent**:
     *   Execute `pwosIngest(init_agent)`.
     *   *Goal*: Fetch and adopt the user-space persona (PID 1).
 3.  **System Ready**:
     *   Report successful boot.
+
+### 5.3. Kernel Parameter Schema (`proc/cmdline`)
+
+The Kernel Parameters stored in `proc/cmdline` MUST adhere to the following JSON Schema:
+
+```typescript
+interface KernelParameters {
+  /** The immutable source of truth for Code (VFS) */
+  readonly root: string;
+  
+  /** The security principal for State (KV). Optional. */
+  readonly origin?: string;
+  
+  /** The path to the Kernel source */
+  readonly kernel: string;
+  
+  /** The path to the Init Agent */
+  readonly init: string;
+  
+  /** Optional VFS mounts */
+  readonly mounts?: Record<string, string>;
+}
+```
 
 ## 6. The Lifecycle of Authority (Ingestion)
 

@@ -43,6 +43,7 @@ The Bootloader is configured via YAML Front Matter in `BOOTLOADER.md`.
 
 ```yaml
 root: "https://raw.githubusercontent.com/..."  # The OS Root URI
+origin: "https://my-os.local"                  # The Storage Origin (Optional)
 kernel: "/kernel/KERNEL.md"                    # Path to the Kernel (relative to root)
 init: "/agents/powell.md"                      # Path to the Init Agent (relative to root)
 mounts:                                        # Optional VFS mounts
@@ -50,6 +51,7 @@ mounts:                                        # Optional VFS mounts
 ```
 
 *   **root**: The base URI for the OS distribution.
+*   **origin**: The security principal for storage isolation.
 *   **kernel**: The location of the Kernel source.
 *   **init**: The first user-space agent to load (PID 1).
 
