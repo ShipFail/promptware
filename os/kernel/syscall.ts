@@ -8,28 +8,25 @@ import { parseArgs } from "jsr:@std/cli/parse-args";
  */
 
 export async function syscall(syscallName: string, ...args: any[]) {
-  // 1. Derive OS_ROOT
+  // 1. Resolve Syscall Path
   // We assume this file is located at <root>/kernel/syscall.ts
   const currentUrl = new URL(import.meta.url);
   const kernelDir = new URL(".", currentUrl); // .../os/kernel/
-  const osRoot = new URL("../", kernelDir).href; // .../os/
-
-  // 2. Resolve Syscall Path
+  
   // Syscalls are located in ./syscalls/<name>.ts relative to this file
   const syscallUrl = new URL(`./syscalls/${syscallName}.ts`, kernelDir).href;
 
   try {
-    // 3. Dynamic Import
+    // 2. Dynamic Import
     const module = await import(syscallUrl);
     
     if (!module.default || typeof module.default !== "function") {
       throw new Error(`Syscall '${syscallName}' does not export a default function.`);
     }
 
-    // 4. Invoke
-    // We inject OS_ROOT as the first argument to every syscall.
-    // Signature: syscall(root, ...args)
-    return await module.default(osRoot, ...args);
+    // 3. Invoke
+    // We do NOT inject root/origin. The module must self-load config from KV if needed.
+    return await module.default(...args);
 
   } catch (e: any) {
     throw new Error(`Kernel Panic: Failed to execute syscall '${syscallName}'. ${e.message}`);

@@ -99,7 +99,23 @@ async function getToolDescription(path: string): Promise<string> {
   }
 }
 
-export default async function ingest(root: string, targetUri: string): Promise<string> {
+export default async function ingest(targetUri: string, explicitRoot?: string): Promise<string> {
+  let root = explicitRoot;
+
+  if (!root) {
+    // Load Root from KV (Service Locator Pattern)
+    const kv = await Deno.openKv();
+    try {
+      const res = await kv.get(["proc", "cmdline"]);
+      if (!res.value) throw new Error("Kernel Panic: proc/cmdline not found. Is the kernel initialized?");
+      // Note: KERNEL.md stores params as a JSON string
+      const params = JSON.parse(res.value as string);
+      root = params.root;
+    } finally {
+      kv.close();
+    }
+  }
+
   // Resolve the target URI first
   const resolvedPath = await resolve(root, targetUri);
   
@@ -152,6 +168,7 @@ export default async function ingest(root: string, targetUri: string): Promise<s
   return `---\n${newFm}---${body}`;
 }
 
+// CLI Entry Point
 async function main() {
   const args = parseArgs(Deno.args, {
     string: ["root"],
@@ -165,6 +182,8 @@ async function main() {
   }
 
   const root = args.root;
+  // In fallback mode (CLI), we require root if not relying on KV.
+  // But to be safe and explicit in CLI mode, we enforce it.
   if (!root) {
     console.error("Error: --root <url> is required.");
     Deno.exit(1);
@@ -178,7 +197,7 @@ async function main() {
   }
 
   try {
-    const content = await ingest(root, uri);
+    const content = await ingest(uri, root);
     console.log(content);
   } catch (e: any) {
     console.error(`Error: ${e.message}`);

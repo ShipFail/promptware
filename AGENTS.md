@@ -44,7 +44,7 @@ You are working inside the `promptware` repository. This is the source code for 
 
 ### 2. Isolated State (Memory)
 *   **Deno KV Backend**: Use `pwosMemory` (backed by Deno KV) for all mutable application state.
-*   **Strict Isolation**: All system tools MUST run with `--location <root>` (from Bootloader) to ensure multi-tenant isolation.
+*   **Strict Isolation**: All system tools MUST run with `--location <origin>` (from Bootloader) to ensure multi-tenant isolation.
 *   **Hierarchical Keys**: Use path-like keys (e.g., `users/alice/settings`) to organize state.
 *   *Detail*: [rfcs/0018-kernel-memory-spec.md](rfcs/0018-kernel-memory-spec.md)
 

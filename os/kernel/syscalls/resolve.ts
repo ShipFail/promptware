@@ -28,30 +28,34 @@ function isUrl(path: string): boolean {
   }
 }
 
-async function getMounts(): Promise<Record<string, string> | undefined> {
-  const kv = await Deno.openKv();
-  try {
-    const res = await kv.get(["proc", "cmdline"]);
-    if (res.value) {
-      return (res.value as any).mounts;
-    }
-  } catch {
-    // Ignore errors
-  } finally {
-    kv.close();
-  }
-  return undefined;
-}
-
 /**
  * Resolves a URI against a Base and Root.
  */
-export default async function resolve(root: string, uri: string, base?: string): Promise<string> {
+export default async function resolve(uri: string, base?: string, explicitRoot?: string): Promise<string> {
+  let root = explicitRoot;
+  let mounts: Record<string, string> | undefined;
+
+  if (!root) {
+    // Load Root from KV
+    const kv = await Deno.openKv();
+    try {
+      const res = await kv.get(["proc", "cmdline"]);
+      if (res.value) {
+        const params = JSON.parse(res.value as string);
+        root = params.root;
+        mounts = params.mounts;
+      } else {
+        throw new Error("Kernel Panic: proc/cmdline not found.");
+      }
+    } finally {
+      kv.close();
+    }
+  }
+
   // 1. Absolute URLs (http://, https://, file://)
   if (isUrl(uri)) {
     // Handle os:// protocol
     if (uri.startsWith("os://")) {
-      const mounts = await getMounts();
       const path = uri.replace("os://", "");
       
       // Check mounts first
@@ -122,7 +126,7 @@ if (import.meta.main) {
   }
 
   try {
-    console.log(await resolve(root, uri, base));
+    console.log(await resolve(uri, base, root));
   } catch (e: any) {
     console.error(`Error: ${e.message}`);
     Deno.exit(1);

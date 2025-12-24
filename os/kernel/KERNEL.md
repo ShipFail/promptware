@@ -99,6 +99,7 @@ These functions form the PromptWar̊e ØS API. They are implemented in TypeScrip
 // Kernel Parameters (from BOOTLOADER.md YAML Front Matter)
 interface KernelParameters {
   readonly root: string;   // e.g., "https://raw.github.../os/"
+  readonly origin?: string; // e.g., "my-os" or "https://my-os.local/"
   readonly kernel: string; // e.g., "/kernel/KERNEL.md"
   readonly init: string;   // e.g., "agents/powell.md"
   readonly mounts?: Record<string, string>;
@@ -123,10 +124,22 @@ const pwosSyscall = async (syscall: string, ...args: any[]) => {
   
   // Serialize args to JSON to preserve types across the shell boundary
   const cliArgs = args.map(a => JSON.stringify(a)).join(' ');
+
+  // Origin Normalization (URL vs Name)
+  // Fallback: If origin is undefined, use root.
+  let location = params.origin || params.root;
+  try {
+    new URL(location); // Check if valid URL
+  } catch {
+    // If not a URL, construct a local domain
+    // Normalize name: lowercase, alphanumeric only
+    const safeName = location.toLowerCase().replace(/[^a-z0-9-]/g, '');
+    location = `https://${safeName}.local/`;
+  }
   
   // Execute via Deno
-  // Note: syscall.ts automatically derives OS_ROOT from its own URL.
-  const cmd = `deno run -A --unstable-kv ${execUri} ${syscall} ${cliArgs}`;
+  // Note: We use --location to set the storage origin (W3C Standard)
+  const cmd = `deno run -A --unstable-kv --location ${location} ${execUri} ${syscall} ${cliArgs}`;
   
   const output = await exec(cmd);
   

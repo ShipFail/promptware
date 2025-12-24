@@ -22,7 +22,7 @@ Options:
 
 const TOOL_DESCRIPTION = "Manages OS memory using Deno KV. Supports /vault/ namespace for sealed storage (RFC 0018).";
 
-export default async function memory(root: string, action: string, keyStr?: string, value?: string): Promise<any> {
+export default async function memory(action: string, keyStr?: string, value?: string): Promise<any> {
   const kv = await Deno.openKv();
   try {
     const parseKey = (k: string) => {
@@ -74,6 +74,7 @@ export default async function memory(root: string, action: string, keyStr?: stri
   }
 }
 
+// CLI Entry Point
 async function main() {
   const args = parseArgs(Deno.args, {
     string: ["root"],
@@ -91,12 +92,9 @@ async function main() {
     Deno.exit(0);
   }
 
-  const root = args.root;
-  if (!root) {
-    console.error("Error: --root <url> is required.");
-    Deno.exit(1);
-  }
-
+  // Note: --root is not strictly used by memory.ts (it uses Deno.openKv which respects --location)
+  // But we keep it in CLI for consistency with other tools if needed, or just ignore it.
+  
   const action = String(args._[0]);
   const key = args._[1] ? String(args._[1]) : undefined;
   const value = args._[2] ? String(args._[2]) : undefined;
@@ -107,7 +105,7 @@ async function main() {
   }
 
   try {
-    const result = await memory(root, action, key, value);
+    const result = await memory(action, key, value);
     if (typeof result === "object") {
       console.log(JSON.stringify(result, null, 2));
     } else {
