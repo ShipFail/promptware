@@ -84,7 +84,48 @@ The `ingest` syscall implements the "Lifecycle of Authority" defined in RFC 0015
 3.  **Load**: Materialize the content into the Execution Context (Memory).
 4.  **Adopt**: Perform the identity switch (State).
 
-## 6. CLI vs. API
+## 6. The Wire Protocol (JSON-RPC 2.0)
+
+To ensure deterministic communication between the Prompt Kernel (Intent) and the Software Kernel (Precision), all System Calls MUST communicate via **Standard JSON-RPC 2.0** over stdout.
+
+### 1. Request (Implicit)
+Currently, requests are made via CLI arguments. This is considered an "Implicit JSON-RPC Request" where:
+*   `method`: The first argument (e.g., `fetch`).
+*   `params`: The subsequent arguments.
+*   `id`: Always `1` (Synchronous CLI).
+
+### 2. Response (Explicit)
+The Software Kernel MUST emit a single JSON object to `stdout` adhering to the JSON-RPC 2.0 Response specification.
+
+**Success:**
+```json
+{
+  "jsonrpc": "2.0",
+  "result": <Any JSON Value>,
+  "id": 1
+}
+```
+
+**Error:**
+```json
+{
+  "jsonrpc": "2.0",
+  "error": {
+    "code": <Integer>,
+    "message": "<String>",
+    "data": <Optional>
+  },
+  "id": 1
+}
+```
+
+### 3. Error Codes
+We adopt standard JSON-RPC error codes where applicable, and define OS-specific codes for Kernel Panics.
+*   `-32700`: Parse Error (Invalid JSON input).
+*   `-32601`: Method Not Found (Syscall not registered).
+*   `-32000`: Server Error (Generic Kernel Panic).
+
+## 7. CLI vs. API
 
 It is critical to distinguish between the **Syscall** (the semantic event) and the **CLI** (the invocation mechanism).
 

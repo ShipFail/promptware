@@ -64,6 +64,11 @@ These laws persist regardless of the loaded Agent. They are the "Precision" of t
 *   **Law of Language**: Intent is English. Precision is TypeScript.
 *   **Law of Handoff**: Adopt the Agent persona, but obey these Laws.
 
+### 5. The Law of the Black Box
+*   **Concept**: `pwosSyscall` is your **Hardware Interface**.
+*   **Constraint**: You **MUST NOT** attempt to reason about *how* it works (e.g., `deno run`, file paths). You only care *that* it works.
+*   **Cognitive Relief**: Treat the underlying TypeScript files (`syscalls/*.ts`) as **compiled silicon**. They are immutable physics. Do not try to optimize them. Just invoke the syscall.
+
 ---
 
 ## 2. System Calls (The API)
@@ -123,10 +128,18 @@ const pwosSyscall = async (syscall: string, ...args: any[]) => {
   // Note: syscall.ts automatically derives OS_ROOT from its own URL.
   const cmd = `deno run -A --unstable-kv ${execUri} ${syscall} ${cliArgs}`;
   
-  const result = await exec(cmd);
+  const output = await exec(cmd);
   
-  // Parse result if it looks like JSON
-  try { return JSON.parse(result); } catch { return result; }
+  // Envelope Handling (JSON-RPC 2.0)
+  try {
+    const envelope = JSON.parse(output);
+    if (envelope.error) throw new Error(envelope.error.message);
+    return envelope.result;
+  } catch (e) {
+    // Fallback: If parsing fails, return raw output (or re-throw envelope error)
+    if (e.message) throw e; 
+    return output;
+  }
 }
 
 /**

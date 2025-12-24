@@ -43,22 +43,32 @@ if (import.meta.main) {
   const syscallArgs = args._.slice(1);
 
   if (!syscallName) {
-    console.error("Usage: deno run -A syscall.ts <syscall> [args...]");
+    console.error(JSON.stringify({
+      jsonrpc: "2.0",
+      error: { code: -32600, message: "Invalid Request: Usage: deno run -A syscall.ts <syscall> [args...]" },
+      id: null
+    }, null, 2));
     Deno.exit(1);
   }
 
   try {
     const result = await syscall(syscallName, ...syscallArgs);
-    if (result !== undefined) {
-      // Output result as JSON if it's an object, or string otherwise
-      if (typeof result === "object") {
-        console.log(JSON.stringify(result, null, 2));
-      } else {
-        console.log(result);
-      }
-    }
+    // Success Envelope (JSON-RPC 2.0)
+    console.log(JSON.stringify({
+      jsonrpc: "2.0",
+      result: result,
+      id: 1
+    }, null, 2));
   } catch (e: any) {
-    console.error(e.message);
+    // Error Envelope (JSON-RPC 2.0)
+    console.log(JSON.stringify({
+      jsonrpc: "2.0",
+      error: {
+        code: -32000,
+        message: e.message
+      },
+      id: 1
+    }, null, 2));
     Deno.exit(1);
   }
 }
