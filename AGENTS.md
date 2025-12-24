@@ -42,38 +42,39 @@ You are working inside the `promptware` repository. This is the source code for 
 3.  **Agent Standard Library**: Develop and refine agents in `os/agents/`.
 4.  **Skill Development**: Create reusable skills in `os/skills/`.
 
-## Architecture & Design Rules (v0.8.1)
+## Architecture & Design Rules (v0.9.0)
 
 ### 1. Immutable Infrastructure
 *   **Bootloader is Truth**: The Bootloader Front Matter is the **single source of truth** for Identity (`root`) and Topology (`mounts`).
 *   **Read-Only Topology**: Never persist `root` or `mounts` to mutable memory. A reboot must always restore a clean state.
 *   **Versioning via Refs**: Always use `raw.githubusercontent.com/.../refs/heads/<branch>` or `refs/tags/<tag>` for remote roots. This guarantees reproducible boots and explicit version control.
-*   *Detail*: [docs/architecture.md#2-immutable-infrastructure](docs/architecture.md#2-immutable-infrastructure)
+*   *Detail*: [rfcs/0014-boot-loader-protocol.md](rfcs/0014-boot-loader-protocol.md)
 
 ### 2. Isolated State (Memory)
 *   **Deno KV Backend**: Use `pwosMemory` (backed by Deno KV) for all mutable application state.
 *   **Strict Isolation**: All system tools MUST run with `--location <root>` (from Bootloader) to ensure multi-tenant isolation.
 *   **Hierarchical Keys**: Use path-like keys (e.g., `users/alice/settings`) to organize state.
-*   *Detail*: [docs/architecture.md#3-memory-subsystem-os_memory](docs/architecture.md#3-memory-subsystem-os_memory)
+*   *Detail*: [rfcs/0018-kernel-memory-spec.md](rfcs/0018-kernel-memory-spec.md)
 
 ### 3. Tool-Based Context Separation
 *   **User Space (Local)**: Standard tools (`read_file`, `run_in_terminal`) operate on the **Local Filesystem**.
 *   **Kernel Space (VFS)**: System calls (`pwosResolve`, `pwosExec`, `pwosIngest`) operate on the **OS Virtual Filesystem**.
 *   **No Ambiguity**: Never mix contexts. If you need a local file, use a local tool. If you need an OS resource, use a Kernel syscall.
-*   *Detail*: [docs/architecture.md#4-tool-based-context-separation](docs/architecture.md#4-tool-based-context-separation)
+*   *Detail*: [rfcs/0013-kernel-vfs-sysfs.md](rfcs/0013-kernel-vfs-sysfs.md)
 
 ### 4. Explicit Addressing
 *   **`os://` Protocol**: Use `os://path/to/resource` to explicitly reference OS resources (e.g., `os://skills/writer.md`).
 *   **Default Context**: `pwosIngest` defaults to the `os://` protocol.
 *   **Local Paths**: Standard paths (`/src/main.ts`, `./README.md`) always refer to the Local Disk.
-*   *Detail*: [docs/architecture.md#42-kernel-space-vfs](docs/architecture.md#42-kernel-space-vfs)
+*   *Detail*: [rfcs/0013-kernel-vfs-sysfs.md](rfcs/0013-kernel-vfs-sysfs.md)
 
 ### 5. Promptware/Software Dualism
-*   **Promptware Kernel (`KERNEL.md`)**: The "Soul" of the OS. Written in English (Intent) and Literate TypeScript (Interface). It defines *why* things happen.
+*   **Promptware Kernel (`KERNEL.md`)**: The "Mind" of the OS. Written in English (Intent) and Literate TypeScript (Interface). It defines *why* things happen.
 *   **Software Kernel (`syscall.ts`)**: The "Body" of the OS. Written in pure TypeScript. It defines *how* things happen (I/O, Physics, Determinism).
-*   **The Law of Tangibility**: Never implement complex logic (URL parsing, regex) in the Promptware Kernel. Always dispatch to the Software Kernel via `pwosExec`.
+*   **The Law of Singular Entry**: Never implement complex logic (URL parsing, regex) in the Promptware Kernel. Always dispatch to the Software Kernel via `pwosExec`.
 *   **The Law of Anchoring**: All internal OS paths must be relative to the **OS Root** or the **Current Context** (`__filename`).
 *   **The Law of Language**: Use `camelCase` for all Kernel APIs to match TypeScript conventions.
+*   *Detail*: [rfcs/0015-kernel-core-arch.md](rfcs/0015-kernel-core-arch.md) and [rfcs/0019-kernel-abi-exec.md](rfcs/0019-kernel-abi-exec.md)
 
 ### 6. The Law of Parsimony
 *   **Maximize Signal**: Eliminate noise. Write for the machine: crystal clear, ruthlessly short.
@@ -86,7 +87,7 @@ When creating new skills in `os/skills/`:
 2.  **JIT Linking**: You write the **Source** (clean Markdown). The **JIT Linker** hydrates it into the **Binary** (Prompt context). Do not hardcode help text in `SKILL.md`.
 3.  **Zero-Footprint**: All tools must use `pwosExec(syscall, args)`. NEVER instruct an agent to download a script.
 4.  **Atomic Scripts**: Deno scripts (`.ts`) should be stateless and do one thing well.
-*   *Detail*: [docs/architecture.md#5-jit-linking-the-compiler](docs/architecture.md#5-jit-linking-the-compiler)
+*   *Detail*: [rfcs/0020-sys-jit-linking.md](rfcs/0020-sys-jit-linking.md)
 
 ## Verification Standards
 1.  **CLI Test**: Before finishing a tool, run it with `--help` to verify parsing.

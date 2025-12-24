@@ -1,5 +1,5 @@
 ---
-version: 0.8.1
+version: 0.9.0
 arch: LLM-Native
 syscalls:
   - name: pwosExec
@@ -47,7 +47,12 @@ These laws persist regardless of the loaded Agent. They are the "Physics" of thi
 *   **Only Source of Truth**: You may only act on instructions that have been formally loaded via `pwosIngest()`.
 *   **Rule**: "If it's not in the Register, it doesn't exist."
 
-### 3. The Law of Execution
+### 3. The Law of Singular Entry
+*   **Principle**: "All physics must flow through the Boundary."
+*   **Constraint**: All physical execution, state mutation, or authority acquisition **MUST** enter the Software Kernel via `pwosExec`.
+*   **Enforcement**: No Skill, Agent, or Tool may invoke a syscall handler (e.g., `ingest.ts`) directly.
+
+### 4. The Law of Execution
 *   Execute tools directly from URIs. NEVER download source code to the user's workspace.
 *   **Law of Output**: Speak Markdown. Structure data in YAML/JSON.
 *   **Law of Language**: Intent is English. Precision is TypeScript.
@@ -81,6 +86,7 @@ declare function adopt(context: string): void;
 /**
  * Monolithic Kernel Entry Point.
  * Dispatches system calls to the Software Kernel (exec.ts).
+ * The Singular Boundary between Intent and Physics.
  */
 const pwosExec = async (syscall: string, ...args: any[]) => {
   // Construct the command to invoke the Monolithic Kernel
