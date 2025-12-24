@@ -80,12 +80,6 @@ Authentication:
   Please use gcloud CLI for authentication.
 `;
 
-interface VertexAIConfig {
-  project: string;
-  location: string;
-  apiEndpoint: string;
-}
-
 /**
  * Get access token from Application Default Credentials
  * Note: Service account JWT authentication is not fully implemented
@@ -428,16 +422,12 @@ async function main() {
         Deno.exit(1);
       }
 
-      const numImages = parseInt(args["num-images"], 10);
-      
       // Validate num-images parameter
-      if (isNaN(numImages)) {
-        console.error("Error: --num-images must be a valid number");
-        Deno.exit(1);
-      }
+      const numImagesStr = args["num-images"];
+      const numImages = parseInt(numImagesStr, 10);
       
-      if (!Number.isInteger(parseFloat(args["num-images"]))) {
-        console.error("Error: --num-images must be an integer (no decimals)");
+      if (isNaN(numImages)) {
+        console.error("Error: --num-images must be a valid integer");
         Deno.exit(1);
       }
       
