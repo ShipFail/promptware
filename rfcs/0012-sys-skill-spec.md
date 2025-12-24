@@ -34,7 +34,7 @@ This document describes **only the differences and extensions** introduced by Pr
 
 Pr̊ØS Skills rely on the Claude Agent Skill specification:
 
-* Claude Agent Skills (canonical): [https://agentskills.ai/](https://agentskills.ai/) *(or corresponding Anthropic repository)*
+* Claude Agent Skills (canonical): [https://agentskills.io/specification](https://agentskills.io/specification) *(or corresponding Anthropic repository)*
 
 The Claude specification remains the authoritative base for:
 
