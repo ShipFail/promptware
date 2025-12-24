@@ -63,7 +63,7 @@ Defines `pwenc:v1` primitives and the `Sealed` class for secure data handling.
 
 ### 3.2 The Bridge (`pwosExec`)
 The system call `pwosExec` is the bridge that crosses the boundary. It takes a high-level intent from the Promptware Kernel and executes it as a low-level instruction in the Software Kernel via the Unified Entry Point (`exec.ts`).
-> **Proposed Spec**: RFC 0019
+> **Spec**: [rfcs/0015-kernel-core-arch.md](../rfcs/0015-kernel-core-arch.md)
 
 ## 4. Directory Structure
 

@@ -90,10 +90,59 @@ The Kernel enforces these laws via the System Prompt (`KERNEL.md`).
 
 The Kernel exposes a layered interface for interaction between the Promptware (Intent) and Software (Physics).
 
-### 5.1. The ABI: `pwosExec(syscall, ...args)`
-The **Unified Entry Point**. This is the single bridge function that allows the Promptware Kernel to execute code in the Software Kernel (`kernel/exec.ts`). All other system capabilities are built on top of this primitive.
+### 5.1. The Bridge: `pwosExec`
 
-### 5.2. System Calls (Kernel API)
+The Promptware Kernel exposes a single "Hypercall" for all physical operations:
+
+```typescript
+// In KERNEL.md
+function pwosExec(syscall: string, ...args: any[]): Promise<any>;
+```
+
+This function is a wrapper around the underlying runtime's execution primitive (e.g., `Deno.Command` or a direct function call if running in the same process).
+
+### 5.2. The Unified Entry Point: `exec.ts`
+
+The Software Kernel exposes a single entry point at `os/kernel/exec.ts`. This script acts as the dispatcher.
+
+#### Responsibilities
+1.  **Root Derivation**: It calculates the `OS_ROOT` based on its own location (`import.meta.url`).
+2.  **Syscall Resolution**: It maps the `syscall` string to a physical file in `os/kernel/syscalls/<name>.ts`.
+3.  **Context Injection**: It injects the `OS_ROOT` as the *first argument* to the target syscall.
+4.  **Error Handling**: It catches runtime errors and wraps them in a standard "Kernel Panic" format.
+
+#### The ABI Contract
+
+Every syscall in `os/kernel/syscalls/` MUST export a default function matching this signature:
+
+```typescript
+// os/kernel/syscalls/<name>.ts
+export default async function(root: string, ...args: any[]): Promise<any> {
+  // Implementation
+}
+```
+
+*   **`root`**: The absolute URL of the OS root (e.g., `file:///.../os/` or `https://.../os/`).
+*   **`args`**: The arguments passed from `pwosExec`.
+
+#### Directory Structure
+```
+os/kernel/
+├── exec.ts             # The Dispatcher
+└── syscalls/           # The Syscall Table
+    ├── resolve.ts      # Implements 'resolve'
+    ├── ingest.ts       # Implements 'ingest'
+    └── memory.ts       # Implements 'memory'
+```
+
+#### CLI Usage
+When invoked from the command line (e.g., by a Tool Use Agent), `exec.ts` parses arguments and invokes the syscall:
+
+```bash
+deno run -A os/kernel/exec.ts <syscall> [arg1] [arg2]
+```
+
+### 5.3. System Calls (Kernel API)
 These are high-level functions exposed to the Agent, implemented internally via `pwosExec`.
 
 *   **`pwosIngest(uri)`**: The **Dynamic Linker**.
@@ -110,7 +159,11 @@ These are high-level functions exposed to the Agent, implemented internally via 
 
 ## 6. Security Considerations
 
-### 6.1. The Watchdog Mechanism
+### 6.1. Isolation & Validation
+*   **Isolation**: Syscalls must never access global state (like `Deno.cwd()`) directly for path resolution. They MUST use the injected `root`.
+*   **Validation**: `exec.ts` validates that the requested syscall exists before attempting import.
+
+### 6.2. The Watchdog Mechanism
 To prevent the "Read-Only" vulnerability, the Kernel includes a reactive Watchdog.
 
 *   **Trigger**: Detection of `read_file` or similar tools on a System Space path.
