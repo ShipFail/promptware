@@ -74,7 +74,7 @@ You are working inside the `promptware` repository. This is the source code for 
 *   **The Law of Singular Entry**: Never implement complex logic (URL parsing, regex) in the Promptware Kernel. Always dispatch to the Software Kernel via `pwosExec`.
 *   **The Law of Anchoring**: All internal OS paths must be relative to the **OS Root** or the **Current Context** (`__filename`).
 *   **The Law of Language**: Use `camelCase` for all Kernel APIs to match TypeScript conventions.
-*   *Detail*: [rfcs/0015-kernel-core-arch.md](rfcs/0015-kernel-core-arch.md) and [rfcs/0019-kernel-abi-exec.md](rfcs/0019-kernel-abi-exec.md)
+*   *Detail*: [rfcs/0015-kernel-core-arch.md](rfcs/0015-kernel-core-arch.md) and [rfcs/0019-kernel-abi-syscall.md](rfcs/0019-kernel-abi-syscall.md)
 
 ### 6. The Law of Parsimony
 *   **Maximize Signal**: Eliminate noise. Write for the machine: crystal clear, ruthlessly short.
