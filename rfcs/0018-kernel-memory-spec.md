@@ -35,7 +35,7 @@ The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHALL NOT**, **
 * **Plaintext**: Any value not encoded as `pwenc:v1:...`.
 * **CLI surface**: The command-line interface form invoked by agents/tools.
 * **Module surface**: The importable function interface used by other syscalls or pRing 3 code.
-* **Origin**: The security principal for State (KV), as defined in **RFC 0015**.
+* **Origin**: The security principal for State (KV), as defined in **RFC 0015**. The origin determines the storage namespace for isolation.
 
 ## Design Goals
 
@@ -44,12 +44,36 @@ The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHALL NOT**, **
 3. **Sealed-at-rest in `/vault/*`**: vault paths MUST store ciphertext only.
 4. **Prompt-safe defaults**: values returned by CLI MUST be safe to appear in pRing 0.
 5. **Pragmatic portability**: implementable on macOS/Linux/Windows.
+6. **Storage Isolation**: Different origins MUST have separate storage namespaces, preventing cross-tenant data access.
 
 ## Non-Goals
 
 1. Preventing a fully privileged program from accessing plaintext after explicit decryption.
 2. Enforcing sandboxing/deny-lists for syscalls (out of scope for v1).
 3. Defining application-level account selection or credential management.
+4. Specifying HOW the origin parameter is passed to the memory syscall (see **RFC 0019** for the passing mechanism).
+
+## Origin and Storage Isolation
+
+The memory syscall enforces storage isolation based on the `origin` parameter defined in the Kernel Parameters (RFC 0015).
+
+### Receiving Origin
+
+* **Mechanism**: The memory syscall receives the origin **implicitly** through the runtime's location API, as specified in **RFC 0019**.
+* **Reference Implementation**: In Deno, the origin is set via the `--location` flag when invoking syscalls. The memory syscall uses `Deno.openKv()`, which automatically respects the location for storage isolation.
+* **Isolation Guarantee**: The W3C-standard location API ensures that storage opened with different locations is isolated.
+
+### Using Origin for Isolation
+
+* **Purpose**: The origin defines the storage namespace, ensuring multi-tenant isolation.
+* **Behavior**: Key-value operations within the same origin share storage. Operations with different origins access separate storage namespaces.
+* **Transparency**: The memory syscall implementation does NOT need to parse or validate the origin. It relies on the runtime's location-based isolation.
+
+### Security Model
+
+* **Trusted Source**: The origin MUST originate from the trusted Bootloader (BOOTLOADER.md) and be passed through the Promptware Kernel.
+* **No Override**: User-space code MUST NOT be able to override the origin parameter for the memory syscall.
+* **Runtime Enforcement**: The runtime (e.g., Deno) is responsible for enforcing storage isolation based on the provided origin.
 
 ## Rings and Trust Model (context)
 
