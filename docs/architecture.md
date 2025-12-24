@@ -14,61 +14,43 @@ relation: "Detail for [AGENTS.md]"
   See LICENSE for details.
 -->
 
-# Promptware OS Architecture (v0.8.1)
+# Promptware OS Architecture (v0.9.0)
 
-**Version**: 0.8.1
+**Version**: 0.9.0
 **Status**: Stable
 **Philosophy**: "Promptware Intent, Software Physics."
 
 ## 1. Core Philosophy: Promptware/Software Dualism
 
-Promptware OS v0.8 introduces a strict separation between **Intent** (what the AI wants) and **Physics** (what the machine does).
+Promptware OS introduces a strict separation between **Intent** (what the AI wants) and **Physics** (what the machine does).
 
 ### 1.1 The Dual Kernels
-*   **Promptware Kernel (`KERNEL.md`)**:
-    *   **Role**: The "Soul" or "Mind".
-    *   **Language**: English (Intent) + Literate TypeScript (Interface).
-    *   **Function**: Defines the *Why* and *What*. It acts as a high-level dispatcher.
-    *   **Analogy**: Ring 0 / User Space.
-*   **Software Kernel (`syscalls/*.ts`)**:
-    *   **Role**: The "Body" or "Hardware".
-    *   **Language**: Pure TypeScript (Compiled Binary).
-    *   **Function**: Defines the *How*. It handles I/O, memory, and path resolution deterministically.
-    *   **Analogy**: Firmware / Hardware / BIOS.
+*   **Promptware Kernel (`KERNEL.md`)**: The "Soul" or "Mind". Defines the *Why* and *What*.
+*   **Software Kernel (`syscalls/*.ts`)**: The "Body" or "Hardware". Defines the *How*.
 
-### 1.2 The Bridge (`pwosExec`)
-The system call `pwosExec` is the bridge that crosses the boundary. It takes a high-level intent from the Promptware Kernel and executes it as a low-level instruction in the Software Kernel via the Unified Entry Point (`exec.ts`).
+> **Spec**: [rfcs/0015-kernel-core-arch.md](../rfcs/0015-kernel-core-arch.md)
 
-## 2. Immutable Infrastructure
+## 2. Subsystem Specifications
 
-To solve the **Bootstrap Paradox** (where an Agent forgets its own root), we enforce a strict separation between Identity and State.
+### 2.1 Bootloader & Identity
+The Bootloader defines the immutable root of trust and the initial mount points. It solves the Bootstrap Paradox by enforcing a strict separation between Identity and State.
+> **Spec**: [rfcs/0014-boot-loader-protocol.md](../rfcs/0014-boot-loader-protocol.md)
 
-### 2.1 The Bootloader (Identity)
-*   **Location**: System Prompt (Front Matter).
-*   **Nature**: **Read-Only / Immutable**.
-*   **Content**:
-    *   `root`: The base URL of the OS (e.g., `https://raw.github.../os/`).
-    *   `mounts`: The topology map (Virtual Path -> Physical URL).
-    *   `init`: The entry point script.
-*   **Principle**: A reboot always restores the system to the state defined in the Bootloader.
+### 2.2 Virtual File System (VFS)
+Defines path resolution, the `os://` protocol, and the Law of Anchoring. It ensures portability by resolving paths against the OS Root or Current Context.
+> **Spec**: [rfcs/0013-kernel-vfs-sysfs.md](../rfcs/0013-kernel-vfs-sysfs.md)
 
-### 2.2 The Law of Anchoring
-*   **Rule**: All internal OS paths must be relative to the **OS Root** or the **Current Context**.
-*   **Mechanism**: The Software Kernel resolves paths against `params.root` (injected by `exec.ts`) to ensure portability.
+### 2.3 Memory & State
+Defines the `pwosMemory` syscall and the `/vault/` namespace for secure storage. It uses Deno KV to ensure cryptographic isolation between different OS instances.
+> **Spec**: [rfcs/0018-kernel-memory-spec.md](../rfcs/0018-kernel-memory-spec.md)
 
-## 3. The Software Kernel (`syscalls/*.ts`)
+### 2.4 Security & Cryptography
+Defines `pwenc:v1` primitives and the `Sealed` class for secure data handling.
+> **Spec**: [rfcs/0016-security-crypto-primitives.md](../rfcs/0016-security-crypto-primitives.md) and [rfcs/0017-security-sealed-fetch.md](../rfcs/0017-security-sealed-fetch.md)
 
-The "Hardware" is a collection of atomic TypeScript binaries located at `os/kernel/syscalls/`. It provides three core physical capabilities:
+## 3. Unspecified Components (Draft Status)
 
-### 3.1 Path Resolution (`resolve`)
-*   **Problem**: LLMs struggle with relative paths (`../`) and context.
-*   **Solution**: The "TypeScript Import" Model.
-*   **Mechanism**:
-    *   The Kernel tracks a `__filename` register (the current context).
-    *   `pwosResolve(uri, base)` delegates to the Software Kernel via `pwosExec`.
-    *   The Software Kernel resolves `uri` relative to `base` (if relative) or `root` (if absolute).
-
-### 3.2 JIT Linking (`ingest`)
+### 3.1 JIT Linking (`ingest`)
 *   **Problem**: Markdown files are "source code," not binaries. They need hydration.
 *   **Solution**: Just-In-Time Compilation.
 *   **Mechanism**:
@@ -77,56 +59,34 @@ The "Hardware" is a collection of atomic TypeScript binaries located at `os/kern
     *   It parses the Front Matter (`skills`, `tools`).
     *   It resolves and injects the descriptions of those skills.
     *   It returns the "hydrated" prompt to the Agent.
+> **Proposed Spec**: RFC 0020
 
-### 3.3 Memory Subsystem (`memory`)
-*   **Problem**: Agents need persistent state across sessions.
-*   **Solution**: Deno KV.
-*   **Mechanism**:
-    *   `pwosMemory` calls the Software Kernel via `pwosExec`.
-    *   The Software Kernel uses Deno KV to ensure cryptographic isolation between different OS instances.
+### 3.2 The Bridge (`pwosExec`)
+The system call `pwosExec` is the bridge that crosses the boundary. It takes a high-level intent from the Promptware Kernel and executes it as a low-level instruction in the Software Kernel via the Unified Entry Point (`exec.ts`).
+> **Proposed Spec**: RFC 0019
 
-## 4. The Promptware Kernel (`KERNEL.md`)
-
-The "Assembly" layer exposes these physical capabilities to the Agent via a clean TypeScript interface.
-
-### 4.1 System Calls (v0.6)
-*   `pwosResolve(uri: string, base?: string): Promise<string>`
-*   `pwosIngest(uri: string): Promise<void>`
-*   `pwosMemory(action, key, value?): Promise<any>`
-*   `pwosExec(syscall: string, ...args: any[]): Promise<any>`
-
-### 4.2 The Context Register
-*   `declare let __filename: string;`
-*   This virtual register tracks the "Instruction Pointer" of the OS, allowing the Agent to know "where I am" for relative path resolution.
-
-## 5. Boot Lifecycle
-
-The system follows a strict, stateless boot sequence:
-
-1.  **Power On**: The user provides the **Bootloader** configuration (System Prompt).
-2.  **Kernel Load**: The LLM adopts the **Promptware Kernel** (`os/kernel/KERNEL.md`).
-3.  **Init**:
-    *   The Kernel calls `pwosIngest(params.init)`.
-    *   The Software Kernel fetches and hydrates the Init Agent.
-    *   The Kernel updates `__filename` to the Init URI.
-    *   The Kernel performs a **Context Switch** (`adopt`), becoming the Agent.
-
-## 6. Directory Structure
+## 4. Directory Structure
 
 ```
 /
 ├── AGENTS.md           # The Constitution (L1 Context)
 ├── docs/               # Documentation (L2 Context)
 │   └── architecture.md # This file
+├── rfcs/               # Technical Specifications (L3 Context)
+│   ├── 0000-meta-rfc-process.md
+│   ├── 0012-sys-skill-spec.md
+│   ├── 0013-kernel-vfs-sysfs.md
+│   ├── 0014-boot-loader-protocol.md
+│   ├── 0015-kernel-core-arch.md
+│   ├── 0016-security-crypto-primitives.md
+│   ├── 0017-security-sealed-fetch.md
+│   └── 0018-kernel-memory-spec.md
 └── os/                 # The Operating System Root
     ├── BOOTLOADER.md   # Bootloader Spec
     ├── kernel/         # Kernel Space
     │   ├── KERNEL.md   # Promptware Kernel (Interface)
     │   ├── exec.ts     # Unified Entry Point
     │   └── syscalls/   # Software Kernel (Implementation)
-    │       ├── resolve.ts      # Path Resolution
-    │       ├── ingest.ts       # JIT Linker
-    │       └── memory.ts       # Memory Subsystem
     ├── agents/         # User Space (Personas)
     └── skills/         # Shared Libraries (Capabilities)
 ```
