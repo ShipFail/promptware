@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.9.0] - 2025-12-24
 
 ### Changed
+- **Architecture**: Implemented "Service Locator" pattern for Kernel Tools (self-configuration via KV).
+- **Isolation**: Enforced W3C Storage Partitioning via Deno `--location <origin>`.
+- **Bootloader**: Added `origin` parameter to separate Code Source (`root`) from State Scope (`origin`).
 - **Kernel ABI**: Renamed `pwosExec` to `pwosSyscall` to reflect the Monolithic Dispatch architecture.
 - **Implementation**: Renamed `exec.ts` to `syscall.ts` as the Unified Entry Point.
 - **Documentation**: Updated all RFCs and Architecture docs to reference `pwosSyscall` and `syscall.ts`.
