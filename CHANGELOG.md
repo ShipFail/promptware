@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Implementation**: Renamed `exec.ts` to `syscall.ts` as the Unified Entry Point.
 - **Documentation**: Updated all RFCs and Architecture docs to reference `pwosSyscall` and `syscall.ts`.
 - **Verification**: Achieved 100% Unit Test coverage for the Kernel.
+- **Process**: Added `RFC 0021: Spec-Driven Verification` to mandate Spec-Driven Verification.
 
 ## [0.8.1] - 2025-12-23
 

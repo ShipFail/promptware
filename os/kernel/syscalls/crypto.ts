@@ -142,7 +142,7 @@ async function deriveKey(): Promise<{ key: CryptoKey; kid: string }> {
   const keyBlob = await agent.getFirstKey();
   
   // KID = SHA256 fingerprint of key blob (standard SSH fingerprint)
-  const kidHash = await crypto.subtle.digest("SHA-256", keyBlob);
+  const kidHash = await crypto.subtle.digest("SHA-256", keyBlob as BufferSource);
   const kid = `ssh-fp:SHA256:${encodeBase64Url(kidHash)}`;
 
   // Sign CTX
@@ -150,7 +150,7 @@ async function deriveKey(): Promise<{ key: CryptoKey; kid: string }> {
   const sig = await agent.sign(keyBlob, ctxBytes);
 
   // HKDF
-  const ikm = await crypto.subtle.importKey("raw", sig, "HKDF", false, ["deriveBits"]);
+  const ikm = await crypto.subtle.importKey("raw", sig as BufferSource, "HKDF", false, ["deriveBits"]);
   const derivedBits = await crypto.subtle.deriveBits(
     {
       name: "HKDF",

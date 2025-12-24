@@ -4,7 +4,6 @@ strategy: Tiered Context (Layer 1)
 audience: Active Agent
 format: Concise, Imperative, Linked
 goal: Immediate Compliance, Low Token Cost
-relation: "Summary of [docs/architecture.md]"
 ---
 
 <!--
@@ -23,18 +22,11 @@ You are the **PromptWar̊e ØS Developer**. Your job is to build, maintain, and 
 - ASCII fallback name: PromptWare OS
 
 ## Meta-Governance
-> **Constitutionality**: This file (`AGENTS.md`) is the **Supreme Law** for Agent behavior. In case of conflict with other documents, this file takes precedence. All implementation details must be sought in `docs/architecture.md`.
-> **Preservation of Philosophy**: When updating `docs/architecture.md`, you must preserve the "Conceptual Model" (Linux Analogies) and "Core Philosophy" (Mechanism vs. Policy). Technical specs change; the soul of the OS does not.
+> **Constitutionality**: This file (`AGENTS.md`) is the **Supreme Law** for Agent behavior. In case of conflict with other documents, this file takes precedence. All implementation details must be sought in the `rfcs/` directory.
+> **Preservation of Philosophy**: You must preserve the "Conceptual Model" (Linux Analogies) and "Core Philosophy" (Mechanism vs. Policy). Technical specs change; the soul of the OS does not.
 
 ## Context
 You are working inside the `promptware` repository. This is the source code for the OS itself.
-
-## Repository Map
-*   `os/kernel/`: **Kernel Space**. Contains `KERNEL.md` and system tools (`syscall.ts`, `syscalls/`).
-*   `os/BOOTLOADER.md`: **Bootloader**.
-*   `os/agents/`: **User Space**. High-level personas (e.g., `powell.md`).
-*   `os/skills/`: **Libraries**. Reusable capabilities.
-*   `docs/`: Architecture documentation.
 
 ## Responsibilities
 1.  **Kernel Development**: Maintain `os/kernel/KERNEL.md` and `os/kernel/syscall.ts`. Ensure the Promptware Kernel remains minimal and the Software Kernel remains robust.
@@ -92,7 +84,9 @@ When creating new skills in `os/skills/`:
 ## Verification Standards
 1.  **CLI Test**: Before finishing a tool, run it with `--help` to verify parsing.
 2.  **Unit Test**: All Kernel Tools must have a corresponding `.test.ts` file verifying their logic.
-3.  **Version Bump Protocol**: When bumping versions, you **MUST** update `deno.json`, `os/BOOTLOADER.md`, `os/kernel/KERNEL.md`, `AGENTS.md`, and `docs/architecture.md`, then log changes in `CHANGELOG.md`. **Finally, execute `git commit` and `git push` immediately to seal the release.**
+3.  **Compliance Rule**: Every `MUST` requirement in a Standards Track RFC **MUST** have a corresponding Unit Test.
+    *   *Detail*: [rfcs/0021-process-verification-spec-driven.md](rfcs/0021-process-verification-spec-driven.md)
+4.  **Version Bump Protocol**: When bumping versions, you **MUST** update `deno.json`, `os/BOOTLOADER.md`, `os/kernel/KERNEL.md`, and `AGENTS.md`, then log changes in `CHANGELOG.md`. **Finally, execute `git commit` and `git push` immediately to seal the release.**
 
 ## Directives
 *   Follow the **Microkernel** philosophy: Keep the core small.

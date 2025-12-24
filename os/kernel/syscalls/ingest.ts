@@ -149,7 +149,7 @@ export default async function ingest(root: string, targetUri: string): Promise<s
   }
 
   const newFm = stringify(fm);
-  return `---\n${newFm}---\n${body}`;
+  return `---\n${newFm}---${body}`;
 }
 
 async function main() {
