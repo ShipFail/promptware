@@ -99,12 +99,14 @@ const testConfigs = [
     version: "0.1",
     root: "https://raw.githubusercontent.com/ShipFail/promptware/main/os/",
     kernel: "/kernel.md",
-    init: "https://raw.githubusercontent.com/bmadcode/bmad-method/main/bundle/init.txt",
+    // Example pattern for external bundle (replace with real repository)
+    init: "https://raw.githubusercontent.com/external-org/agent-bundle/main/bundle/init.txt",
   },
   {
     version: "0.1",
     root: "https://raw.githubusercontent.com/ShipFail/promptware/main/os/",
     kernel: "/kernel.md",
+    // Example pattern for custom app
     init: "https://raw.githubusercontent.com/myorg/myapp/v1.0.0/init.md",
   },
 ];

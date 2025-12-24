@@ -1,32 +1,42 @@
-# BMAD Boot MVP POC Implementation
+# External Bundle Boot - Quick Start
 
 ## Quick Start
 
-To boot Promptware OS with a BMAD bundle:
+To boot PromptWar̊e ØS with an external agent bundle:
 
+**Pattern** (replace `<org>/<repo>` with your repository):
 ```yaml
 version: "0.1"
 root: "https://raw.githubusercontent.com/ShipFail/promptware/main/os/"
 kernel: "/kernel.md"
-init: "https://raw.githubusercontent.com/bmadcode/bmad-method/main/bundle/init.txt"
+init: "https://raw.githubusercontent.com/<org>/<repo>/main/agent/init.md"
 ```
+
+**Concrete example** (using different PromptWar̊e branch as external source):
+```yaml
+version: "0.1"
+root: "https://raw.githubusercontent.com/ShipFail/promptware/refs/heads/main/os/"
+kernel: "/kernel/KERNEL.md"
+init: "https://raw.githubusercontent.com/ShipFail/promptware/refs/heads/feature-branch/os/agents/powell.md"
+```
+(If `feature-branch` exists and differs from `main`, this triggers VFS root switching)
 
 The OS will automatically:
 1. Load the kernel from the OS root
-2. Detect that `init` points to a different repository
-3. Derive application root: `https://raw.githubusercontent.com/bmadcode/bmad-method/main/`
-4. Call `os_chroot()` to switch VFS root
-5. Load init from the BMAD repository
+2. Detect that `init` points to a different repository or branch
+3. Derive application root from the URL
+4. Call VFS root switch to the application root
+5. Load init from the external repository
 
 ## Key Features
 
-### 1. `os_chroot(new_root)` - New Kernel Primitive
+### 1. VFS Root Switching - Kernel Primitive
 
 Change the VFS root mount during boot handoff:
 
 ```
-Before chroot: / → https://raw.githubusercontent.com/ShipFail/promptware/main/os/
-After chroot:  / → https://raw.githubusercontent.com/bmadcode/bmad-method/main/
+Before root switch: / → https://raw.githubusercontent.com/ShipFail/promptware/main/os/
+After root switch:  / → https://raw.githubusercontent.com/<org>/<repo>/<ref>/
 ```
 
 ### 2. GitHub-First Loading
@@ -34,22 +44,18 @@ After chroot:  / → https://raw.githubusercontent.com/bmadcode/bmad-method/main
 No installation required. Just provide a GitHub raw URL:
 
 ```yaml
-# Load any agent, bundle, or application by URL
+# Load any agent, bundle, or application by URL (replace with real repository)
 init: "https://raw.githubusercontent.com/<org>/<repo>/<ref>/<path>/init.md"
 ```
 
-### 3. fstab Support
+### 3. Mounts Support
 
-Mount additional libraries and modules:
+Mount additional libraries and modules in the bootloader YAML:
 
 ```yaml
-# os/fstab.yaml
-version: "0.1"
 mounts:
-  - mount: "/modules/bmad/"
-    url: "https://raw.githubusercontent.com/bmadcode/bmad-method/main/"
-  - mount: "/lib/utils/"
-    url: "https://raw.githubusercontent.com/myorg/common-libs/main/utils/"
+  /lib/external: "https://raw.githubusercontent.com/<your-org>/<lib-repo>/main/"
+  /lib/utils: "https://raw.githubusercontent.com/<your-org>/common-libs/main/utils/"
 ```
 
 ## Files
@@ -99,9 +105,9 @@ See `docs/implementation-summary.md` for future milestones:
 
 This implementation proves:
 
-✅ Promptware OS can boot reliably from an OS root  
-✅ Promptware OS can os_chroot into an application root  
-✅ Promptware OS can ingest arbitrary text as init  
-✅ BMAD can be booted by URL without installation  
+✅ PromptWar̊e ØS can boot reliably from an OS root  
+✅ PromptWar̊e ØS can switch VFS root to an external repository  
+✅ PromptWar̊e ØS can ingest arbitrary text as init  
+✅ External agent bundles can be booted by URL without installation  
 
 **This is the "cloud-native agent OS" proof.**

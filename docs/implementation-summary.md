@@ -122,9 +122,9 @@ THEN
 
 All three test cases passed:
 
-1. **Relative init** - No chroot, stays on OS root ✅
-2. **BMAD bundle URL** - Chroot to bmadcode/bmad-method ✅
-3. **Custom app URL** - Chroot to myorg/myapp ✅
+1. **Relative init** - No VFS root switch, stays on OS root ✅
+2. **External bundle URL** - VFS root switch to external repository ✅
+3. **Custom app URL** - VFS root switch with custom configuration ✅
 
 ### Code Review
 

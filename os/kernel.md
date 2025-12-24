@@ -92,9 +92,9 @@ The kernel supports optional `/fstab.yaml` for declaring additional VFS mounts.
 ```yaml
 version: "0.1"
 mounts:
-  - mount: "/modules/bmad/"
-    url: "https://raw.githubusercontent.com/bmadcode/bmad-method/main/"
-  - mount: "/lib/"
+  - mount: "/lib/external/"
+    url: "https://raw.githubusercontent.com/<org>/<repo>/<ref>/"
+  - mount: "/lib/utils/"
     url: "https://raw.githubusercontent.com/<user>/<repo>/<ref>/lib/"
 ```
 
