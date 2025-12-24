@@ -24,20 +24,17 @@ The Vertex AI skill enables agents to generate:
 
 ### Authentication
 
-Set up Google Cloud authentication using one of these methods:
+Set up Google Cloud authentication using the recommended method:
 
 #### Method 1: Application Default Credentials (Recommended)
 ```bash
 gcloud auth application-default login
 ```
 
-#### Method 2: Service Account
-```bash
-export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json
-```
+**Important Note**: Service account JWT authentication is not yet implemented. If you have a service account JSON key file, the tool will detect it but ask you to use gcloud CLI instead.
 
-#### Method 3: OAuth 2.0
-Visit the [Google Cloud Console](https://console.cloud.google.com/apis/credentials) to set up OAuth credentials.
+#### Method 2: OAuth 2.0
+Visit the [Google Cloud Console](https://console.cloud.google.com/apis/credentials) to set up OAuth credentials, then use gcloud CLI to authenticate.
 
 ### Usage Examples
 
@@ -114,6 +111,8 @@ When adding new capabilities:
 - Subject to Vertex AI API quotas
 - Video generation is asynchronous and may take minutes
 - Regional availability varies by model
+- **Service account JWT authentication not yet implemented** - use gcloud CLI
+- Maximum 10 images per request
 
 ## License
 

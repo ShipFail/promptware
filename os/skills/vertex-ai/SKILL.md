@@ -51,15 +51,18 @@ This skill requires Google Cloud authentication. The tool will:
 2. **Provide setup instructions**: If credentials are missing, display OAuth login URL and setup steps
 3. **Guide authentication**: Walk you through the Google Cloud authentication flow
 
+**Important Limitation**: Service account JWT authentication is not yet fully implemented. Please use the gcloud CLI method for authentication.
+
 ### Setting up authentication
 
 If you haven't authenticated yet, you'll need to:
 
 1. Have a Google Cloud project with Vertex AI API enabled
-2. Set up Application Default Credentials using one of these methods:
-   * Run `gcloud auth application-default login`
-   * Set `GOOGLE_APPLICATION_CREDENTIALS` environment variable
-   * Use service account JSON key file
+2. Set up Application Default Credentials using the recommended method:
+   * **Recommended**: Run `gcloud auth application-default login`
+   * Alternative: Set `GOOGLE_APPLICATION_CREDENTIALS` environment variable (requires gcloud CLI as fallback)
+
+**Note**: Service account JSON key files are detected but not yet supported for direct authentication. The tool will guide you to use gcloud CLI instead.
 
 The tool will detect your authentication status and provide specific instructions if needed.
 
@@ -208,6 +211,8 @@ deno run --allow-net --allow-env --allow-read vertex-ai.ts generate-image \
 * Video generation may take several minutes depending on duration
 * Content must comply with Google Cloud's usage policies
 * Some features may be region-specific
+* **Service account JWT authentication not yet implemented** - use gcloud CLI instead
+* Maximum 10 images per generation request (use multiple requests for more)
 
 ---
 

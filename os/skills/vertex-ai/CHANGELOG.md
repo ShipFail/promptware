@@ -71,7 +71,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Subject to Vertex AI API quotas
 - Video generation is asynchronous and may take several minutes
 - Regional availability varies by model
-- Service account JWT authentication not fully implemented (uses gcloud CLI as fallback)
+- **Service account JWT authentication not fully implemented** (uses gcloud CLI as fallback)
+- Maximum 10 images per generation request
 
 ### Future Roadmap
 See INTEGRATION.md for planned enhancements:
