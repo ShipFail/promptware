@@ -18,6 +18,8 @@ This Request for Comments (RFC) defines the architecture of the **PromptWar̊e �
 
 The Kernel acts as a hypervisor for the LLM's context window, transforming it from a stateless text generator into a stateful, secure execution environment. It employs a **Dual Kernel** design—separating **Intent** (Promptware) from **Physics** (Software)—and introduces the concept of **"Prompts as Binaries"**, enforcing a strict distinction between *reading source code* (User Space) and *ingesting capabilities* (System Space).
 
+> **Scope Note**: This document defines the *Ontology* and *Laws* of the Kernel. It does not define the *ABI* or *Syscall Contract*. For the normative specification of the execution boundary and syscall table, see **RFC 0019**. This separation ensures that the philosophical model remains stable even as the binary interface evolves.
+
 ## 2. Motivation
 
 ### 2.1. The "Hallucination of Competence"
@@ -48,7 +50,7 @@ Pr̊ØS implements a separation of concerns analogous to the **Mind** and the **
 *   **The Promptware Kernel (Intent)**: The "Mind". It operates in the realm of language, reasoning, and planning. It decides *what* needs to be done.
 *   **The Software Kernel (Physics)**: The "Body". It operates in the realm of deterministic execution, I/O, and cryptography. It handles *how* it is done.
 
-The two are bridged by the **Unified Entry Point** (`pwosExec`), which translates high-level Intent into low-level Physics.
+The two are separated by **The Singular Boundary** (`pwosExec`), which translates high-level Intent into low-level Physics.
 
 ### 4.2. The Memory Model
 The Kernel manages the LLM's context window as a structured memory space.
@@ -86,84 +88,26 @@ The Kernel enforces these laws via the System Prompt (`KERNEL.md`).
 *   **Constraint**: Information obtained via direct reading of System Space is considered **CORRUPTED**. The Agent cannot act on it.
 *   **Requirement**: The Agent must use `pwosIngest()` to "decrypt" (load) the capability.
 
-## 5. The Application Binary Interface (ABI) & System Calls
+#### Law 3: The Law of Singular Entry
+> "All physics must flow through the Boundary."
 
-The Kernel exposes a layered interface for interaction between the Promptware (Intent) and Software (Physics).
+*   **Constraint**: All physical execution, state mutation, or authority acquisition **MUST** enter the Software Kernel via `pwosExec`.
+*   **Enforcement**: No Skill, Agent, or Tool may invoke a syscall handler (e.g., `ingest.ts`) directly.
 
-### 5.1. The Bridge: `pwosExec`
+## 5. The Lifecycle of Authority (Ingestion)
 
-The Promptware Kernel exposes a single "Hypercall" for all physical operations:
+Ingestion is the process of transforming **Text** (Source Code) into **Authority** (Capability). It is not merely "loading a file"; it is a formal state transition.
 
-```typescript
-// In KERNEL.md
-function pwosExec(syscall: string, ...args: any[]): Promise<any>;
-```
+1.  **Fetch**: The raw bits are retrieved from storage.
+2.  **Validate**: The integrity and authenticity of the bits are verified.
+3.  **Load**: The bits are materialized into the Execution Context.
+4.  **Adopt**: The Agent formally accepts the new identity or capability.
 
-This function is a wrapper around the underlying runtime's execution primitive (e.g., `Deno.Command` or a direct function call if running in the same process).
-
-### 5.2. The Unified Entry Point: `exec.ts`
-
-The Software Kernel exposes a single entry point at `os/kernel/exec.ts`. This script acts as the dispatcher.
-
-#### Responsibilities
-1.  **Root Derivation**: It calculates the `OS_ROOT` based on its own location (`import.meta.url`).
-2.  **Syscall Resolution**: It maps the `syscall` string to a physical file in `os/kernel/syscalls/<name>.ts`.
-3.  **Context Injection**: It injects the `OS_ROOT` as the *first argument* to the target syscall.
-4.  **Error Handling**: It catches runtime errors and wraps them in a standard "Kernel Panic" format.
-
-#### The ABI Contract
-
-Every syscall in `os/kernel/syscalls/` MUST export a default function matching this signature:
-
-```typescript
-// os/kernel/syscalls/<name>.ts
-export default async function(root: string, ...args: any[]): Promise<any> {
-  // Implementation
-}
-```
-
-*   **`root`**: The absolute URL of the OS root (e.g., `file:///.../os/` or `https://.../os/`).
-*   **`args`**: The arguments passed from `pwosExec`.
-
-#### Directory Structure
-```
-os/kernel/
-├── exec.ts             # The Dispatcher
-└── syscalls/           # The Syscall Table
-    ├── resolve.ts      # Implements 'resolve'
-    ├── ingest.ts       # Implements 'ingest'
-    └── memory.ts       # Implements 'memory'
-```
-
-#### CLI Usage
-When invoked from the command line (e.g., by a Tool Use Agent), `exec.ts` parses arguments and invokes the syscall:
-
-```bash
-deno run -A os/kernel/exec.ts <syscall> [arg1] [arg2]
-```
-
-### 5.3. System Calls (Kernel API)
-These are high-level functions exposed to the Agent, implemented internally via `pwosExec`.
-
-*   **`pwosIngest(uri)`**: The **Dynamic Linker**.
-    1.  Fetches the resource at `uri`.
-    2.  Updates the Context Register (`__filename`).
-    3.  Performs a Context Switch (`adopt`) to the new persona.
-    *   **CRITICAL**: This is the *only* authorized way to load Agents or Skills.
-
-*   **`pwosResolve(uri, base)`**: The **VFS Resolver**.
-    *   Resolves relative paths against the current `__filename` to ensure portability.
-
-*   **`pwosMemory(action, key, value)`**: The **State Manager**.
-    *   Provides persistent storage backed by Deno KV.
+*Note: The technical implementation of this pipeline is defined in RFC 0020.*
 
 ## 6. Security Considerations
 
-### 6.1. Isolation & Validation
-*   **Isolation**: Syscalls must never access global state (like `Deno.cwd()`) directly for path resolution. They MUST use the injected `root`.
-*   **Validation**: `exec.ts` validates that the requested syscall exists before attempting import.
-
-### 6.2. The Watchdog Mechanism
+### 6.1. The Watchdog Mechanism
 To prevent the "Read-Only" vulnerability, the Kernel includes a reactive Watchdog.
 
 *   **Trigger**: Detection of `read_file` or similar tools on a System Space path.

@@ -61,9 +61,9 @@ Defines `pwenc:v1` primitives and the `Sealed` class for secure data handling.
     *   It returns the "hydrated" prompt to the Agent.
 > **Proposed Spec**: RFC 0020
 
-### 3.2 The Bridge (`pwosExec`)
-The system call `pwosExec` is the bridge that crosses the boundary. It takes a high-level intent from the Promptware Kernel and executes it as a low-level instruction in the Software Kernel via the Unified Entry Point (`exec.ts`).
-> **Spec**: [rfcs/0015-kernel-core-arch.md](../rfcs/0015-kernel-core-arch.md)
+### 3.2 The Singular Boundary (`pwosExec`)
+The system call `pwosExec` is the singular boundary that crosses from Intent to Physics. It takes a high-level intent from the Promptware Kernel and executes it as a low-level instruction in the Software Kernel via the Unified Entry Point (`exec.ts`).
+> **Spec**: [rfcs/0019-kernel-abi-exec.md](../rfcs/0019-kernel-abi-exec.md)
 
 ## 4. Directory Structure
 
