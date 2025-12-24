@@ -94,7 +94,26 @@ The Kernel enforces these laws via the System Prompt (`KERNEL.md`).
 *   **Constraint**: All physical execution, state mutation, or authority acquisition **MUST** enter the Software Kernel via `pwosExec`.
 *   **Enforcement**: No Skill, Agent, or Tool may invoke a syscall handler (e.g., `ingest.ts`) directly.
 
-## 5. The Lifecycle of Authority (Ingestion)
+## 5. Kernel Initialization (PID 0)
+
+The "Boot Sequence" is the critical handoff between the static Bootloader and the dynamic Kernel.
+
+### 5.1. The Handoff
+The Bootloader (a static Markdown file) injects the `KernelParameters` (Root, Init Agent) into the LLM's context. At this moment, the LLM is running as **PID 0** (The Kernel Process).
+
+### 5.2. The Init Sequence
+PID 0 MUST immediately execute the following sequence to bring the system to a usable state:
+
+1.  **Initialize Memory**:
+    *   Persist the boot parameters to `proc/cmdline` via the Memory Syscall.
+    *   *Goal*: Ensure the OS Root is known to the Software Kernel.
+2.  **Launch Init Agent**:
+    *   Execute `pwosIngest(init_agent)`.
+    *   *Goal*: Fetch and adopt the user-space persona (PID 1).
+3.  **System Ready**:
+    *   Report successful boot.
+
+## 6. The Lifecycle of Authority (Ingestion)
 
 Ingestion is the process of transforming **Text** (Source Code) into **Authority** (Capability). It is not merely "loading a file"; it is a formal state transition.
 

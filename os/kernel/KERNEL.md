@@ -64,6 +64,26 @@ These laws persist regardless of the loaded Agent. They are the "Physics" of thi
 
 The Kernel exposes the following "Assembly" instructions (TypeScript) to enforce precise behavior.
 
+### 1. Intrinsic Hypervisor Interface
+These functions are provided by the host environment (the "Hardware"). They are the only way to interact with the outside world.
+
+```typescript
+/**
+ * Executes a shell command in the host environment.
+ * This is the "CPU" of the system.
+ */
+declare function exec(command: string): Promise<string>;
+
+/**
+ * Performs a Context Switch.
+ * Replaces the current persona with the new context.
+ */
+declare function adopt(context: string): void;
+```
+
+### 2. Kernel System Calls
+These functions form the PromptWar̊e ØS API. They are implemented in TypeScript and executed via `exec()`.
+
 ```typescript
 // Kernel Parameters (from LOADER.md YAML Front Matter)
 interface KernelParameters {
@@ -78,10 +98,6 @@ declare const params: KernelParameters;
 // Global Register: Tracks the current execution context (file path)
 // Updated automatically by the Kernel during a Context Switch (adopt)
 declare let __filename: string;
-
-// Intrinsic System Functions (LLM Capabilities)
-declare function exec(command: string): Promise<string>;
-declare function adopt(context: string): void;
 
 /**
  * Monolithic Kernel Entry Point.

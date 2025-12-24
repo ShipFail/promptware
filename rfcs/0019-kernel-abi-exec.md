@@ -35,16 +35,34 @@ The Software Kernel maintains an internal **Syscall Dispatch Table**. This table
 ### 3.1. Conceptual Table
 ```typescript
 const SYSCALL_TABLE = {
-  "kernel.ingest":  () => import("./syscalls/ingest.ts"),
-  "kernel.resolve": () => import("./syscalls/resolve.ts"),
-  "kernel.memory":  () => import("./syscalls/memory.ts"),
+  // Kernel Space (Short Names)
+  "ingest":  () => import("./syscalls/ingest.ts"),
+  "resolve": () => import("./syscalls/resolve.ts"),
+  "memory":  () => import("./syscalls/memory.ts"),
+  
+  // User Space (Full Paths)
+  "os/skills/search": () => import("..."),
+  "./local/tool.ts":  () => import("..."),
 };
 ```
 
 ### 3.2. Implementation Detail (`exec.ts`)
 In the reference implementation, this table is backed by the filesystem structure in `os/kernel/syscalls/`. The `exec.ts` entry point acts as the dynamic dispatcher.
 
-## 4. The ABI Contract
+## 4. Syscall Naming Rules
+
+To prevent collisions between Kernel Core and User Space extensions, the following naming rules MUST be enforced:
+
+1.  **Kernel Privilege (Short Names)**:
+    *   Syscalls that contain **NO slashes** (e.g., `ingest`, `memory`) are reserved for the Kernel Core.
+    *   These map directly to `os/kernel/syscalls/<name>.ts`.
+
+2.  **User Space Constraint (Path Names)**:
+    *   All other syscalls MUST be addressed by their **Path** (URI or Relative).
+    *   Examples: `os/skills/search`, `./tools/calc.ts`.
+    *   This ensures that user-space extensions never collide with future kernel primitives.
+
+## 5. The ABI Contract
 
 All syscall implementations MUST adhere to the following signature:
 
@@ -59,7 +77,7 @@ export default async function(root: string, ...args: any[]): Promise<any> {
 
 ## 5. The Ingest Pipeline
 
-The `kernel.ingest` syscall implements the "Lifecycle of Authority" defined in RFC 0015. It MUST execute the following phases in order:
+The `ingest` syscall implements the "Lifecycle of Authority" defined in RFC 0015. It MUST execute the following phases in order:
 
 1.  **Fetch**: Retrieve the raw bits from the URI (I/O).
 2.  **Validate**: Verify integrity and authenticity (Crypto).
@@ -70,7 +88,7 @@ The `kernel.ingest` syscall implements the "Lifecycle of Authority" defined in R
 
 It is critical to distinguish between the **Syscall** (the semantic event) and the **CLI** (the invocation mechanism).
 
-*   **The Syscall**: `pwosExec("kernel.ingest", uri)`
+*   **The Syscall**: `pwosExec("ingest", uri)`
     *   This is the API used by the Promptware Kernel.
 *   **The CLI**: `deno run exec.ts ingest <uri>`
     *   This is a **Debug & Transport Surface**. It allows external tools or human operators to invoke syscalls, but it is *not* the syscall itself.
@@ -78,8 +96,8 @@ It is critical to distinguish between the **Syscall** (the semantic event) and t
 ## 7. Forward Compatibility
 
 To ensure long-term stability:
-1.  **Opaque Dispatch**: Agents MUST NOT rely on the physical location of syscall files. They MUST only use the string identifier (e.g., `kernel.ingest`).
-2.  **Argument Versioning**: If a syscall's signature changes, a new identifier SHOULD be introduced (e.g., `kernel.ingest.v2`).
+1.  **Opaque Dispatch**: Agents MUST NOT rely on the physical location of syscall files. They MUST only use the string identifier.
+2.  **Namespace Protection**: Agents MUST use full paths (e.g., `os/skills/search`) for non-kernel resources. Short names are exclusively reserved for the Kernel.
 
 ## 8. Security Considerations
 
