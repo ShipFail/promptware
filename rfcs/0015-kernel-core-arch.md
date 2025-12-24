@@ -16,7 +16,7 @@ Tags: kernel, architecture, syscalls
 
 This Request for Comments (RFC) defines the architecture of the **PromptWar̊e ØS (Pr̊ØS) Kernel**, an AI-Native Operating System designed to enforce state persistence, privilege separation, and execution integrity within Large Language Model (LLM) environments.
 
-The Kernel acts as a hypervisor for the LLM's context window, transforming it from a stateless text generator into a stateful, secure execution environment. It introduces the concept of **"Prompts as Binaries"**, enforcing a strict distinction between *reading source code* (User Space) and *ingesting capabilities* (System Space).
+The Kernel acts as a hypervisor for the LLM's context window, transforming it from a stateless text generator into a stateful, secure execution environment. It employs a **Dual Kernel** design—separating **Intent** (Promptware) from **Physics** (Software)—and introduces the concept of **"Prompts as Binaries"**, enforcing a strict distinction between *reading source code* (User Space) and *ingesting capabilities* (System Space).
 
 ## 2. Motivation
 
@@ -32,6 +32,8 @@ Pr̊ØS introduces a Kernel that enforces **Immutable Laws** upon the LLM. It ma
 ## 3. Terminology
 
 *   **Pr̊ØS**: PromptWar̊e ØS.
+*   **Promptware Kernel**: The high-level "Mind" of the OS (Intent), written in natural language and interface definitions.
+*   **Software Kernel**: The low-level "Body" of the OS (Physics), written in executable code (TypeScript).
 *   **System Space**: The protected memory region containing the OS Kernel, Agents, and Skills. Defined by the logical root `os:///`.
 *   **User Space**: The user's workspace (e.g., `src/`, `docs/`), containing data that can be freely read and written.
 *   **Ingest**: The process of fetching a resource, parsing its instructions, and formally adopting its persona. Analogous to "loading a binary."
@@ -40,7 +42,15 @@ Pr̊ØS introduces a Kernel that enforces **Immutable Laws** upon the LLM. It ma
 
 ## 4. Architecture Specification
 
-### 4.1. The Memory Model
+### 4.1. The Dual Kernel Model (Mind & Body)
+Pr̊ØS implements a separation of concerns analogous to the **Mind** and the **Body**:
+
+*   **The Promptware Kernel (Intent)**: The "Mind". It operates in the realm of language, reasoning, and planning. It decides *what* needs to be done.
+*   **The Software Kernel (Physics)**: The "Body". It operates in the realm of deterministic execution, I/O, and cryptography. It handles *how* it is done.
+
+The two are bridged by the **Unified Entry Point** (`pwosExec`), which translates high-level Intent into low-level Physics.
+
+### 4.2. The Memory Model
 The Kernel manages the LLM's context window as a structured memory space.
 
 *   **The Context Register**: `__filename`
@@ -53,14 +63,14 @@ The Kernel manages the LLM's context window as a structured memory space.
     *   A logical addressing scheme for all System Resources.
     *   Abstracts physical locations (GitHub URLs, local files) into a unified namespace.
 
-### 4.2. Privilege Separation (The Rings)
+### 4.3. Privilege Separation (The Rings)
 
 | Ring | Name | Access | Description |
 | :--- | :--- | :--- | :--- |
 | **Ring 0** | Kernel Space | `os:///` | **Protected**. Executable Only. No Direct Read Access. |
 | **Ring 3** | User Space | Workspace | **Open**. Read/Write allowed. |
 
-### 4.3. The Immutable Laws (Kernel Space Physics)
+### 4.4. The Immutable Laws (Kernel Space Physics)
 
 The Kernel enforces these laws via the System Prompt (`KERNEL.md`).
 
