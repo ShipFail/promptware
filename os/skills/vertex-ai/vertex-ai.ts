@@ -119,7 +119,15 @@ async function getAccessToken(): Promise<string | null> {
     }
 
     return null;
-  } catch (_error) {
+  } catch (error) {
+    // Log authentication errors for debugging
+    if (error instanceof Deno.errors.NotFound) {
+      // Credentials file not found - this is expected if not configured
+      return null;
+    }
+    if (error instanceof Error) {
+      console.error(`Authentication check error: ${error.message}`);
+    }
     return null;
   }
 }
@@ -213,9 +221,6 @@ async function generateVideo(options: {
       ...(options.style && { style: options.style }),
       ...(options.aspectRatio && { aspectRatio: options.aspectRatio }),
     }],
-    parameters: {
-      model: MODEL_VEO_3_1,
-    },
   };
 
   try {
