@@ -9,6 +9,10 @@
 
 import { parseArgs } from "jsr:@std/cli/parse-args";
 
+// Model constants
+const MODEL_VEO_3_1 = "veo-3.1";
+const MODEL_IMAGEN = "imagegeneration";
+
 const HELP_MESSAGE = `
 vertex-ai - Google Vertex AI Module Tool
 
@@ -76,9 +80,11 @@ async function getAccessToken(): Promise<string | null> {
       // This is a simplified check - in production, use Google Auth Library
       if (creds.type === "service_account") {
         console.log("✓ Service account credentials found");
+        console.log("⚠ Note: Service account JWT authentication not fully implemented");
+        console.log("   Please use gcloud CLI for now: gcloud auth application-default login");
+        // Return null to indicate incomplete implementation
         // TODO: Implement full JWT flow for service accounts
-        // For now, return a placeholder indicating credentials exist
-        return "SERVICE_ACCOUNT_DETECTED";
+        return null;
       }
     }
 
@@ -192,14 +198,14 @@ async function generateVideo(options: {
       ...(options.aspectRatio && { aspectRatio: options.aspectRatio }),
     }],
     parameters: {
-      model: "veo-3.1",
+      model: MODEL_VEO_3_1,
     },
   };
 
   try {
     const response = await makeVertexAIRequest(
       config,
-      "publishers/google/models/veo-3.1:predict",
+      `publishers/google/models/${MODEL_VEO_3_1}:predict`,
       requestBody,
     );
 
@@ -283,7 +289,7 @@ async function generateImage(options: {
   try {
     const response = await makeVertexAIRequest(
       config,
-      "publishers/google/models/imagegeneration:predict",
+      `publishers/google/models/${MODEL_IMAGEN}:predict`,
       requestBody,
     );
 
@@ -397,13 +403,19 @@ async function main() {
         Deno.exit(1);
       }
 
+      const numImages = parseInt(args["num-images"], 10);
+      if (isNaN(numImages) || numImages < 1) {
+        console.error("Error: --num-images must be a positive number");
+        Deno.exit(1);
+      }
+
       await generateImage({
         prompt: args.prompt,
         project: args.project,
         location: args.location,
         style: args.style,
         resolution: args.resolution,
-        numImages: parseInt(args["num-images"], 10),
+        numImages: numImages,
       });
       break;
     }
