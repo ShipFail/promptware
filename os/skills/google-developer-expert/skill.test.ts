@@ -1,5 +1,5 @@
 /**
- * PromptWar̊e ØS: Google Developer Expert Skill Tests
+ * PromptWare ØS: Google Developer Expert Skill Tests
  * 
  * Unit tests for OAuth and Google API tools.
  * 
@@ -81,10 +81,11 @@ Deno.test("oauth-auth.ts - status action works without auth", async () => {
   });
   
   const { stdout } = await cmd.output();
-  const output = new TextDecoder().decode(stdout);
+  const output = new TextDecoder().decode(stdout).toLowerCase();
   
   // Should report not authenticated or show status
-  assertStringIncludes(output.toLowerCase(), "authenticated" || "token");
+  const hasAuthMessage = output.includes("authenticated") || output.includes("token");
+  assertEquals(hasAuthMessage, true, "Output should mention authentication or token status");
 });
 
 // ===== OAuth Token Tool Tests =====
