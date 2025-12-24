@@ -13,6 +13,26 @@ import { parseArgs } from "jsr:@std/cli/parse-args";
 const MODEL_VEO_3_1 = "veo-3.1";
 const MODEL_IMAGEN = "imagegeneration";
 
+// Validation constants
+const MAX_NUM_IMAGES = 10;
+
+// Type definitions
+interface VideoPrediction {
+  videoUri?: string;
+  jobId?: string;
+}
+
+interface ImagePrediction {
+  bytesBase64Encoded?: string;
+  imageUri?: string;
+}
+
+interface VertexAIConfig {
+  project: string;
+  location: string;
+  apiEndpoint: string;
+}
+
 const HELP_MESSAGE = `
 vertex-ai - Google Vertex AI Module Tool
 
@@ -53,9 +73,11 @@ Examples:
 
 Authentication:
   This tool requires Google Cloud authentication. Set up credentials using:
-  - gcloud auth application-default login
+  - gcloud auth application-default login (recommended)
   - GOOGLE_APPLICATION_CREDENTIALS environment variable
-  - Service account JSON key file
+  
+  Note: Service account JWT authentication is not yet implemented.
+  Please use gcloud CLI for authentication.
 `;
 
 interface VertexAIConfig {
@@ -66,6 +88,7 @@ interface VertexAIConfig {
 
 /**
  * Get access token from Application Default Credentials
+ * Note: Service account JWT authentication is not fully implemented
  */
 async function getAccessToken(): Promise<string | null> {
   try {
@@ -77,13 +100,12 @@ async function getAccessToken(): Promise<string | null> {
       const creds = JSON.parse(credsContent);
       
       // For service account, we need to create a JWT and exchange for access token
-      // This is a simplified check - in production, use Google Auth Library
+      // This functionality is not yet implemented
       if (creds.type === "service_account") {
-        console.log("✓ Service account credentials found");
-        console.log("⚠ Note: Service account JWT authentication not fully implemented");
-        console.log("   Please use gcloud CLI for now: gcloud auth application-default login");
-        // Return null to indicate incomplete implementation
-        // TODO: Implement full JWT flow for service accounts
+        console.error("✗ Service account JWT authentication not implemented");
+        console.error("\nPlease use gcloud CLI instead:");
+        console.error("  $ gcloud auth application-default login");
+        console.error("\nAlternatively, use user credentials instead of a service account.");
         return null;
       }
     }
@@ -229,7 +251,7 @@ async function generateVideo(options: {
     console.log(JSON.stringify(result, null, 2));
     
     if (result.predictions && result.predictions[0]) {
-      const prediction = result.predictions[0];
+      const prediction = result.predictions[0] as VideoPrediction;
       if (prediction.videoUri) {
         console.log(`\n✓ Video URL: ${prediction.videoUri}`);
       }
@@ -314,9 +336,12 @@ async function generateImage(options: {
     
     if (result.predictions) {
       console.log(`\n✓ Generated ${result.predictions.length} image(s)`);
-      result.predictions.forEach((pred: { bytesBase64Encoded?: string }, i: number) => {
+      result.predictions.forEach((pred: ImagePrediction, i: number) => {
         if (pred.bytesBase64Encoded) {
           console.log(`   Image ${i + 1}: Base64 data available (length: ${pred.bytesBase64Encoded.length})`);
+        }
+        if (pred.imageUri) {
+          console.log(`   Image ${i + 1}: ${pred.imageUri}`);
         }
       });
     }
@@ -404,8 +429,26 @@ async function main() {
       }
 
       const numImages = parseInt(args["num-images"], 10);
-      if (isNaN(numImages) || numImages < 1) {
-        console.error("Error: --num-images must be a positive number");
+      
+      // Validate num-images parameter
+      if (isNaN(numImages)) {
+        console.error("Error: --num-images must be a valid number");
+        Deno.exit(1);
+      }
+      
+      if (!Number.isInteger(parseFloat(args["num-images"]))) {
+        console.error("Error: --num-images must be an integer (no decimals)");
+        Deno.exit(1);
+      }
+      
+      if (numImages < 1) {
+        console.error("Error: --num-images must be at least 1");
+        Deno.exit(1);
+      }
+      
+      if (numImages > MAX_NUM_IMAGES) {
+        console.error(`Error: --num-images cannot exceed ${MAX_NUM_IMAGES}`);
+        console.error("(To generate more images, make multiple requests)");
         Deno.exit(1);
       }
 
