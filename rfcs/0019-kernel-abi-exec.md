@@ -11,7 +11,7 @@ created: 2025-12-24
 # RFC 0019: Kernel ABI & Syscall Interface
 
 ## 1. Summary
-This RFC defines the Application Binary Interface (ABI) between the Promptware Kernel (Intent) and the Software Kernel (Physics). It specifies the **Syscall Contract**, the **Dispatch Table**, and the **Singular Boundary** (`pwosExec`).
+This RFC defines the Application Binary Interface (ABI) between the Promptware Kernel (Intent) and the Software Kernel (Precision). It specifies the **Syscall Contract**, the **Dispatch Table**, and the **Singular Boundary** (`pwosExec`).
 
 > **Scope Note**: This document defines the *Application Binary Interface (ABI)* and *Syscall Contract*. It implements the ontology defined in **RFC 0015**. While RFC 0015 defines *why* the kernel exists, this document defines *how* agents must interact with it. This contract is the "Constitution of Execution" and is intended to be forward-compatible across different runtime implementations.
 
@@ -23,7 +23,7 @@ The Promptware Kernel interacts with the Software Kernel exclusively through a s
 function pwosExec(syscall: string, ...args: any[]): Promise<any>;
 ```
 
-This function represents the **Hard Boundary** between Intent and Physics.
+This function represents the **Hard Boundary** between Intent and Precision.
 *   **Input**: A syscall identifier and arguments.
 *   **Output**: A Promise resolving to the result or rejecting with a Kernel Panic.
 *   **Constraint**: No other entry point is permitted. Direct import of syscall modules by Agents is prohibited.
@@ -46,8 +46,8 @@ const SYSCALL_TABLE = {
 };
 ```
 
-### 3.2. Implementation Detail (`exec.ts`)
-In the reference implementation, this table is backed by the filesystem structure in `os/kernel/syscalls/`. The `exec.ts` entry point acts as the dynamic dispatcher.
+### 3.2. Implementation Detail (`syscall.ts`)
+In the reference implementation, this table is backed by the filesystem structure in `os/kernel/syscalls/`. The `syscall.ts` entry point acts as the dynamic dispatcher.
 
 ## 4. Syscall Naming Rules
 
@@ -90,7 +90,7 @@ It is critical to distinguish between the **Syscall** (the semantic event) and t
 
 *   **The Syscall**: `pwosExec("ingest", uri)`
     *   This is the API used by the Promptware Kernel.
-*   **The CLI**: `deno run exec.ts ingest <uri>`
+*   **The CLI**: `deno run syscall.ts ingest <uri>`
     *   This is a **Debug & Transport Surface**. It allows external tools or human operators to invoke syscalls, but it is *not* the syscall itself.
 
 ## 7. Forward Compatibility
@@ -101,5 +101,5 @@ To ensure long-term stability:
 
 ## 8. Security Considerations
 
-*   **The Singular Entry Law**: The dispatcher (`exec.ts`) is the only code authorized to import syscall modules.
+*   **The Singular Entry Law**: The dispatcher (`syscall.ts`) is the only code authorized to import syscall modules.
 *   **Root Injection**: Syscalls MUST NOT calculate the OS Root themselves. They MUST rely on the `root` argument provided by the trusted dispatcher.

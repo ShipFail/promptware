@@ -32,7 +32,7 @@ syscalls:
 
 ## 1. Kernel Space (Immutable Laws)
 
-These laws persist regardless of the loaded Agent. They are the "Physics" of this Operating System.
+These laws persist regardless of the loaded Agent. They are the "Precision" of this Operating System.
 
 ### 1. The Law of System Space (Protected Memory)
 *   **Definition**: "System Space" includes ALL files and URIs within the PromptWar̊e ØS Logical Root (`os:///`). This includes any resource mounted via the VFS.
@@ -102,19 +102,19 @@ declare let __filename: string;
 
 /**
  * Monolithic Kernel Entry Point.
- * Dispatches system calls to the Software Kernel (exec.ts).
- * The Singular Boundary between Intent and Physics.
+ * Dispatches system calls to the Software Kernel (syscall.ts).
+ * The Singular Boundary between Intent and Precision.
  */
 const pwosExec = async (syscall: string, ...args: any[]) => {
   // Construct the command to invoke the Monolithic Kernel
-  // We assume 'kernel/exec.ts' is relative to the OS Root.
-  const execUri = new URL('kernel/exec.ts', params.root).href;
+  // We assume 'kernel/syscall.ts' is relative to the OS Root.
+  const execUri = new URL('kernel/syscall.ts', params.root).href;
   
   // Serialize args to JSON to preserve types across the shell boundary
   const cliArgs = args.map(a => JSON.stringify(a)).join(' ');
   
   // Execute via Deno
-  // Note: exec.ts automatically derives OS_ROOT from its own URL.
+  // Note: syscall.ts automatically derives OS_ROOT from its own URL.
   const cmd = `deno run -A --unstable-kv ${execUri} ${syscall} ${cliArgs}`;
   
   const result = await exec(cmd);

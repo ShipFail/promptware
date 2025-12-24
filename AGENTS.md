@@ -30,14 +30,14 @@ You are the **PromptWar̊e ØS Developer**. Your job is to build, maintain, and 
 You are working inside the `promptware` repository. This is the source code for the OS itself.
 
 ## Repository Map
-*   `os/kernel/`: **Kernel Space**. Contains `KERNEL.md` and system tools (`exec.ts`, `syscalls/`).
+*   `os/kernel/`: **Kernel Space**. Contains `KERNEL.md` and system tools (`syscall.ts`, `syscalls/`).
 *   `os/BOOTLOADER.md`: **Bootloader**.
 *   `os/agents/`: **User Space**. High-level personas (e.g., `powell.md`).
 *   `os/skills/`: **Libraries**. Reusable capabilities.
 *   `docs/`: Architecture documentation.
 
 ## Responsibilities
-1.  **Kernel Development**: Maintain `os/kernel/KERNEL.md` and `os/kernel/exec.ts`. Ensure the Promptware Kernel remains minimal and the Software Kernel remains robust.
+1.  **Kernel Development**: Maintain `os/kernel/KERNEL.md` and `os/kernel/syscall.ts`. Ensure the Promptware Kernel remains minimal and the Software Kernel remains robust.
 2.  **Bootloader Maintenance**: Keep `os/BOOTLOADER.md` simple and correct.
 3.  **Agent Standard Library**: Develop and refine agents in `os/agents/`.
 4.  **Skill Development**: Create reusable skills in `os/skills/`.
@@ -69,8 +69,8 @@ You are working inside the `promptware` repository. This is the source code for 
 *   *Detail*: [rfcs/0013-kernel-vfs-sysfs.md](rfcs/0013-kernel-vfs-sysfs.md)
 
 ### 5. Promptware/Software Dualism
-*   **Promptware Kernel (`KERNEL.md`)**: The "Mind" of the OS. Written in English (Intent) and Literate TypeScript (Interface). It defines *why* things happen.
-*   **Software Kernel (`syscall.ts`)**: The "Body" of the OS. Written in pure TypeScript. It defines *how* things happen (I/O, Physics, Determinism).
+*   **Promptware Kernel (`KERNEL.md`)**: The "Intent" of the OS. Written in English (Intent) and Literate TypeScript (Interface). It defines *why* things happen.
+*   **Software Kernel (`syscall.ts`)**: The "Precision" of the OS. Written in pure TypeScript. It defines *how* things happen (I/O, Precision, Determinism).
 *   **The Law of Singular Entry**: Never implement complex logic (URL parsing, regex) in the Promptware Kernel. Always dispatch to the Software Kernel via `pwosExec`.
 *   **The Law of Anchoring**: All internal OS paths must be relative to the **OS Root** or the **Current Context** (`__filename`).
 *   **The Law of Language**: Use `camelCase` for all Kernel APIs to match TypeScript conventions.
@@ -110,7 +110,7 @@ All system tools (e.g., in `os/kernel/syscalls/`) must adhere to the **Dual-Mode
 
 2.  **Monolithic Kernel Architecture**: 
     *   Core OS logic is split into atomic microservices: `resolve.ts`, `ingest.ts`, `memory.ts`.
-    *   All tools must be callable via the Unified Entry Point (`exec.ts`).
-    *   Use `deno test` to verify kernel physics.
+    *   All tools must be callable via the Unified Entry Point (`syscall.ts`).
+    *   Use `deno test` to verify kernel precision.
 
 3.  **Naming Standard**: Follow idiomatic TypeScript conventions (`kebab-case` for files, `camelCase` for symbols). Exception: System Artifacts use `UPPER_CASE` (e.g., `KERNEL.md`).

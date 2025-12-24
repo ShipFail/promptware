@@ -1,15 +1,15 @@
 import { parseArgs } from "jsr:@std/cli/parse-args";
 
 /**
- * PromptWar̊e ØS Monolithic Kernel Entry Point (exec.ts)
+ * PromptWar̊e ØS Monolithic Kernel Entry Point (syscall.ts)
  * 
- * Acts as the unified bridge between Promptware (Intent) and Software (Physics).
+ * Acts as the unified bridge between Promptware (Intent) and Software (Precision).
  * Automatically derives the OS Root and dispatches to the requested syscall.
  */
 
-export async function exec(syscallName: string, ...args: any[]) {
+export async function syscall(syscallName: string, ...args: any[]) {
   // 1. Derive OS_ROOT
-  // We assume this file is located at <root>/kernel/exec.ts
+  // We assume this file is located at <root>/kernel/syscall.ts
   const currentUrl = new URL(import.meta.url);
   const kernelDir = new URL(".", currentUrl); // .../os/kernel/
   const osRoot = new URL("../", kernelDir).href; // .../os/
@@ -39,16 +39,16 @@ export async function exec(syscallName: string, ...args: any[]) {
 // CLI Entry Point
 if (import.meta.main) {
   const args = parseArgs(Deno.args);
-  const syscall = args._[0]?.toString();
+  const syscallName = args._[0]?.toString();
   const syscallArgs = args._.slice(1);
 
-  if (!syscall) {
-    console.error("Usage: deno run -A exec.ts <syscall> [args...]");
+  if (!syscallName) {
+    console.error("Usage: deno run -A syscall.ts <syscall> [args...]");
     Deno.exit(1);
   }
 
   try {
-    const result = await exec(syscall, ...syscallArgs);
+    const result = await syscall(syscallName, ...syscallArgs);
     if (result !== undefined) {
       // Output result as JSON if it's an object, or string otherwise
       if (typeof result === "object") {
