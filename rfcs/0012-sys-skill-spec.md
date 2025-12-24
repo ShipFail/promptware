@@ -99,6 +99,20 @@ This ensures PromptWare Skills function in runtimes lacking native disclosure ca
 
 ---
 
+### 3.6 Tool Discovery Contract
+
+To support efficient tool discovery and preserve context window, PromptWare tools must adhere to the following discovery contract:
+
+*   **Native Tools**: PromptWare-native tools **MUST** implement a `--description` flag.
+    *   The output **MUST** be a concise summary of the tool's intent and usage.
+    *   The output **MUST NOT** exceed **1024 characters** (aligning with the Agent Skills Specification `description` limit).
+*   **Legacy/External Tools**: For tools lacking `--description` (e.g., standard CLIs), the runtime **MUST** execute `--help` (or equivalent) and apply a **First Paragraph Heuristic**:
+    *   Extract text up to the first double newline (`\n\n`).
+    *   Truncate the result to **1024 characters**.
+    *   Append a truncation indicator (e.g., `... (Run with --help for full usage)`).
+
+---
+
 ## 4. Non‑Goals
 
 Pr̊ØS Skill Specification explicitly does **not** aim to:

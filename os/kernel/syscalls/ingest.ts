@@ -37,35 +37,63 @@ async function fetchContent(path: string): Promise<string> {
   }
 }
 
-async function getSkillDescription(path: string): Promise<string> {
+async function getSkillMetadata(path: string): Promise<{ name?: string; description: string }> {
   try {
     const content = await fetchContent(path);
     const match = content.match(/^---\n([\s\S]+?)\n---/);
     if (match) {
       const fm = parse(match[1]) as any;
-      return fm.description || fm.title || "No description provided.";
+      return {
+        name: fm.name,
+        description: fm.description || "No description provided.",
+      };
     }
-    return "No front matter found.";
+    return { description: "No front matter found." };
   } catch (e: any) {
-    return `Error reading skill: ${e.message}`;
+    return { description: `Error reading skill: ${e.message}` };
   }
 }
 
-async function getToolHelp(path: string): Promise<string> {
+async function getToolDescription(path: string): Promise<string> {
+  const MAX_LENGTH = 1024;
+  
+  // 1. Try --description (PromptWare Native)
   try {
-    // For tools, we execute them with --help
-    // If it's a URL, we use `deno run <url>`
+    const command = new Deno.Command(Deno.execPath(), {
+      args: ["run", "-A", path, "--description"],
+      stdout: "piped",
+      stderr: "piped",
+    });
+    const output = await command.output();
+    if (output.success) {
+      let desc = new TextDecoder().decode(output.stdout).trim();
+      if (desc.length > MAX_LENGTH) {
+        desc = desc.substring(0, MAX_LENGTH) + "... (truncated)";
+      }
+      return desc;
+    }
+  } catch {
+    // Ignore errors, fall back to --help
+  }
+
+  // 2. Fallback to --help (Legacy/External)
+  try {
     const command = new Deno.Command(Deno.execPath(), {
       args: ["run", "-A", path, "--help"],
       stdout: "piped",
       stderr: "piped",
     });
     const output = await command.output();
-    if (output.success) {
-      return new TextDecoder().decode(output.stdout).trim();
-    } else {
-      return `Error running tool: ${new TextDecoder().decode(output.stderr)}`;
+    // Even if it fails (exit code != 0), we might get useful help text in stdout/stderr
+    const rawOutput = new TextDecoder().decode(output.success ? output.stdout : output.stderr).trim();
+    
+    // First Paragraph Heuristic
+    let desc = rawOutput.split("\n\n")[0];
+    
+    if (desc.length > MAX_LENGTH) {
+      desc = desc.substring(0, MAX_LENGTH) + "... (Run with --help for full usage)";
     }
+    return desc;
   } catch (e: any) {
     return `Error executing tool: ${e.message}`;
   }
@@ -96,8 +124,8 @@ export default async function ingest(root: string, targetUri: string): Promise<s
       if (typeof skillPath === "string") {
         // Resolve skill path relative to the *current file* (resolvedPath)
         const absoluteSkillPath = await resolve(root, skillPath, resolvedPath);
-        const description = await getSkillDescription(absoluteSkillPath);
-        hydratedSkills.push({ [skillPath]: { description } });
+        const metadata = await getSkillMetadata(absoluteSkillPath);
+        hydratedSkills.push({ [skillPath]: metadata });
       } else {
         hydratedSkills.push(skillPath);
       }
@@ -111,7 +139,7 @@ export default async function ingest(root: string, targetUri: string): Promise<s
     for (const toolPath of fm.tools) {
       if (typeof toolPath === "string") {
         const absoluteToolPath = await resolve(root, toolPath, resolvedPath);
-        const description = await getToolHelp(absoluteToolPath);
+        const description = await getToolDescription(absoluteToolPath);
         hydratedTools.push({ [toolPath]: { description } });
       } else {
         hydratedTools.push(toolPath);
