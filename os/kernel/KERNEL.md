@@ -85,9 +85,10 @@ declare function adopt(context: string): void;
 These functions form the PromptWar̊e ØS API. They are implemented in TypeScript and executed via `exec()`.
 
 ```typescript
-// Kernel Parameters (from LOADER.md YAML Front Matter)
+// Kernel Parameters (from BOOTLOADER.md YAML Front Matter)
 interface KernelParameters {
   readonly root: string;   // e.g., "https://raw.github.../os/"
+  readonly kernel: string; // e.g., "/kernel/KERNEL.md"
   readonly init: string;   // e.g., "agents/powell.md"
   readonly mounts?: Record<string, string>;
 }

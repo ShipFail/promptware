@@ -48,7 +48,7 @@ You are working inside the `promptware` repository. This is the source code for 
 *   **Bootloader is Truth**: The Bootloader Front Matter is the **single source of truth** for Identity (`root`) and Topology (`mounts`).
 *   **Read-Only Topology**: Never persist `root` or `mounts` to mutable memory. A reboot must always restore a clean state.
 *   **Versioning via Refs**: Always use `raw.githubusercontent.com/.../refs/heads/<branch>` or `refs/tags/<tag>` for remote roots. This guarantees reproducible boots and explicit version control.
-*   *Detail*: [rfcs/0014-boot-loader-protocol.md](rfcs/0014-boot-loader-protocol.md)
+*   *Detail*: [rfcs/0014-bootloader-core-protocol.md](rfcs/0014-bootloader-core-protocol.md)
 
 ### 2. Isolated State (Memory)
 *   **Deno KV Backend**: Use `pwosMemory` (backed by Deno KV) for all mutable application state.
