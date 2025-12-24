@@ -3,6 +3,7 @@ import { parseArgs } from "jsr:@std/cli/parse-args";
 /**
  * PromptWar̊e ØS Syscall: Memory
  * Manages OS memory using Deno KV.
+ * Implements RFC 0018: Memory Subsystem Specification.
  */
 
 const HELP_TEXT = `
@@ -16,16 +17,31 @@ Arguments:
 Options:
   --root <url>    The OS Root URL (Required).
   --help, -h      Show this help message.
+  --description   Show tool description (RFC 0012).
 `;
+
+const TOOL_DESCRIPTION = "Manages OS memory using Deno KV. Supports /vault/ namespace for sealed storage (RFC 0018).";
 
 export default async function memory(root: string, action: string, keyStr?: string, value?: string): Promise<any> {
   const kv = await Deno.openKv();
   try {
-    const parseKey = (k: string) => k.split("/").filter(p => p.length > 0);
+    const parseKey = (k: string) => {
+      if (!k.startsWith("/")) {
+        throw new Error(`Invalid path: '${k}'. Paths MUST be absolute (start with /).`);
+      }
+      return k.split("/").filter(p => p.length > 0);
+    };
 
     if (action === "set") {
       if (!keyStr || value === undefined) throw new Error("Missing key or value");
       
+      // RFC 0018: Vault Enforcement
+      if (keyStr.startsWith("/vault/")) {
+        if (!value.startsWith("pwenc:v1:")) {
+          throw new Error("E_VAULT_REQUIRES_PWENC: /vault/ paths accept only ciphertext (pwenc:v1:...).");
+        }
+      }
+
       let valToSave: any = value;
       try {
         valToSave = JSON.parse(value);
@@ -61,12 +77,17 @@ export default async function memory(root: string, action: string, keyStr?: stri
 async function main() {
   const args = parseArgs(Deno.args, {
     string: ["root"],
-    boolean: ["help"],
+    boolean: ["help", "description"],
     alias: { help: "h" },
   });
 
   if (args.help) {
     console.log(HELP_TEXT);
+    Deno.exit(0);
+  }
+
+  if (args.description) {
+    console.log(TOOL_DESCRIPTION);
     Deno.exit(0);
   }
 

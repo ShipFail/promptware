@@ -108,11 +108,11 @@ If provided, `revealUnsafe()`:
 * `Sealed` MUST NOT expose plaintext via implicit coercions.
 * Implementations SHOULD ensure error objects and debug representations do not include plaintext.
 
-## The `sealedFetch` Helper
+## The `sealedFetch` Syscall
 
 ### Signature
 
-`sealedFetch(input[, init]) -> Response`
+`pwosExec("fetch", input, init) -> Promise<Response>`
 
 * `input`: URL string or Request-like object.
 * `init`: OPTIONAL RequestInit-like object.
@@ -121,7 +121,7 @@ If provided, `revealUnsafe()`:
 
 ### Core Behavior
 
-`sealedFetch` MUST:
+The `fetch` syscall MUST:
 
 1. Build a request equivalent to `fetch(input, init)`.
 2. Scan request headers for values containing pwenc strings (`pwenc:v1:`).

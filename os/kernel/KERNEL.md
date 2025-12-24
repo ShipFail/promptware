@@ -2,8 +2,8 @@
 version: 0.9.0
 arch: LLM-Native
 syscalls:
-  - name: pwosExec
-    signature: "pwosExec(syscall: string, ...args: any[]): Promise<any>"
+  - name: pwosSyscall
+    signature: "pwosSyscall(syscall: string, ...args: any[]): Promise<any>"
     description: "Monolithic Kernel Entry Point"
   - name: pwosResolve
     signature: "pwosResolve(uri: string, base?: string): Promise<string>"
@@ -14,6 +14,12 @@ syscalls:
   - name: pwosMemory
     signature: "pwosMemory(action, key, value?): Promise<any>"
     description: "State Manager"
+  - name: pwosCrypto
+    signature: "pwosCrypto(action, ...args): Promise<string>"
+    description: "Crypto Operations"
+  - name: pwosFetch
+    signature: "pwosFetch(input, init?): Promise<Response>"
+    description: "Sealed Network Request"
 ---
 
 <!--
@@ -105,7 +111,7 @@ declare let __filename: string;
  * Dispatches system calls to the Software Kernel (syscall.ts).
  * The Singular Boundary between Intent and Precision.
  */
-const pwosExec = async (syscall: string, ...args: any[]) => {
+const pwosSyscall = async (syscall: string, ...args: any[]) => {
   // Construct the command to invoke the Monolithic Kernel
   // We assume 'kernel/syscall.ts' is relative to the OS Root.
   const execUri = new URL('kernel/syscall.ts', params.root).href;
@@ -128,14 +134,29 @@ const pwosExec = async (syscall: string, ...args: any[]) => {
  * Keys are hierarchical paths (e.g., `users/alice/settings`).
  */
 const pwosMemory = async (action: 'get' | 'set' | 'delete' | 'list', key: string, value?: any) =>
-  pwosExec('memory', action, key, value);
+  pwosSyscall('memory', action, key, value);
+
+/**
+ * Cryptographic Operations.
+ * Wraps the 'crypto' syscall.
+ */
+const pwosCrypto = async (action: 'seal' | 'open' | 'derive', ...args: string[]) =>
+  pwosSyscall('crypto', action, ...args);
+
+/**
+ * Sealed Network Request.
+ * Wraps the 'fetch' syscall.
+ * Transparently unseals pwenc:v1: headers.
+ */
+const pwosFetch = async (input: string | Request, init?: RequestInit) =>
+  pwosSyscall('fetch', input, init);
 
 /**
  * VFS Resolver (Kernel Space).
  * Resolves paths relative to the current file (TypeScript Style).
  */
 const pwosResolve = async (uri: string, base: string = __filename): Promise<string> =>
-  pwosExec('resolve', uri, base);
+  pwosSyscall('resolve', uri, base);
 
 /**
  * Dynamic Linker & Compiler.
@@ -145,7 +166,7 @@ const pwosResolve = async (uri: string, base: string = __filename): Promise<stri
  * - Updates __filename.
  */
 const pwosIngest = async (uri: string): Promise<void> => {
-  const content = await pwosExec('ingest', uri);
+  const content = await pwosSyscall('ingest', uri);
   
   // Update the Context Register
   __filename = await pwosResolve(uri);
