@@ -50,7 +50,7 @@ Pr̊ØS implements a separation of concerns analogous to **Intent** and **Precis
 *   **The Promptware Kernel (Intent)**: It operates in the realm of language, reasoning, and planning. It decides *what* needs to be done.
 *   **The Software Kernel (Precision)**: It operates in the realm of deterministic execution, I/O, and cryptography. It handles *how* it is done.
 
-The two are separated by **The Singular Boundary** (`pwosExec`), which translates high-level Intent into low-level Precision.
+The two are separated by **The Singular Boundary** (`pwosSyscall`), which translates high-level Intent into low-level Precision.
 
 ### 4.2. The Memory Model
 The Kernel manages the LLM's context window as a structured memory space.
@@ -91,7 +91,7 @@ The Kernel enforces these laws via the System Prompt (`KERNEL.md`).
 #### Law 3: The Law of Singular Entry
 > "All physics must flow through the Boundary."
 
-*   **Constraint**: All physical execution, state mutation, or authority acquisition **MUST** enter the Software Kernel via `pwosExec`.
+*   **Constraint**: All physical execution, state mutation, or authority acquisition **MUST** enter the Software Kernel via `pwosSyscall`.
 *   **Enforcement**: No Skill, Agent, or Tool may invoke a syscall handler (e.g., `ingest.ts`) directly.
 
 ## 5. Kernel Initialization (PID 0)

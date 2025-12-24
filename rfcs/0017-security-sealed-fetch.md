@@ -112,7 +112,7 @@ If provided, `revealUnsafe()`:
 
 ### Signature
 
-`pwosExec("fetch", input, init) -> Promise<Response>`
+`pwosSyscall("fetch", input, init) -> Promise<Response>`
 
 * `input`: URL string or Request-like object.
 * `init`: OPTIONAL RequestInit-like object.

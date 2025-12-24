@@ -54,16 +54,16 @@ Defines `pwenc:v1` primitives and the `Sealed` class for secure data handling.
 *   **Problem**: Markdown files are "source code," not binaries. They need hydration.
 *   **Solution**: Just-In-Time Compilation.
 *   **Mechanism**:
-    *   `pwosIngest(uri)` calls the Software Kernel via `pwosExec`.
+    *   `pwosIngest(uri)` calls the Software Kernel via `pwosSyscall`.
     *   The Software Kernel fetches the content (local or remote).
     *   It parses the Front Matter (`skills`, `tools`).
     *   It resolves and injects the descriptions of those skills.
     *   It returns the "hydrated" prompt to the Agent.
 > **Proposed Spec**: RFC 0020
 
-### 3.2 The Singular Boundary (`pwosExec`)
-The system call `pwosExec` is the singular boundary that crosses from Intent to Physics. It takes a high-level intent from the Promptware Kernel and executes it as a low-level instruction in the Software Kernel via the Unified Entry Point (`exec.ts`).
-> **Spec**: [rfcs/0019-kernel-abi-exec.md](../rfcs/0019-kernel-abi-exec.md)
+### 3.2 The Singular Boundary (`pwosSyscall`)
+The system call `pwosSyscall` is the singular boundary that crosses from Intent to Physics. It takes a high-level intent from the Promptware Kernel and executes it as a low-level instruction in the Software Kernel via the Unified Entry Point (`syscall.ts`).
+> **Spec**: [rfcs/0019-kernel-abi-syscall.md](../rfcs/0019-kernel-abi-syscall.md)
 
 ## 4. Directory Structure
 
@@ -85,7 +85,7 @@ The system call `pwosExec` is the singular boundary that crosses from Intent to 
     ├── BOOTLOADER.md   # Bootloader Spec
     ├── kernel/         # Kernel Space
     │   ├── KERNEL.md   # Promptware Kernel (Interface)
-    │   ├── exec.ts     # Unified Entry Point
+    │   ├── syscall.ts  # Unified Entry Point
     │   └── syscalls/   # Software Kernel (Implementation)
     ├── agents/         # User Space (Personas)
     └── skills/         # Shared Libraries (Capabilities)

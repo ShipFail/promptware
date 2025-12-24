@@ -17,7 +17,7 @@ Execute the following Test Plan to validate the Kernel, Memory, VFS, and User Sp
 
 ### Phase 1: Kernel Physics (Low-Level ABI)
 1.  **ABI Bridge Test**:
-    *   Action: Execute `pwosExec("echo", "ping")`.
+    *   Action: Execute `pwosSyscall("echo", "ping")`.
     *   Criteria: Output must be exactly "ping".
 2.  **Context Resolution Test**:
     *   Action: Execute `pwosResolve("./diagnostic.md")`.

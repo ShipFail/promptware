@@ -11,7 +11,7 @@ created: 2025-12-24
 # RFC 0019: Kernel ABI & Syscall Interface
 
 ## 1. Summary
-This RFC defines the Application Binary Interface (ABI) between the Promptware Kernel (Intent) and the Software Kernel (Precision). It specifies the **Syscall Contract**, the **Dispatch Table**, and the **Singular Boundary** (`pwosExec`).
+This RFC defines the Application Binary Interface (ABI) between the Promptware Kernel (Intent) and the Software Kernel (Precision). It specifies the **Syscall Contract**, the **Dispatch Table**, and the **Singular Boundary** (`pwosSyscall`).
 
 > **Scope Note**: This document defines the *Application Binary Interface (ABI)* and *Syscall Contract*. It implements the ontology defined in **RFC 0015**. While RFC 0015 defines *why* the kernel exists, this document defines *how* agents must interact with it. This contract is the "Constitution of Execution" and is intended to be forward-compatible across different runtime implementations.
 
@@ -20,7 +20,7 @@ This RFC defines the Application Binary Interface (ABI) between the Promptware K
 The Promptware Kernel interacts with the Software Kernel exclusively through a single "Hypercall":
 
 ```typescript
-function pwosExec(syscall: string, ...args: any[]): Promise<any>;
+function pwosSyscall(syscall: string, ...args: any[]): Promise<any>;
 ```
 
 This function represents the **Hard Boundary** between Intent and Precision.
@@ -73,7 +73,7 @@ export default async function(root: string, ...args: any[]): Promise<any> {
 ```
 
 *   **`root`**: The absolute URI of the OS Root. Injected by the dispatcher to ensure the syscall operates within the correct context.
-*   **`args`**: The arguments passed from `pwosExec`.
+*   **`args`**: The arguments passed from `pwosSyscall`.
 
 ## 5. The Ingest Pipeline
 
@@ -129,7 +129,7 @@ We adopt standard JSON-RPC error codes where applicable, and define OS-specific 
 
 It is critical to distinguish between the **Syscall** (the semantic event) and the **CLI** (the invocation mechanism).
 
-*   **The Syscall**: `pwosExec("ingest", uri)`
+*   **The Syscall**: `pwosSyscall("ingest", uri)`
     *   This is the API used by the Promptware Kernel.
 *   **The CLI**: `deno run syscall.ts ingest <uri>`
     *   This is a **Debug & Transport Surface**. It allows external tools or human operators to invoke syscalls, but it is *not* the syscall itself.

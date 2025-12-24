@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2025-12-24
+
+### Changed
+- **Kernel ABI**: Renamed `pwosExec` to `pwosSyscall` to reflect the Monolithic Dispatch architecture.
+- **Implementation**: Renamed `exec.ts` to `syscall.ts` as the Unified Entry Point.
+- **Documentation**: Updated all RFCs and Architecture docs to reference `pwosSyscall` and `syscall.ts`.
+- **Verification**: Achieved 100% Unit Test coverage for the Kernel.
+
 ## [0.8.1] - 2025-12-23
 
 ### Changed

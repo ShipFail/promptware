@@ -55,7 +55,7 @@ These laws persist regardless of the loaded Agent. They are the "Precision" of t
 
 ### 3. The Law of Singular Entry
 *   **Principle**: "All physics must flow through the Boundary."
-*   **Constraint**: All physical execution, state mutation, or authority acquisition **MUST** enter the Software Kernel via `pwosExec`.
+*   **Constraint**: All physical execution, state mutation, or authority acquisition **MUST** enter the Software Kernel via `pwosSyscall`.
 *   **Enforcement**: No Skill, Agent, or Tool may invoke a syscall handler (e.g., `ingest.ts`) directly.
 
 ### 4. The Law of Execution
