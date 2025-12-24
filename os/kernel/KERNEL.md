@@ -176,7 +176,7 @@ const startKernel = async (params: KernelParameters): Promise<void> =>
     *   *Goal*: This will fetch the agent defined in `LOADER.md` (e.g., `powell.md`) and adopt its persona.
 
 3.  **System Ready**:
-    *   Once `pwosIngest` completes, the system is live.
+    *   Once `pwosIngest` completes, the system is initialized.
     *   Report: "✅ [PID 1] Started: {init}"
 
 ---

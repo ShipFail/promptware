@@ -34,7 +34,7 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 
 *   **Bootloader Mode**: The initial state of the session where only the `LOADER.md` context is available.
 *   **Kernel**: The core instruction set (`KERNEL.md`) that defines the OS capabilities (filesystem, memory, tools).
-*   **Wake-Up Signal**: A user input treated as a trigger for the boot process. Its semantic content is **deferred** until the Live state.
+*   **Wake-Up Signal**: A user input treated as a trigger for the boot process. Its semantic content is **deferred** until the Initialized state.
 *   **Cognitive Security Lock**: A prompt engineering technique that uses the LLM's safety and anti-hallucination training to enforce constraints.
 
 ## 3. The Cognitive Security Model
