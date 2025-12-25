@@ -116,10 +116,6 @@ declare let __filename: string;
  * Monolithic Kernel Entry Point.
  * Dispatches system calls to the Software Kernel (syscall.ts).
  * The Singular Boundary between Intent and Precision.
- * 
- * Implementation Note: This function implements the origin parameter passing
- * mechanism specified in RFC 0019, Section 6. The origin normalization and
- * --location flag usage is part of the Promptware Kernel implementation layer.
  */
 const pwosSyscall = async (syscall: string, ...args: any[]) => {
   // Construct the command to invoke the Monolithic Kernel
@@ -129,7 +125,7 @@ const pwosSyscall = async (syscall: string, ...args: any[]) => {
   // Serialize args to JSON to preserve types across the shell boundary
   const cliArgs = args.map(a => JSON.stringify(a)).join(' ');
 
-  // Origin Normalization (RFC 0019, Section 6.2)
+  // Origin Normalization (URL vs Name)
   // Fallback: If origin is undefined, use root.
   let location = params.origin || params.root;
   try {
@@ -143,7 +139,6 @@ const pwosSyscall = async (syscall: string, ...args: any[]) => {
   
   // Execute via Deno
   // Note: We use --location to set the storage origin (W3C Standard)
-  // This implements the origin passing mechanism per RFC 0019, Section 6.1
   const cmd = `deno run -A --unstable-kv --location ${location} ${execUri} ${syscall} ${cliArgs}`;
   
   const output = await exec(cmd);
