@@ -1,13 +1,13 @@
 ---
-RFC: 0012
-Title: Skill Specification
-Author: Huan Li
-Status: Draft
-Type: Standards Track
-Created: 2025-12-20
-Updated: 2025-12-20
-Version: 0.1
-Tags: skills, claude, specification
+rfc: 0012
+title: Skill Specification
+author: Huan Li
+status: Draft
+type: Standards Track
+created: 2025-12-20
+updated: 2025-12-20
+version: 0.1
+tags: [skills, claude, specification]
 ---
 
 # RFC 0012: Skill Specification

@@ -41,8 +41,8 @@ Deno.test("RFC Validation", async (t) => {
 
         const fm = parse(match[1]) as any;
 
-        // Check Required Fields
-        const required = ["RFC", "Title", "Author", "Status", "Type", "Version", "Tags"];
+        // Check Required Fields (lowercase per RFC 0000)
+        const required = ["rfc", "title", "author", "status", "type", "version", "tags"];
         for (const field of required) {
           if (fm[field] === undefined || fm[field] === null || fm[field] === "") {
             console.error(`  ❌ Missing Metadata: ${field}`);
@@ -51,8 +51,8 @@ Deno.test("RFC Validation", async (t) => {
         }
 
         // 3. Check Title Style (Drop the Brand)
-        if (fm.Title && (fm.Title.includes("PromptWare") || fm.Title.includes("Promptware"))) {
-           console.error(`  ❌ Title Violation: "${fm.Title}"`);
+        if (fm.title && (fm.title.includes("PromptWare") || fm.title.includes("Promptware"))) {
+           console.error(`  ❌ Title Violation: "${fm.title}"`);
            console.error(`     Rule: Titles should omit the brand name.`);
            errors++;
         }

@@ -4,8 +4,10 @@ title: Spec-Driven Verification
 author: Ship.Fail
 status: Draft
 type: Standards Track
-category: Process
 created: 2025-12-24
+updated: 2025-12-24
+version: 0.9.0
+tags: [process, verification, testing, compliance]
 ---
 
 # RFC 0021: Spec-Driven Verification

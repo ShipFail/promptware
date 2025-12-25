@@ -1,13 +1,13 @@
 ---
-RFC: 0017
-Title: Sealed Handling & sealedFetch Helper Specification
-Author: Huan Li, ChatGPT
-Status: Draft
-Type: Standards Track
-Created: 2025-12-23
-Updated: 2025-12-23
-Version: 0.2
-Tags: promptwareos, sealed, pwenc, fetch, sealedfetch, ergonomics
+rfc: 0017
+title: Sealed Handling & sealedFetch Helper Specification
+author: Huan Li, ChatGPT
+status: Draft
+type: Standards Track
+created: 2025-12-23
+updated: 2025-12-23
+version: 0.2
+tags: [promptwareos, sealed, pwenc, fetch, sealedfetch, ergonomics]
 ---
 
 # RFC 0017: Sealed Handling & sealedFetch Helper Specification

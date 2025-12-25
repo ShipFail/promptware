@@ -1,13 +1,13 @@
 ---
-RFC: 0000
-Title: RFC Process Guide
-Author: Huan Li
-Status: Draft
-Type: Process
-Created: 2025-12-20
-Updated: 2025-12-20
-Version: 1.0
-Tags: process, guide, standard
+rfc: 0000
+title: RFC Process Guide
+author: Huan Li
+status: Draft
+type: Process
+created: 2025-12-20
+updated: 2025-12-20
+version: 1.0
+tags: [process, guide, standard]
 ---
 
 # RFC 0000: RFC Process Guide
@@ -97,6 +97,8 @@ RFC numbers:
 ## 5. RFC Metadata Header (Template)
 
 Every RFC **MUST** begin with the following Frontmatter YAML header block:
+
+**Field Name Convention**: PromptWar̊e ØS follows the modern industry standard (Hugo, Jekyll, Docusaurus) of using **lowercase field names** for front matter to minimize cognitive load and maximize compatibility with existing Markdown tooling.
 
 ```yaml
 ---

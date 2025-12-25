@@ -1,13 +1,13 @@
 ---
-RFC: XXXX
-Title: <Noun Phrase Title>
-Author: <Name(s)>
-Status: Draft
-Type: <Standards Track | Informational | Process>
-Created: <YYYY-MM-DD>
-Updated: <YYYY-MM-DD>
-Version: <Major.Minor>
-Tags: <comma, separated, tags>
+rfc: XXXX
+title: <Noun Phrase Title>
+author: <Name(s)>
+status: Draft
+type: <Standards Track | Informational | Process>
+created: <YYYY-MM-DD>
+updated: <YYYY-MM-DD>
+version: <Major.Minor>
+tags: [comma, separated, tags]
 ---
 
 # RFC XXXX: <Noun Phrase Title>

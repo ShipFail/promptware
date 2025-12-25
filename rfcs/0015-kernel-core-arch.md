@@ -1,13 +1,13 @@
 ---
-RFC: 0015
-Title: The Prompt Kernel
-Author: Ship.Fail Crew
-Status: Draft
-Type: Standards Track
-Created: 2025-12-22
-Updated: 2025-12-22
-Version: 0.6
-Tags: kernel, architecture, syscalls
+rfc: 0015
+title: The Prompt Kernel
+author: Ship.Fail Crew
+status: Draft
+type: Standards Track
+created: 2025-12-22
+updated: 2025-12-22
+version: 0.6
+tags: [kernel, architecture, syscalls]
 ---
 
 # RFC 0015: The Prompt Kernel

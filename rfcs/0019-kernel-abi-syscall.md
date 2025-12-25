@@ -4,8 +4,10 @@ title: Kernel ABI & Syscall Interface
 author: Ship.Fail
 status: Draft
 type: Standards Track
-category: Kernel
 created: 2025-12-24
+updated: 2025-12-24
+version: 0.9.0
+tags: [kernel, abi, syscall]
 ---
 
 # RFC 0019: Kernel ABI & Syscall Interface

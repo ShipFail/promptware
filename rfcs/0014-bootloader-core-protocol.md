@@ -1,12 +1,13 @@
 ---
-RFC: 0014
-Title: Bootloader Protocol
-Author: Ship.Fail Crew
-Status: Draft
-Type: Standards Track
-Created: 2025-12-22
-Version: 0.5.0
-Tags: bootloader, protocol, initialization
+rfc: 0014
+title: Bootloader Protocol
+author: Ship.Fail Crew
+status: Draft
+type: Standards Track
+created: 2025-12-22
+updated: 2025-12-22
+version: 0.5.0
+tags: [bootloader, protocol, initialization]
 ---
 
 # RFC 0014: Bootloader Protocol

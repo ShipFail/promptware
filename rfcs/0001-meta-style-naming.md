@@ -1,13 +1,13 @@
 ---
-RFC: 0001
-Title: Unified Naming Conventions
-Author: Huan Li
-Status: Proposed
-Type: Standards Track
-Created: 2025-09-20
-Updated: 2025-09-20
-Version: 1.0
-Tags: naming, convention, style-guide
+rfc: 0001
+title: Unified Naming Conventions
+author: Huan Li
+status: Proposed
+type: Standards Track
+created: 2025-09-20
+updated: 2025-09-20
+version: 1.0
+tags: [naming, convention, style-guide]
 ---
 
 # RFC 0001: Unified Naming Conventions

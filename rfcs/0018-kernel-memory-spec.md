@@ -1,13 +1,13 @@
 ---
-RFC: 0018
-Title: Memory Subsystem Specification
-Author: Huan Li, ChatGPT
-Status: Draft
-Type: Standards Track
-Created: 2025-12-23
-Updated: 2025-12-23
-Version: 0.1
-Tags: memory, deno, kv, vault, pwenc
+rfc: 0018
+title: Memory Subsystem Specification
+author: Huan Li, ChatGPT
+status: Draft
+type: Standards Track
+created: 2025-12-23
+updated: 2025-12-23
+version: 0.1
+tags: [memory, deno, kv, vault, pwenc]
 ---
 
 # RFC 0018: Memory Subsystem Specification
