@@ -74,10 +74,11 @@ Pr̊ØS enforces a strict separation between the immutable code and the mutable 
     *   Example: `https://raw.githubusercontent.com/ShipFail/promptware/main/os/`
 *   **Origin (State)**: The security principal that defines the scope of mutable storage (KV).
     *   Defined by the `origin` parameter.
-    *   Example: `https://my-os.local/`
-    *   **Storage Isolation**: The System **MUST** enforce storage isolation using the Runtime's Location capability (e.g., Deno `--location`).
-    *   **The Fallback**: If no Origin is defined, the System **MUST** default to using the **Root URL** as the Origin.
-    *   **Origin Normalization**: If the provided Origin is not a valid URL, the Kernel **MUST** normalize it to a local domain format (`name` -> `https://<normalized-name>.local/`) to ensure W3C compatibility.
+    *   Example: `https://my-os.local/` or a short name like `my-os`
+    *   **Purpose**: Provides storage isolation for multi-tenant deployments.
+    *   **Scope**: The Origin parameter is passed to all syscalls and determines the storage namespace for mutable state.
+    *   **Fallback**: If no Origin is defined, the System **MUST** default to using the **Root URL** as the Origin.
+    *   **Implementation Note**: See **RFC 0019** for how Origin is passed to syscalls, and **RFC 0018** for how it is used in the Memory subsystem.
 
 ### 4.4. Privilege Separation (The Rings)
 

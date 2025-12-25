@@ -75,21 +75,55 @@ export default async function(...args: any[]): Promise<any> {
 *   **Service Locator Pattern**: Syscalls **MUST NOT** rely on caller-injected configuration for core OS parameters (like Root). They **MUST** self-configure by reading the **Kernel Parameter Block** stored in `proc/cmdline`.
 *   **`args`**: The arguments passed from `pwosSyscall`.
 
-## 6. Execution Modes (Dual-Mode)
+## 6. Origin Parameter Passing
+
+The `origin` parameter, defined in **RFC 0015** as the security principal for mutable state, is passed to syscalls through the runtime environment rather than as a function argument.
+
+### 6.1. Passing Mechanism
+
+*   **Promptware Kernel Responsibility**: The Promptware Kernel (KERNEL.md) **MUST** pass the `origin` parameter to the Software Kernel via the runtime's location capability.
+*   **Implementation**: The reference implementation uses Deno's `--location` flag, which sets the W3C-standard location for storage isolation.
+*   **Command Format**: `deno run -A --location <origin> syscall.ts <syscall> [args...]`
+
+### 6.2. Origin Normalization
+
+The Promptware Kernel **MUST** normalize the `origin` parameter before passing it to the Software Kernel:
+
+1.  **Fallback**: If `origin` is undefined, use the `root` parameter value.
+2.  **URL Validation**: If `origin` is a valid URL (e.g., `https://my-os.local/`), use it as-is.
+3.  **Name Normalization**: If `origin` is not a valid URL (e.g., `my-os`), normalize it to a local domain format:
+    *   Lowercase the name
+    *   Remove non-alphanumeric characters (except hyphens)
+    *   Format as `https://<normalized-name>.local/`
+    *   Example: `my-os` → `https://my-os.local/`
+
+### 6.3. Software Kernel Behavior
+
+*   **No Direct Access**: Software Kernel syscalls (in `syscalls/*.ts`) **MUST NOT** directly access or parse the `origin` parameter.
+*   **Implicit Usage**: Syscalls that require storage isolation (e.g., `memory.ts`) implicitly receive the origin through the runtime's location API (e.g., `Deno.openKv()` respects `--location`).
+*   **Agnostic Design**: This design keeps syscalls agnostic to the origin passing mechanism, enabling portability across runtimes.
+
+### 6.4. Security Considerations
+
+*   **Trusted Source**: The `origin` parameter **MUST** originate from the trusted Bootloader configuration (BOOTLOADER.md front matter).
+*   **No User Override**: User-space code **MUST NOT** be able to override the origin for security-critical syscalls.
+*   **Isolation Guarantee**: The runtime **MUST** enforce storage isolation based on the provided origin, preventing cross-tenant data access.
+
+## 7. Execution Modes (Dual-Mode)
 
 All System Tools **MUST** implement two execution modes to facilitate both production use and testing/recovery.
 
-### 6.1. Kernel Mode (Production)
+### 7.1. Kernel Mode (Production)
 *   **Invocation**: Via `syscall.ts` (The Monolithic Dispatcher).
 *   **Configuration**: Self-configured via `proc/cmdline` (Service Locator).
 *   **CLI Args**: Minimal (business logic only).
 
-### 6.2. CLI Mode (Fallback)
+### 7.2. CLI Mode (Fallback)
 *   **Invocation**: Direct execution (e.g., `deno run ingest.ts`).
 *   **Configuration**: Explicitly provided via CLI flags (e.g., `--root`).
 *   **Requirement**: If Kernel Memory is inaccessible, tools **MUST** accept configuration via CLI arguments.
 
-## 7. The Ingest Pipeline
+## 8. The Ingest Pipeline
 
 The `ingest` syscall implements the "Lifecycle of Authority" defined in RFC 0015. It MUST execute the following phases in order:
 
@@ -98,17 +132,17 @@ The `ingest` syscall implements the "Lifecycle of Authority" defined in RFC 0015
 3.  **Load**: Materialize the content into the Execution Context (Memory).
 4.  **Adopt**: Perform the identity switch (State).
 
-## 8. The Wire Protocol (JSON-RPC 2.0)
+## 9. The Wire Protocol (JSON-RPC 2.0)
 
 To ensure deterministic communication between the Prompt Kernel (Intent) and the Software Kernel (Precision), all System Calls MUST communicate via **Standard JSON-RPC 2.0** over stdout.
 
-### 1. Request (Implicit)
+### 9.1. Request (Implicit)
 Currently, requests are made via CLI arguments. This is considered an "Implicit JSON-RPC Request" where:
 *   `method`: The first argument (e.g., `fetch`).
 *   `params`: The subsequent arguments.
 *   `id`: Always `1` (Synchronous CLI).
 
-### 2. Response (Explicit)
+### 9.2. Response (Explicit)
 The Software Kernel MUST emit a single JSON object to `stdout` adhering to the JSON-RPC 2.0 Response specification.
 
 **Success:**
@@ -133,13 +167,13 @@ The Software Kernel MUST emit a single JSON object to `stdout` adhering to the J
 }
 ```
 
-### 3. Error Codes
+### 9.3. Error Codes
 We adopt standard JSON-RPC error codes where applicable, and define OS-specific codes for Kernel Panics.
 *   `-32700`: Parse Error (Invalid JSON input).
 *   `-32601`: Method Not Found (Syscall not registered).
 *   `-32000`: Server Error (Generic Kernel Panic).
 
-## 9. CLI vs. API
+## 10. CLI vs. API
 
 It is critical to distinguish between the **Syscall** (the semantic event) and the **CLI** (the invocation mechanism).
 
@@ -148,13 +182,13 @@ It is critical to distinguish between the **Syscall** (the semantic event) and t
 *   **The CLI**: `deno run -A --location <origin> syscall.ts ingest <uri>`
     *   This is a **Debug & Transport Surface**. It allows external tools or human operators to invoke syscalls, but it is *not* the syscall itself.
 
-## 10. Forward Compatibility
+## 11. Forward Compatibility
 
 To ensure long-term stability:
 1.  **Opaque Dispatch**: Agents MUST NOT rely on the physical location of syscall files. They MUST only use the string identifier.
 2.  **Namespace Protection**: Agents MUST use full paths (e.g., `os/skills/search`) for non-kernel resources. Short names are exclusively reserved for the Kernel.
 
-## 11. Security Considerations
+## 12. Security Considerations
 
 *   **The Singular Entry Law**: The dispatcher (`syscall.ts`) is the only code authorized to import syscall modules.
 *   **Root Injection**: Syscalls MUST NOT calculate the OS Root themselves. They MUST rely on the `root` argument provided by the trusted dispatcher.
