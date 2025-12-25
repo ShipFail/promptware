@@ -102,15 +102,15 @@ Every RFC **MUST** begin with the following Frontmatter YAML header block:
 
 ```yaml
 ---
-RFC: <number>
-Title: <Noun Phrase Title>
-Author: <name(s)>
-Status: <Draft | Accepted | Final | Superseded>
-Type: <Standards Track | Informational | Process>
-Created: <YYYY-MM-DD>
-Updated: <YYYY-MM-DD>
-Version: <Major.Minor> (Optional)
-Tags: <comma, separated, tags> (Optional)
+rfc: <number>
+title: <Noun Phrase Title>
+author: <name(s)>
+status: <Draft | Accepted | Final | Superseded>
+type: <Standards Track | Informational | Process>
+created: <YYYY-MM-DD>
+updated: <YYYY-MM-DD>
+version: <Major.Minor> (Optional)
+tags: [comma, separated, tags] (Optional)
 ---
 ```
 
