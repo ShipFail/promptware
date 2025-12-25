@@ -25,7 +25,6 @@ function restoreFetch() {
 // This confirms that fetch.ts IS attempting to unseal.
 
 Deno.test("RFC 0017: Fetch MUST attempt to unseal pwenc headers", async () => {
-  const root = "os://";
   const url = "https://example.com";
   const pwenc = "pwenc:v1:fake_ciphertext";
 
@@ -34,7 +33,7 @@ Deno.test("RFC 0017: Fetch MUST attempt to unseal pwenc headers", async () => {
   // This proves fetch.ts detected the header and called open().
   
   await assertRejects(
-    async () => await fetchSyscall(root, url, JSON.stringify({
+    async () => await fetchSyscall("os://", url, JSON.stringify({
       headers: { "Authorization": `Bearer ${pwenc}` }
     })),
     Error,
@@ -43,7 +42,6 @@ Deno.test("RFC 0017: Fetch MUST attempt to unseal pwenc headers", async () => {
 });
 
 Deno.test("RFC 0017: Fetch MUST pass through standard requests", async () => {
-  const root = "os://";
   const url = "https://example.com/api";
   
   mockFetch((req) => {
@@ -53,12 +51,40 @@ Deno.test("RFC 0017: Fetch MUST pass through standard requests", async () => {
   });
 
   try {
-    const result = await fetchSyscall(root, url, JSON.stringify({
+    const result = await fetchSyscall("os://", url, JSON.stringify({
       headers: { "X-Custom": "value" }
     }));
     
     assertEquals(result.status, 200);
     assertEquals(result.body, "ok");
+  } finally {
+    restoreFetch();
+  }
+});
+
+Deno.test("RFC 0017: Fetch MUST return serializable response object", async () => {
+  const url = "https://example.com/data";
+  
+  mockFetch(() => new Response("test data", {
+    status: 201,
+    statusText: "Created",
+    headers: { "Content-Type": "text/plain" }
+  }));
+
+  try {
+    const result = await fetchSyscall("os://", url);
+    
+    // Verify structure
+    assertEquals(typeof result, "object");
+    assertEquals(result.ok, true);
+    assertEquals(result.status, 201);
+    assertEquals(result.statusText, "Created");
+    assertEquals(result.body, "test data");
+    assertEquals(result.headers["content-type"], "text/plain");
+    
+    // Verify it's serializable
+    const json = JSON.stringify(result);
+    assertEquals(typeof json, "string");
   } finally {
     restoreFetch();
   }

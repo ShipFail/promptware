@@ -21,7 +21,7 @@ description: A test agent
   
   mockFetch(content);
   try {
-    const result = await ingest("os://", "https://example.com/agent.md");
+    const result = await ingest("https://example.com/agent.md", "https://root.com/");
     assertEquals(result, content);
   } finally {
     restoreFetch();
@@ -39,7 +39,7 @@ description: Valid description
   
   mockFetch(content);
   try {
-    await ingest("os://", "https://example.com/agent.md");
+    await ingest("https://example.com/agent.md", "https://root.com/");
   } finally {
     restoreFetch();
   }
@@ -49,10 +49,41 @@ Deno.test("RFC 0020: Ingest MUST fail on fetch error", async () => {
   globalThis.fetch = async () => { throw new Error("Network Error"); };
   try {
     await assertRejects(
-      async () => await ingest("os://", "https://example.com/bad.md"),
+      async () => await ingest("https://example.com/bad.md", "os://"),
       Error,
       "Network Error"
     );
+  } finally {
+    restoreFetch();
+  }
+});
+
+Deno.test("RFC 0020: Ingest MUST preserve body content", async () => {
+  const body = "\n\n# Hello World\n\nThis is content.\n";
+  const content = `---\nname: Test\n---${body}`;
+  
+  mockFetch(content);
+  try {
+    const result = await ingest("https://example.com/test.md", "https://root.com/");
+    // Body should be preserved after front matter
+    if (!result.includes("# Hello World")) {
+      throw new Error("Body content was modified");
+    }
+    if (!result.includes("This is content.")) {
+      throw new Error("Body content was truncated");
+    }
+  } finally {
+    restoreFetch();
+  }
+});
+
+Deno.test("RFC 0020: Ingest MUST handle files without front matter", async () => {
+  const content = "# Just Markdown\n\nNo YAML here.";
+  
+  mockFetch(content);
+  try {
+    const result = await ingest("https://example.com/simple.md", "https://root.com/");
+    assertEquals(result, content);
   } finally {
     restoreFetch();
   }

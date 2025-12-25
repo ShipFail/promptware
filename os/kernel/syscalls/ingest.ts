@@ -100,7 +100,7 @@ async function getToolDescription(path: string): Promise<string> {
 }
 
 export default async function ingest(targetUri: string, explicitRoot?: string): Promise<string> {
-  let root = explicitRoot;
+  let root: string = explicitRoot || "";
 
   if (!root) {
     // Load Root from KV (Service Locator Pattern)
@@ -116,8 +116,12 @@ export default async function ingest(targetUri: string, explicitRoot?: string): 
     }
   }
 
+  if (!root) {
+    throw new Error("Kernel Panic: No root found. Unable to resolve paths.");
+  }
+
   // Resolve the target URI first
-  const resolvedPath = await resolve(root, targetUri);
+  const resolvedPath = await resolve(targetUri, undefined, root);
   
   let content = "";
   try {
@@ -139,7 +143,7 @@ export default async function ingest(targetUri: string, explicitRoot?: string): 
     for (const skillPath of fm.skills) {
       if (typeof skillPath === "string") {
         // Resolve skill path relative to the *current file* (resolvedPath)
-        const absoluteSkillPath = await resolve(root, skillPath, resolvedPath);
+        const absoluteSkillPath = await resolve(skillPath, resolvedPath, root);
         const metadata = await getSkillMetadata(absoluteSkillPath);
         hydratedSkills.push({ [skillPath]: metadata });
       } else {
@@ -154,7 +158,7 @@ export default async function ingest(targetUri: string, explicitRoot?: string): 
     const hydratedTools = [];
     for (const toolPath of fm.tools) {
       if (typeof toolPath === "string") {
-        const absoluteToolPath = await resolve(root, toolPath, resolvedPath);
+        const absoluteToolPath = await resolve(toolPath, resolvedPath, root);
         const description = await getToolDescription(absoluteToolPath);
         hydratedTools.push({ [toolPath]: { description } });
       } else {

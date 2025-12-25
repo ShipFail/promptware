@@ -47,7 +47,7 @@ Deno.test("RFC 0016: Crypto MUST fail if SSH_AUTH_SOCK is missing", async () => 
   const originalEnv = Deno.env.get;
   Deno.env.get = (key) => {
     if (key === "SSH_AUTH_SOCK") return undefined;
-    return originalEnv(key);
+    return originalEnv.call(Deno.env, key);
   };
 
   try {
@@ -89,5 +89,27 @@ Deno.test("RFC 0016: Open MUST reject invalid JSON payload", async () => {
     async () => await open(`pwenc:v1:${badJson}`),
     Error,
     "Invalid format: payload is not JSON"
+  );
+});
+
+Deno.test("RFC 0016: Open MUST reject unsupported version", async () => {
+  const payload = { v: 2, kid: "test", alg: "A256GCM", nonce: "abc", ct: "def", ts: 123 };
+  const encoded = encodeBase64Url(new TextEncoder().encode(JSON.stringify(payload)));
+  
+  await assertRejects(
+    async () => await open(`pwenc:v1:${encoded}`),
+    Error,
+    "Unsupported version: 2"
+  );
+});
+
+Deno.test("RFC 0016: Open MUST reject unsupported algorithm", async () => {
+  const payload = { v: 1, kid: "test", alg: "AES-128-CBC", nonce: "abc", ct: "def", ts: 123 };
+  const encoded = encodeBase64Url(new TextEncoder().encode(JSON.stringify(payload)));
+  
+  await assertRejects(
+    async () => await open(`pwenc:v1:${encoded}`),
+    Error,
+    "Unsupported alg: AES-128-CBC"
   );
 });

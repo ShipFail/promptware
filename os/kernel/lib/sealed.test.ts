@@ -52,3 +52,18 @@ Deno.test("RFC 0017: Sealed.revealUnsafe() MUST require explicit opt-in", async 
     "Sealed.revealUnsafe() requires { unsafe: true }."
   );
 });
+
+Deno.test("RFC 0017: Sealed MUST prevent accidental plaintext exposure in JSON", () => {
+  const ct = "pwenc:v1:secret";
+  const s = Sealed.from(ct);
+  const obj = { secret: s };
+  const json = JSON.stringify(obj);
+  
+  // JSON should contain the ciphertext, not a decrypted value
+  assertEquals(json, `{"secret":"${ct}"}`);
+  
+  // Verify no plaintext leaked
+  if (json.includes("plaintext")) {
+    throw new Error("Plaintext leaked in JSON serialization");
+  }
+});
