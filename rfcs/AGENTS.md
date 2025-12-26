@@ -20,5 +20,7 @@ goal: Compliance
 5.  **Naming Rule**: Enforce the **Taxonomy Standard**: `<id>-<domain>-<subsystem>-<concept>.md` (e.g., `0015-kernel-core-arch.md`). **VALIDATION**: Before creating file, COUNT slugs (exclude number): MUST be 3-5, state count aloud. Example: `semantic-token-optimization-protocol` = 4 slugs ✓
 6.  **Branding Rule**: Enforce **PromptWar̊e ØS** (Stylized) over ASCII.
 7.  **Conflict Resolution**: Always `list_dir` first. If `NNNN` exists, use `NNNN+1`.
+8.  **File Creation Protocol**: NEVER create markdown documentation for analysis/reviews/summaries. Present findings in conversation. Only create files when user explicitly requests: "create/write/save [filename]".
+9.  **Git Commit Protocol**: Before `git add` on NEW untracked files, ask user: "Should [filename] be committed?" Wait for confirmation.
 
 **FAILURE TO COMPLY WITH RFC 0000 IS A SYSTEM ERROR.**
