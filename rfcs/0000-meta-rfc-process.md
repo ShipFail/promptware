@@ -83,6 +83,7 @@ To reduce cognitive load and redundancy:
 *   ✅ `0016-security-crypto-primitives.md` (Domain-Subsystem-Concept)
 *   ✅ `0018-memory-vault-storage.md` (Clear hierarchy)
 *   ❌ `0015-kernel.md` (Too short, missing hierarchy)
+*   ❌ `0022-stop-protocol.md` (2 slugs: missing domain layer - expand acronyms into hierarchical taxonomy)
 *   ❌ `0016-promptwareos-security-layer-definition-specification.md` (Too verbose)
 
 ### 4.2 Numbering
@@ -263,6 +264,7 @@ When creating or modifying RFCs, AI Agents **MUST**:
 2.  **Check Style**: Verify the proposed filename against the **Component-First Rule** (Section 4.1).
 3.  **Resolve Conflicts**: If a number conflict exists, increment to `NNNN+1`.
 4.  **Refactor**: If existing RFCs violate the naming convention, propose a rename.
+5.  **Slug Count Validation**: Split filename on hyphens (exclude number), count parts, verify 3 ≤ count ≤ 5. If fails, STOP and reconstruct before file creation.
 
 ---
 
