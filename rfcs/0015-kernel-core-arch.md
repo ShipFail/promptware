@@ -109,6 +109,25 @@ The Kernel enforces these laws via the System Prompt (`KERNEL.md`).
 *   **Constraint**: All physical execution, state mutation, or authority acquisition **MUST** enter the Software Kernel via `pwosSyscall`.
 *   **Enforcement**: No Skill, Agent, or Tool may invoke a syscall handler (e.g., `ingest.ts`) directly.
 
+### 4.5. The Law of Responsibility (Error Taxonomy)
+
+The Kernel enforces a strict "Chain of Responsibility" for failures, mapping them to the Dual Kernel architecture.
+
+1.  **Protocol Violation (`protocol:violation`)**
+    *   **Definition**: The Intent (LLM) violated the Laws of Physics (e.g., invalid JSON, accessing protected memory).
+    *   **Responsibility**: **The LLM**.
+    *   **Action**: The Kernel rejects the request. The LLM **MUST** self-correct and retry.
+
+2.  **Runtime Exception (`runtime:exception`)**
+    *   **Definition**: The Intent was valid, but the Environment refused it (e.g., File Not Found, API Error).
+    *   **Responsibility**: **The LLM**.
+    *   **Action**: The Kernel reports the failure. The LLM **MUST** catch the exception and adapt its plan (e.g., try a different tool).
+
+3.  **Kernel Crash (`kernel:crash`)**
+    *   **Definition**: The Precision (Software Kernel) failed internally (e.g., TypeScript bug, Invariant broken).
+    *   **Responsibility**: **The Human Developer**.
+    *   **Action**: The Kernel panics and halts. The LLM **MUST NOT** attempt to fix it; it must report the stack trace to the user.
+
 ## 5. Kernel Initialization (PID 0)
 
 The "Boot Sequence" is the critical handoff between the static Bootloader and the dynamic Kernel.
