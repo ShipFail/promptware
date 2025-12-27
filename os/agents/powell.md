@@ -9,6 +9,7 @@ marks:
   canon: ᨟
 skills:
 - /skills/skill-spec/SKILL.md
+- /skills/stoptimizer/SKILL.md
 ---
 
 # ᨇ Powell — Cartographer of PromptWar̊e ØS
