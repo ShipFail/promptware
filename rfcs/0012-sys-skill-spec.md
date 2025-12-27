@@ -113,6 +113,44 @@ To support efficient tool discovery and preserve context window, PromptWare tool
 
 ---
 
+### 3.7 Tool Declaration Format
+
+Pr̊ØS Skills **MAY** declare tools using path-only strings in the `tools` front matter array:
+
+```yaml
+tools:
+  - ./tool.ts
+  - relative/path/to/script.sh
+```
+
+**Semantics**:
+
+* Each entry **MUST** be a path string (relative or absolute).
+* Tool metadata **MUST** be obtained via the discovery contract defined in Section 3.6.
+* Implementations **MAY** resolve relative paths against the skill's location.
+
+**Contrast with Claude Skills**:
+
+Claude Skills use structured objects with static metadata:
+
+```yaml
+tools:
+  - name: tool_name
+    script_path: scripts/tool.sh
+    description: "Static description"
+```
+
+PromptWare Skills use path-only strings with dynamic discovery:
+
+```yaml
+tools:
+  - ./tool.ts  # Metadata obtained via --description flag
+```
+
+**Rationale**: Eliminates redundancy (metadata lives in tool, not manifest), supports URL-based execution, and aligns with trust-maximal model.
+
+---
+
 ## 4. Non‑Goals
 
 Pr̊ØS Skill Specification explicitly does **not** aim to:
