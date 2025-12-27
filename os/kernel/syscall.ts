@@ -13,8 +13,8 @@ export async function syscall(syscallName: string, ...args: any[]) {
   const currentUrl = new URL(import.meta.url);
   const kernelDir = new URL(".", currentUrl); // .../os/kernel/
   
-  // Syscalls are located in ./syscalls/<name>.ts relative to this file
-  const syscallUrl = new URL(`./syscalls/${syscallName}.ts`, kernelDir).href;
+  // Syscalls are located in ./syscall-handlers/<name>.ts relative to this file
+  const syscallUrl = new URL(`./syscall-handlers/${syscallName}.ts`, kernelDir).href;
 
   try {
     // 2. Dynamic Import
