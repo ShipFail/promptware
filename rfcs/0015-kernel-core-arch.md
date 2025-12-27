@@ -111,22 +111,32 @@ The Kernel enforces these laws via the System Prompt (`KERNEL.md`).
 
 ### 4.5. The Law of Responsibility (Error Taxonomy)
 
-The Kernel enforces a strict "Chain of Responsibility" for failures, mapping them to the Dual Kernel architecture.
+The Kernel enforces a strict "Chain of Responsibility" for failures, mapping them to a 2x2 matrix of **Domain** (Intent vs. Execution) and **Recoverability** (Fixable vs. Fatal).
 
-1.  **Protocol Violation (`protocol:violation`)**
-    *   **Definition**: The Intent (LLM) violated the Laws of Physics (e.g., invalid JSON, accessing protected memory).
-    *   **Responsibility**: **The LLM**.
-    *   **Action**: The Kernel rejects the request. The LLM **MUST** self-correct and retry.
+| | **Recoverable (AI Fixable)** | **Fatal (Human Fixable)** |
+| :--- | :--- | :--- |
+| **Prompt Kernel (Intent)** | **1. `intent:violation`** | **2. `intent:panic`** |
+| **Software Kernel (Execution)** | **3. `execution:exception`** | **4. `execution:crash`** |
 
-2.  **Runtime Exception (`runtime:exception`)**
-    *   **Definition**: The Intent was valid, but the Environment refused it (e.g., File Not Found, API Error).
-    *   **Responsibility**: **The LLM**.
-    *   **Action**: The Kernel reports the failure. The LLM **MUST** catch the exception and adapt its plan (e.g., try a different tool).
+#### 1. Intent Violation (`intent:violation`)
+*   **Definition**: The Prompt Kernel (LLM) misunderstood the Laws of Physics. It formulated a plan that contradicts the System Constitution (e.g., invalid JSON, accessing protected memory).
+*   **Responsibility**: **The LLM**.
+*   **Action**: The Kernel rejects the request. The LLM **MUST** self-correct and retry.
 
-3.  **Kernel Crash (`kernel:crash`)**
-    *   **Definition**: The Precision (Software Kernel) failed internally (e.g., TypeScript bug, Invariant broken).
-    *   **Responsibility**: **The Human Developer**.
-    *   **Action**: The Kernel panics and halts. The LLM **MUST NOT** attempt to fix it; it must report the stack trace to the user.
+#### 2. Intent Panic (`intent:panic`)
+*   **Definition**: The Prompt Kernel has suffered a cognitive collapse. Examples include infinite repetition loops, context corruption, or refusal to follow the System Prompt.
+*   **Responsibility**: **The Human Operator**.
+*   **Action**: The System halts. The Human **MUST** reset the context or refine the prompt.
+
+#### 3. Execution Exception (`execution:exception`)
+*   **Definition**: The Intent was valid, but the Software Kernel encountered friction with reality (e.g., File Not Found, API 404, Permission Denied).
+*   **Responsibility**: **The LLM**.
+*   **Action**: The Kernel reports the failure. The LLM **MUST** catch the exception and adapt its plan (e.g., create the file, use a different tool).
+
+#### 4. Execution Crash (`execution:crash`)
+*   **Definition**: The Software Kernel failed internally due to a bug in the deterministic code (e.g., `TypeError`, `ReferenceError`, Database Connection Refused).
+*   **Responsibility**: **The Human Developer**.
+*   **Action**: The System halts. The LLM **MUST NOT** attempt to fix it; it must report the stack trace to the user.
 
 ## 5. Kernel Initialization (PID 0)
 
