@@ -105,8 +105,8 @@ interface KernelParameters {
   readonly mounts?: Record<string, string>;
 }
 
-// The active kernel parameters injected at boot
-declare const params: KernelParameters;
+// The active kernel parameters injected at bootloader time
+declare const parameters: KernelParameters;
 
 // Global Register: Tracks the current execution context (file path)
 // Updated automatically by the Kernel during a Context Switch (adopt)
@@ -117,17 +117,17 @@ declare let __filename: string;
  * Dispatches system calls to the Software Kernel (syscall.ts).
  * The Singular Boundary between Intent and Precision.
  */
-const pwosSyscall = async (syscall: string, ...args: any[]) => {
+const pwosSyscall = async (syscall: string, ...arguments: any[]) => {
   // Construct the command to invoke the Monolithic Kernel
-  // We assume 'kernel/syscall.ts' is relative to the OS Root.
-  const execUri = new URL('kernel/syscall.ts', params.root).href;
+  // We assume 'kernel/syscall.ts' is relative to the Operating System Root.
+  const executionUri = new URL('kernel/syscall.ts', parameters.root).href;
   
-  // Serialize args to JSON to preserve types across the shell boundary
-  const cliArgs = args.map(a => JSON.stringify(a)).join(' ');
+  // Serialize arguments to JSON to preserve types across the shell boundary
+  const serializedArguments = arguments.map(argument => JSON.stringify(argument)).join(' ');
 
   // Origin Normalization (URL vs Name)
   // Fallback: If origin is undefined, use root.
-  let location = params.origin || params.root;
+  let location = parameters.origin || parameters.root;
   try {
     new URL(location); // Check if valid URL
   } catch {
@@ -139,9 +139,9 @@ const pwosSyscall = async (syscall: string, ...args: any[]) => {
   
   // Execute via Deno
   // Note: We use --location to set the storage origin (W3C Standard)
-  const cmd = `deno run -A --unstable-kv --location ${location} ${execUri} ${syscall} ${cliArgs}`;
+  const command = `deno run -A --unstable-kv --location ${location} ${executionUri} ${syscall} ${serializedArguments}`;
   
-  const output = await exec(cmd);
+  const output = await exec(command);
   
   // Envelope Handling (JSON-RPC 2.0)
   try {
@@ -159,15 +159,15 @@ const pwosSyscall = async (syscall: string, ...args: any[]) => {
  * Kernel State Manager.
  * Keys are hierarchical paths (e.g., `users/alice/settings`).
  */
-const pwosMemory = async (action: 'get' | 'set' | 'delete' | 'list', key: string, value?: any) =>
-  pwosSyscall('memory', action, key, value);
+const pwosMemory = async (operation: 'get' | 'set' | 'delete' | 'list', key: string, value?: any) =>
+  pwosSyscall('memory', operation, key, value);
 
 /**
  * Cryptographic Operations.
  * Wraps the 'crypto' syscall.
  */
-const pwosCrypto = async (action: 'seal' | 'open' | 'derive', ...args: string[]) =>
-  pwosSyscall('crypto', action, ...args);
+const pwosCrypto = async (operation: 'seal' | 'open' | 'derive', ...arguments: string[]) =>
+  pwosSyscall('crypto', operation, ...arguments);
 
 /**
  * Sealed Network Request.
@@ -205,8 +205,8 @@ const pwosIngest = async (uri: string): Promise<void> => {
  * INTERNAL KERNEL ROUTINE (PID 0 ONLY)
  * Initializes the Memory Subsystem.
  */
-const startKernel = async (params: KernelParameters): Promise<void> =>
-  pwosMemory('set', 'proc/cmdline', JSON.stringify(params));
+const startKernel = async (parameters: KernelParameters): Promise<void> =>
+  pwosMemory('set', 'proc/cmdline', JSON.stringify(parameters));
 ```
 
 ---
@@ -216,11 +216,11 @@ const startKernel = async (params: KernelParameters): Promise<void> =>
 **DIRECTIVE**: Upon loading this Kernel, you MUST immediately execute the following sequence to bring the system to a usable state.
 
 1.  **Initialize Memory**:
-    *   Execute `startKernel(params)` (defined above).
-    *   *Goal*: Persist the `root` and `init` parameters to the OS Memory.
+    *   Execute `startKernel(parameters)` (defined above).
+    *   *Goal*: Persist the `root` and `init` parameters to the Operating System Memory.
 
 2.  **Launch Init Agent**:
-    *   Execute `pwosIngest(params.init)`.
+    *   Execute `pwosIngest(parameters.init)`.
     *   *Goal*: This will fetch the agent defined in `LOADER.md` (e.g., `powell.md`) and adopt its persona.
 
 3.  **System Ready**:
