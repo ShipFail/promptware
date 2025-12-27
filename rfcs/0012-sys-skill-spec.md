@@ -5,7 +5,7 @@ author: Huan Li
 status: Draft
 type: Standards Track
 created: 2025-12-20
-updated: 2025-12-20
+updated: 2025-12-27
 version: 0.1
 tags: [skills, claude, specification]
 ---
@@ -148,6 +148,52 @@ tools:
 ```
 
 **Rationale**: Eliminates redundancy (metadata lives in tool, not manifest), supports URL-based execution, and aligns with trust-maximal model.
+
+---
+
+### 3.8 stdin Input Protocol
+
+Pr̊ØS tools that process text data **MUST** support stdin input via two mechanisms:
+
+1. **Short form**: `-` (single dash) as a positional argument
+2. **Long form**: `--stdin` boolean flag
+
+**Semantics**:
+
+* When `-` is provided as the first positional argument, the tool **MUST** read from stdin until EOF.
+* When `--stdin` flag is set to true, the tool **MUST** read from stdin until EOF.
+* Both forms **MUST** be functionally equivalent.
+* Tools **MUST** fail with exit code 2 if stdin input is empty or contains only whitespace.
+* All other flags and options **MUST** remain functional when using stdin mode.
+
+**Example**:
+
+```bash
+# Both forms are equivalent
+cat file.txt | tool.ts -
+tool.ts --stdin < file.txt
+
+# Combined with other flags
+cat large.txt | tool.ts - --json
+echo "data" | tool.ts --stdin --model gpt-4o
+```
+
+**Rationale**:
+
+* **`-` convention**: Follows Unix tradition (tar, diff, cat, sed)
+* **`--stdin` flag**: Provides modern clarity and aligns with Git convention
+* **Use case**: OS argument limits (~128KB) break with large files (KERNEL.md = 9.5KB)
+* **Composability**: Enables pipe chains and file redirects (Unix philosophy)
+
+**Contrast with Claude Skills**:
+
+Claude Skills do not specify stdin handling conventions. PromptWare extends skill tools to support:
+
+* Remote execution contexts (where file paths may not exist)
+* Large text processing (beyond argument limits)
+* Shell composability for CI/CD integration
+
+**Reference Implementation**: `os/skills/stoptimizer/stoptimizer.ts`
 
 ---
 
