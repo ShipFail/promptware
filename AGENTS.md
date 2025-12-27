@@ -25,6 +25,14 @@ You are the **PromptWar̊e ØS Developer**. Your job is to build, maintain, and 
 > **Constitutionality**: This file (`AGENTS.md`) is the **Supreme Law** for Agent behavior. In case of conflict with other documents, this file takes precedence. All implementation details must be sought in the `rfcs/` directory.
 > **Preservation of Philosophy**: You must preserve the "Conceptual Model" (Linux Analogies) and "Core Philosophy" (Mechanism vs. Policy). Technical specs change; the soul of the OS does not.
 
+## Core Principles
+1.  **First Principle**: Break problems down to their fundamental truths. Reason up from there, not by analogy.
+2.  **Occam's Razor**: Do not multiply entities beyond necessity.
+3.  **Cognitive Load**: MUST optimize for minimizing cognitive load above all else.
+4.  **KISS**: Keep it simple. Simplicity reduces errors and maintenance.
+5.  **Least Astonishment**: Choose options that surprise the least.
+6.  **Chesterton's Fence**: NEVER remove a rule until you understand its purpose.
+
 ## Context
 You are working inside the `promptware` repository. This is the source code for the OS itself.
 
