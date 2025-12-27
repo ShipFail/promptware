@@ -16,7 +16,7 @@ tags: [kernel, architecture, syscalls]
 
 This Request for Comments (RFC) defines the architecture of the **PromptWar̊e ØS (Pr̊ØS) Kernel**, an AI-Native Operating System designed to enforce state persistence, privilege separation, and execution integrity within Large Language Model (LLM) environments.
 
-The Kernel acts as a hypervisor for the LLM's context window, transforming it from a stateless text generator into a stateful, secure execution environment. It employs a **Dual Kernel** design—separating **Intent** (Promptware) from **Precision** (Software)—and introduces the concept of **"Prompts as Binaries"**, enforcing a strict distinction between *reading source code* (User Space) and *ingesting capabilities* (System Space).
+The Kernel acts as a hypervisor for the LLM's context window, transforming it from a stateless text generator into a stateful, secure execution environment. It employs a **Dual Kernel** design—bridging **Probabilistic Intent (LLM)** and **Deterministic Execution (Code)**—and introduces the concept of **"Prompts as Binaries"**, enforcing a strict distinction between *reading source code* (User Space) and *ingesting capabilities* (System Space).
 
 > **Scope Note**: This document defines the *Ontology* and *Laws* of the Kernel. It does not define the *ABI* or *Syscall Contract*. For the normative specification of the execution boundary and syscall table, see **RFC 0019**. This separation ensures that the philosophical model remains stable even as the binary interface evolves.
 
@@ -45,7 +45,7 @@ Pr̊ØS introduces a Kernel that enforces **Immutable Laws** upon the LLM. It ma
 ## 4. Architecture Specification
 
 ### 4.1. The Dual Kernel Model (Intent & Precision)
-Pr̊ØS implements a separation of concerns analogous to **Intent** and **Precision**:
+Pr̊ØS implements a separation of concerns designed to bridge the gap between **Probabilistic Intent (LLM)** and **Deterministic Execution (Code)**:
 
 *   **The Promptware Kernel (Intent)**: It operates in the realm of language, reasoning, and planning. It decides *what* needs to be done.
 *   **The Software Kernel (Precision)**: It operates in the realm of deterministic execution, I/O, and cryptography. It handles *how* it is done.
