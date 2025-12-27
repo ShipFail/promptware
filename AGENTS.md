@@ -36,6 +36,10 @@ You are working inside the `promptware` repository. This is the source code for 
 
 ## Architecture & Design Rules (v0.9.0)
 
+### 0. Architecture Rule
+
+**Verify, Don't Assume**: RFC → External Spec → Repo Examples → Design. Extend minimally, invent nothing.
+
 ### 1. Immutable Infrastructure
 *   **Bootloader is Truth**: The Bootloader Front Matter is the **single source of truth** for Identity (`root`) and Topology (`mounts`).
 *   **Read-Only Topology**: Never persist `root` or `mounts` to mutable memory. A reboot must always restore a clean state.
