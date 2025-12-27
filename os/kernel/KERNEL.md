@@ -83,7 +83,7 @@ These functions are provided by the host environment (the "Hardware"). They are 
  * Executes a shell command in the host environment.
  * This is the "CPU" of the system.
  */
-declare function exec(command: string): Promise<string>;
+declare function shell(command: string): Promise<string>;
 
 /**
  * Performs a Context Switch.
@@ -93,7 +93,7 @@ declare function adopt(context: string): void;
 ```
 
 ### 2. Kernel System Calls
-These functions form the PromptWar̊e ØS API. They are implemented in TypeScript and executed via `exec()`.
+These functions form the PromptWar̊e ØS API. They are implemented in TypeScript and executed via `shell()`.
 
 ```typescript
 // Kernel Parameters (from BOOTLOADER.md YAML Front Matter)
@@ -141,7 +141,7 @@ const pwosSyscall = async (syscall: string, ...arguments: any[]) => {
   // Note: We use --location to set the storage origin (W3C Standard)
   const command = `deno run -A --unstable-kv --location ${location} ${executionUri} ${syscall} ${serializedArguments}`;
   
-  const output = await exec(command);
+  const output = await shell(command);
   
   // Envelope Handling (JSON-RPC 2.0)
   try {
