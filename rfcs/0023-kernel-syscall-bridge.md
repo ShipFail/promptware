@@ -1,40 +1,42 @@
 ---
 rfc: 0023
-title: Dual-Mode Syscall Bridge Specification
+title: Dual-Mode Syscall Bridge (OsEvent Singularity)
 author: PromptWare OS Project
 status: Draft
 type: Standards Track
 created: 2025-12-28
 updated: 2025-12-28
 version: 1.0
-tags: [kernel, syscall, ipc, daemon, unix-socket]
+tags: [kernel, syscall, ipc, daemon, unix-socket, inline]
 ---
 
-# RFC 0023: Dual-Mode Syscall Bridge Specification
+# RFC 0023: Dual-Mode Syscall Bridge (OsEvent Singularity)
 
 ## 1. Summary
 
-This RFC specifies a **dual-mode syscall bridge** for PromptWare OS: a single Deno TypeScript entrypoint that runs as a **client (CLI)** by default and transparently spawns a **daemon (server)** on-demand. The client and daemon communicate via a **Unix domain socket** using **NDJSON** frames carrying `OsEvent` envelopes (CQRS-style).
+This RFC defines a **syscall singularity interface** for PromptWare OS: a single Deno TypeScript entrypoint that can operate as:
 
-The design goal is to provide a **syscall singularity interface** between the Prompt Kernel and the Software Kernel: a uniform, stream-oriented mechanism for submitting syscall events and receiving responses/events without external service configuration.
+* a **Client CLI** (default), streaming `OsEvent` frames to a daemon over a Unix domain socket, and
+* a **Daemon** (server), accepting connections and dispatching `OsEvent` frames to registered syscall handlers.
+* an **Inline** mode (no daemon), executing the dispatch pipeline in-process for testing and deterministic execution.
+
+The bridge uses **NDJSON** as its wire format and a common `OsEvent` envelope to unify CQRS-style commands, queries, responses, and errors. A **mandatory first-message prologue** (`Syscall.Authenticate`) is exchanged on every connection to support optional SSH public-key signature authentication (or open mode).
+
+This bridge is intended to be the **default syscall transport** between the Prompt Kernel (Ring 0) and the Software Kernel (Ring 1).
 
 ---
 
 ## 2. Motivation
 
-PromptWare OS bridges two worlds:
+PromptWare OS aims to maximize the Linux analogy while operating in an LLM-native environment. The architecture needs a syscall layer that:
 
-* **Prompt Kernel (Ring 0):** Natural language intent, high-level orchestration.
-* **Software Kernel (Ring 1):** Deterministic execution via TypeScript syscalls.
+* is **uniform** (one protocol, one entrypoint, one "singularity" interface)
+* is **stream-native** (pipes in/out; easy composition)
+* is **operationally frictionless** (no external service manager required for MVP)
+* is **explicit about unsupported syscalls** (clear errors guide implementation/registration)
+* can evolve toward richer capabilities (inline mode, persistence, bidirectional request initiation)
 
-A recurring need is a **single, robust execution bridge** that:
-
-1. Works as a CLI (invoked repeatedly), but can maintain long-lived runtime context in a daemon.
-2. Requires **no external configuration** (no systemd/launchd requirement for MVP).
-3. Uses a **stream-native** interface so both kernels can treat syscalls as pipelines.
-4. Provides clear failure modes when a syscall/event is unsupported.
-
-This RFC delivers that bridge.
+This RFC specifies the minimal robust bridge framework, excluding domain/business logic.
 
 ---
 
@@ -44,52 +46,56 @@ This RFC delivers that bridge.
 
 The bridge MUST:
 
-* Provide a **single entrypoint** with two roles:
-  * **Client mode** (default)
-  * **Daemon mode** (internal; spawned by client)
-* Provide **transparent bootstrap**:
-  * client attempts socket connection
-  * if unavailable, client spawns daemon (detached)
-  * client retries until connected or fails fast
-* Use **Unix domain sockets** on macOS and Linux.
-* Use **NDJSON** framing with a standard `OsEvent` envelope.
-* Validate every incoming message using `OsEventSchema`.
-* Support **streaming dispatch**: process events line-by-line, emit outputs, flush, repeat.
-* Treat **missing handlers** as a first-class error (emit `error`, continue processing).
-* Exchange a **mandatory connection prologue** (`Syscall.Authenticate`) as the first server→client message on every new connection.
-  * Authentication is **optional** by configuration: if no SSH public key is configured, the bridge operates in **open mode**, but the prologue MUST still be exchanged.
-* Provide a **manual shutdown command** (`Syscall.Shutdown`).
+1. Provide a **single entrypoint** with multiple modes:
+   * **Client mode** (default)
+   * **Daemon mode** (`--mode=daemon`)
+   * **Inline mode** (`--mode=inline` or `--no-daemon`) (no daemonizing)
+2. Use **Unix domain sockets** on macOS and Linux (daemon mode).
+3. Use **NDJSON** framing and validate every message using `OsEventSchema`.
+4. Implement **streaming dispatch** (line-by-line): read → validate → dispatch → write → flush → repeat.
+5. Treat **missing handlers** as a first-class error (emit `error` and continue).
+6. Enforce a **mandatory connection prologue**:
+   * daemon sends `Syscall.Authenticate` first on every connection
+   * client MUST respond before any subsequent frames are processed
+   * authentication MAY be required by configuration
+7. Support **transparent bootstrap** in client mode:
+   * client attempts to connect
+   * if not reachable, client spawns daemon (detached) and retries
+8. Prefer zero external configuration:
+   * deterministic socket path
+   * URL/file invocation support
 
 ### Non-Goals
 
 This RFC does NOT specify:
 
-* Business domain logic (job models, schedulers, provider adapters, etc.).
-* Durable persistence (KV/SQLite/files) for daemon state.
-* Subscription channels / pubsub fanout semantics.
-* Cross-platform support beyond macOS and Linux.
-* Binary distribution (`deno compile`) or installer packaging.
+* domain/business syscalls (job models, scheduling, providers, etc.)
+* durable state storage (KV/SQLite/files)
+* subscription/pubsub semantics
+* cross-platform support beyond macOS and Linux
+* protocol version negotiation/handshake (beyond `Syscall.Authenticate` prologue)
 
 ---
 
 ## 4. Detailed Design
 
-### 4.1 Terminology
-
-* **Bridge:** The overall client+daemon framework.
-* **Client:** The default CLI role; connects to the daemon and streams events.
-* **Daemon:** The server role; listens on a Unix socket, dispatches events to handlers.
-* **Handler:** A registered syscall implementation as a `TransformStream<OsEvent, OsEvent>`.
-* **NDJSON:** Newline-delimited JSON, one object per line.
-* **EOF:** End-of-input on the connection (client half-closes write end).
+### 4.1 Conformance Language
 
 The key words **MUST**, **MUST NOT**, **SHOULD**, **SHOULD NOT**, and **MAY** are to be interpreted as described in BCP 14.
 
-### 4.2 Protocol
+### 4.2 Terminology
 
-#### 4.2.1 Envelope: `OsEvent`
+* **Bridge:** the overall framework and protocol.
+* **Client:** default CLI role.
+* **Daemon:** server role (Unix socket listener).
+* **Inline:** non-daemon execution mode; dispatch happens in-process.
+* **Handler:** a registered syscall implementation.
+* **NDJSON:** newline-delimited JSON (one object per line).
+* **EOF:** end-of-input on a connection (client half-closes write).
 
-All messages MUST conform to the following schema (Zod representation):
+### 4.3 Data Model: `OsEvent`
+
+All frames MUST parse into the following schema (Zod representation):
 
 ```typescript
 export const OsEventSchema = z.object({
@@ -110,14 +116,21 @@ export const OsEventSchema = z.object({
 });
 ```
 
-#### 4.2.2 Framing: NDJSON
+#### 4.3.1 Metadata Policy
+
+* The bridge framework MUST NOT automatically create, modify, or infer metadata.
+* Correlation/causation conventions are implementation-defined.
+
+### 4.4 Wire Format: NDJSON
 
 * The transport format MUST be **NDJSON**.
-* Each line MUST contain a single JSON object that parses into an `OsEvent`.
+* Each line MUST contain exactly one JSON object.
 * Lines MUST be UTF-8.
 * Each frame MUST be terminated by `\n`.
 
-#### 4.2.3 Streaming Semantics
+### 4.5 Protocol Semantics
+
+#### 4.5.1 Streaming Dispatch
 
 For each client connection:
 
@@ -129,12 +142,7 @@ For each client connection:
   * the daemon MUST flush output before reading the next input line
 * After EOF is reached, the daemon MUST close the connection once all pending output is flushed.
 
-#### 4.2.4 Metadata Responsibility
-
-* The bridge framework MUST NOT automatically create or modify metadata.
-* Correlation/causation assignment is left to handler implementations.
-
-#### 4.2.5 Connection Prologue: Optional Authentication
+#### 4.5.2 Connection Prologue: Optional Authentication
 
 On every new client connection, the daemon MUST send the first frame to the client:
 
@@ -151,9 +159,11 @@ Signature mode is signaled by an authentication payload with `scheme: "signature
 
 If signature verification fails, the daemon MUST close the connection immediately.
 
-### 4.3 Reserved Syscall Names
+### 4.6 Reserved Syscall Names
 
-#### 4.3.1 `Syscall.Authenticate`
+The following names are reserved by the bridge framework.
+
+#### 4.6.1 `Syscall.Authenticate` (mandatory prologue)
 
 **Purpose:** mandatory connection prologue; optional authentication by configuration.
 
@@ -226,6 +236,22 @@ The daemon is responsible for:
 * Emitting errors for invalid or unsupported events.
 * Running indefinitely until killed or `Syscall.Shutdown` is received.
 
+**Inline (`--mode=inline` / `--no-daemon`)**
+
+Inline mode runs the bridge without daemonizing.
+
+* No Unix socket is created.
+* The CLI executes the same decode/validate/dispatch/encode pipeline **in-process**.
+* The prologue MUST still be honored:
+  * inline runtime emits a `Syscall.Authenticate` prologue frame to the client pipeline
+  * client pipeline MUST respond before subsequent events are processed
+
+Inline mode is intended for:
+
+* tests/CI and deterministic one-shot runs
+* environments where background daemons are undesirable
+* debugging handler behavior without IPC
+
 #### 4.4.2 Stream-First Data Plane
 
 All IO SHOULD be modeled as pipes:
@@ -265,7 +291,20 @@ Recommended order:
 
 The bridge MUST create a private directory (mode `0700`) under the chosen base directory, and place the socket file inside it.
 
-#### 4.5.2 Client Bootstrap (Connect → Spawn → Retry)
+### 4.6 URL vs Local Invocation Policy
+
+The bridge may be invoked from a local file path or a URL.
+
+* URL invocations MUST be `https:`.
+* URL invocations SHOULD be pinned (tag/commit/checksum) for determinism.
+
+The exact mechanism for locating the entrypoint for self-spawn is implementation-defined.
+
+---
+
+### 4.7 Lifecycle Algorithms
+
+#### 4.7.1 Client Bootstrap (Connect → Spawn → Retry)
 
 Client MUST:
 
@@ -280,7 +319,7 @@ Client MUST:
 
 If the client cannot connect within the timeout window, it MUST exit with an error.
 
-#### 4.5.3 Daemon Single-Instance & Stale Socket Cleanup
+#### 4.7.2 Daemon Single-Instance & Stale Socket Cleanup
 
 Daemon startup MUST:
 
@@ -292,7 +331,7 @@ Daemon startup MUST:
    * Otherwise, treat as stale: remove the socket file and continue.
 3. Bind and listen on the socket.
 
-#### 4.5.4 Per-Connection Processing Loop
+#### 4.7.3 Per-Connection Processing Loop
 
 For each connection, the daemon MUST:
 
@@ -316,26 +355,30 @@ repeat
 close connection when EOF reached and pending outputs flushed
 ```
 
-### 4.6 Error Handling
+#### 4.7.4 Client Exit Semantics
 
-#### 4.6.1 Invalid Frames
+* Client MUST half-close write end after sending all input frames.
+* Client MUST continue reading until daemon closes the connection.
+
+### 4.8 Error Handling
+
+#### 4.8.1 Invalid Frames
 
 * If a line cannot be parsed as JSON, daemon MUST emit an `error` event and continue.
 * If JSON parses but fails `OsEventSchema`, daemon MUST emit an `error` event and continue.
 
-#### 4.6.2 Unsupported Events
+#### 4.8.2 Unsupported Events
 
-If an `OsEvent` is valid but unsupported (no handler), daemon MUST emit an `error` event indicating:
+If an `OsEvent` is valid but unsupported (no handler), daemon MUST emit an `error` indicating:
 
-* `name` is unsupported
-* expected registration/action: "register a handler and retry"
+* the request is unsupported
+* the caller should register/implement the handler and retry
 
-Daemon MUST continue processing subsequent events.
+Daemon MUST continue processing subsequent frames.
 
-#### 4.6.3 Client Exit Status
+#### 4.8.3 Client Exit Code
 
-* The client MUST wait for server close.
-* The client SHOULD exit non-zero if any `error` events were observed on the stream.
+Client SHOULD exit non-zero if any `error` frames were observed on stdout.
 
 ---
 
@@ -354,11 +397,11 @@ This RFC introduces a new transport layer (Unix socket + daemon) but maintains f
 
 ## 6. Rationale
 
-* **Unix socket + NDJSON** provides a minimal, debuggable, composable local IPC.
-* **Dual-mode single entrypoint** removes operational friction for early PromptWare OS workflows.
-* **Stream-first** aligns with Deno primitives and enables syscall pipelines.
-* **Auth-prologue liveness detection** is stronger than connect-only checks while remaining minimal.
-* **Explicit unsupported error** encourages syscall registration and iterative system growth.
+* **NDJSON + OsEvent**: a small, debuggable, stream-composable syscall format.
+* **Mandatory prologue**: provides a universal connection state gate (open or authenticated).
+* **Streaming dispatch**: aligns with Deno streams and CLI pipeline ergonomics.
+* **Explicit unsupported errors**: accelerates syscall implementation and registration.
+* **Inline mode**: enables deterministic execution and testing without daemon lifecycle concerns.
 
 ---
 
@@ -379,9 +422,9 @@ This RFC introduces a new transport layer (Unix socket + daemon) but maintains f
 ## 8. Security Considerations
 
 * The runtime directory containing the socket MUST be created with permissions `0700`.
-* The socket path MUST be located inside that directory.
-* For URL-based invocation, the bridge MUST allow only `https:` URLs.
-* For determinism, URL-based invocations SHOULD be pinned (tag/commit/checksum) by the caller.
+* The socket MUST reside inside that directory.
+* When signature mode is enabled, the daemon MUST close connections that fail verification immediately.
+* URL invocation MUST be `https:` and SHOULD be pinned for determinism.
 * Optional SSH signature authentication provides cryptographic verification when needed.
 * Open mode (no authentication) is acceptable for single-user development environments.
 
@@ -417,13 +460,12 @@ This RFC introduces a new transport layer (Unix socket + daemon) but maintains f
 
 ## 10. Future Directions
 
-Future RFCs MAY introduce:
+Future RFCs MAY add:
 
-* Subscription/event-bus semantics
-* Durable persistence for daemon state
-* Protocol versioning and handshake negotiation
-* Alternative transports (TCP, WebSocket)
-* **Bidirectional request initiation**, where the daemon may emit `command` or `query` frames for which responses may arrive in later client sessions (deferred responses).
+* durable persistence for daemon state
+* subscription/pubsub semantics
+* protocol versioning
+* bidirectional request initiation (daemon emits `command`/`query`) with **deferred responses** across future CLI sessions
 
 For deferred responses, implementations SHOULD use `metadata.causation` to reference the originating request `metadata.id`.
 
@@ -431,10 +473,11 @@ For deferred responses, implementations SHOULD use `metadata.causation` to refer
 
 ## 11. Unresolved Questions
 
-* Exact socket directory naming scheme (app name, uid, collision strategy).
-* Exact error payload structure for parse/validation/unsupported.
-* Exact authentication challenge format and signature encoding.
-* How deferred responses are stored/routed across CLI sessions (implementation detail; out of scope).
+* Exact socket directory naming scheme (app name, uid, multi-tenant strategy).
+* Exact error payload contract (`code`, `message`, `details`).
+* Authentication challenge format and signature encoding details.
+* Exact self-spawn mechanism for URL vs local file invocation.
+* How deferred responses are stored/routed across CLI sessions (out of scope).
 
 ---
 
