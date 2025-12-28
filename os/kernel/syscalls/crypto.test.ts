@@ -1,6 +1,6 @@
 import { assertEquals, assertRejects } from "jsr:@std/assert";
 import { encodeBase64Url } from "jsr:@std/encoding/base64url";
-import cryptoSyscall, { seal, open } from "./crypto.ts";
+import { seal, open } from "./crypto.ts";
 
 // Mock Deno.connect for SSH Agent
 // We need to simulate the SSH Agent Protocol:
@@ -52,7 +52,7 @@ Deno.test("RFC 0016: Crypto MUST fail if SSH_AUTH_SOCK is missing", async () => 
 
   try {
     await assertRejects(
-      async () => await cryptoSyscall("os://", "seal", "secret"),
+      async () => await seal("secret"),
       Error,
       "SSH_AUTH_SOCK not defined"
     );
@@ -95,7 +95,7 @@ Deno.test("RFC 0016: Open MUST reject invalid JSON payload", async () => {
 Deno.test("RFC 0016: Open MUST reject unsupported version", async () => {
   const payload = { v: 2, kid: "test", alg: "A256GCM", nonce: "abc", ct: "def", ts: 123 };
   const encoded = encodeBase64Url(new TextEncoder().encode(JSON.stringify(payload)));
-  
+
   await assertRejects(
     async () => await open(`pwenc:v1:${encoded}`),
     Error,
@@ -106,7 +106,7 @@ Deno.test("RFC 0016: Open MUST reject unsupported version", async () => {
 Deno.test("RFC 0016: Open MUST reject unsupported algorithm", async () => {
   const payload = { v: 1, kid: "test", alg: "AES-128-CBC", nonce: "abc", ct: "def", ts: 123 };
   const encoded = encodeBase64Url(new TextEncoder().encode(JSON.stringify(payload)));
-  
+
   await assertRejects(
     async () => await open(`pwenc:v1:${encoded}`),
     Error,

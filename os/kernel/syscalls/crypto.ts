@@ -1,27 +1,20 @@
+import { z } from "jsr:@zod/zod";
+import { SyscallModule } from "./contract.ts";
+import { OsEvent } from "../events.ts";
 import { parseArgs } from "jsr:@std/cli/parse-args";
 import { encodeBase64Url, decodeBase64Url } from "jsr:@std/encoding/base64url";
 
 /**
- * PromptWar̊e ØS Syscall: Crypto
- * Implements RFC 0016: Crypto Primitives Specification.
- * Provides 'seal', 'open', and 'derive' operations using SSH Agent for key derivation.
+ * PromptWare ØS Crypto Syscalls
+ *
+ * Implements RFC 0016: Crypto Primitives for sealed secrets (pwenc:v1:...).
+ * Uses SSH Agent for key derivation and AES-256-GCM for encryption.
+ *
+ * Exports 3 modules:
+ * - crypto/seal (command): Encrypt plaintext to pwenc ciphertext
+ * - crypto/open (query): Decrypt pwenc ciphertext to plaintext
+ * - crypto/derive (query): Derive and return key fingerprint
  */
-
-const HELP_TEXT = `
-Usage: deno run -A crypto.ts --root <os_root> <action> [args...]
-
-Actions:
-  seal <plaintext>      Encrypts a secret (returns pwenc:v1:...).
-  open <pwenc>          Decrypts a secret (returns plaintext).
-  derive                Debug: Derives and prints the key ID (KID).
-
-Options:
-  --root <url>    The OS Root URL (Required).
-  --help, -h      Show this help message.
-  --description   Show tool description (RFC 0012).
-`;
-
-const TOOL_DESCRIPTION = "Cryptographic primitives for PromptWare ØS. Implements RFC 0016 (pwenc) for sealed secrets.";
 
 // --- RFC 0016 Constants ---
 const PWENC_PREFIX = "pwenc:v1:";
@@ -46,22 +39,19 @@ class SshAgentClient {
   private async request(code: number, payload: Uint8Array): Promise<Uint8Array> {
     const conn = await Deno.connect({ transport: "unix", path: this.sockPath });
     try {
-      // Packet: [Length (4 bytes)] [Code (1 byte)] [Payload]
       const len = 1 + payload.length;
       const buf = new Uint8Array(4 + len);
       const view = new DataView(buf.buffer);
-      view.setUint32(0, len, false); // Big Endian
+      view.setUint32(0, len, false);
       buf[4] = code;
       buf.set(payload, 5);
 
       await conn.write(buf);
 
-      // Read Response Length
       const lenBuf = new Uint8Array(4);
       await conn.read(lenBuf);
       const respLen = new DataView(lenBuf.buffer).getUint32(0, false);
 
-      // Read Response Body
       const respBuf = new Uint8Array(respLen);
       let read = 0;
       while (read < respLen) {
@@ -77,18 +67,13 @@ class SshAgentClient {
   }
 
   async getFirstKey(): Promise<Uint8Array> {
-    // SSH_AGENTC_REQUEST_IDENTITIES = 11
     const resp = await this.request(11, new Uint8Array(0));
-    
-    // SSH_AGENT_IDENTITIES_ANSWER = 12
     if (resp[0] !== 12) throw new Error(`Unexpected agent response code: ${resp[0]}`);
 
     const view = new DataView(resp.buffer);
     const count = view.getUint32(1, false);
     if (count === 0) throw new Error("No identities found in SSH Agent.");
 
-    // Parse first key blob
-    // [Code 1] [Count 4] [Len 4] [KeyBlob...] [CommentLen 4] [Comment...]
     let offset = 5;
     const keyLen = view.getUint32(offset, false);
     offset += 4;
@@ -97,40 +82,31 @@ class SshAgentClient {
   }
 
   async sign(keyBlob: Uint8Array, data: Uint8Array): Promise<Uint8Array> {
-    // SSH_AGENTC_SIGN_REQUEST = 13
-    // Format: [KeyBlob String] [Data String] [Flags 4]
-    
     const keyLen = keyBlob.length;
     const dataLen = data.length;
     const payload = new Uint8Array(4 + keyLen + 4 + dataLen + 4);
     const view = new DataView(payload.buffer);
-    
+
     let offset = 0;
-    view.setUint32(offset, keyLen, false); offset += 4;
+    view.setUint32(offset, keyLen, false); offset += keyLen;
     payload.set(keyBlob, offset); offset += keyLen;
-    
+
     view.setUint32(offset, dataLen, false); offset += 4;
     payload.set(data, offset); offset += dataLen;
-    
-    view.setUint32(offset, 0, false); // Flags = 0
+
+    view.setUint32(offset, 0, false);
 
     const resp = await this.request(13, payload);
-
-    // SSH_AGENT_SIGN_RESPONSE = 14
     if (resp[0] !== 14) throw new Error(`Agent sign failed. Code: ${resp[0]}`);
 
-    // Parse signature blob
-    // [Code 1] [SigBlobLen 4] [SigBlob...]
     const sigLen = new DataView(resp.buffer).getUint32(1, false);
     const sigBlob = resp.slice(5, 5 + sigLen);
 
-    // The sigBlob is an SSH signature: [TypeLen 4] [Type] [RawSigLen 4] [RawSig]
-    // We want the RawSig.
     const sigView = new DataView(sigBlob.buffer);
     const typeLen = sigView.getUint32(0, false);
     const rawSigOffset = 4 + typeLen + 4;
     const rawSig = sigBlob.slice(rawSigOffset);
-    
+
     return rawSig;
   }
 }
@@ -140,16 +116,13 @@ class SshAgentClient {
 async function deriveKey(): Promise<{ key: CryptoKey; kid: string }> {
   const agent = new SshAgentClient();
   const keyBlob = await agent.getFirstKey();
-  
-  // KID = SHA256 fingerprint of key blob (standard SSH fingerprint)
+
   const kidHash = await crypto.subtle.digest("SHA-256", keyBlob as BufferSource);
   const kid = `ssh-fp:SHA256:${encodeBase64Url(kidHash)}`;
 
-  // Sign CTX
   const ctxBytes = new TextEncoder().encode(CTX_STRING);
   const sig = await agent.sign(keyBlob, ctxBytes);
 
-  // HKDF
   const ikm = await crypto.subtle.importKey("raw", sig as BufferSource, "HKDF", false, ["deriveBits"]);
   const derivedBits = await crypto.subtle.deriveBits(
     {
@@ -159,7 +132,7 @@ async function deriveKey(): Promise<{ key: CryptoKey; kid: string }> {
       info: INFO,
     },
     ikm,
-    256 // 256 bits for AES-256
+    256
   );
 
   const key = await crypto.subtle.importKey(
@@ -175,7 +148,7 @@ async function deriveKey(): Promise<{ key: CryptoKey; kid: string }> {
 
 export async function seal(plaintext: string): Promise<string> {
   const { key, kid } = await deriveKey();
-  const nonce = crypto.getRandomValues(new Uint8Array(12)); // 96-bit nonce
+  const nonce = crypto.getRandomValues(new Uint8Array(12));
   const ptBytes = new TextEncoder().encode(plaintext);
 
   const ctBuffer = await crypto.subtle.encrypt(
@@ -241,24 +214,90 @@ export async function open(pwenc: string): Promise<string> {
   }
 }
 
-// --- Main Dispatcher ---
+// ================================
+// COMMAND: crypto/seal
+// ================================
 
-export default async function cryptoSyscall(root: string, action: string, ...args: string[]): Promise<string> {
-  if (action === "seal") {
-    if (!args[0]) throw new Error("Missing plaintext argument");
-    return await seal(args[0]);
-  } else if (action === "open") {
-    if (!args[0]) throw new Error("Missing pwenc argument");
-    return await open(args[0]);
-  } else if (action === "derive") {
-    const { kid } = await deriveKey();
-    return `Derived Key ID: ${kid}`;
-  } else {
-    throw new Error(`Unknown action: ${action}`);
-  }
-}
+const SealInputSchema = z.object({
+  plaintext: z.string().describe("The secret plaintext to encrypt"),
+}).describe("Input for crypto/seal syscall.");
 
-async function main() {
+const SealOutputSchema = z.object({
+  ciphertext: z.string().describe("The encrypted secret (pwenc:v1:...)"),
+}).describe("Output from crypto/seal syscall.");
+
+const sealHandler = async (input: z.infer<typeof SealInputSchema>, _event: OsEvent): Promise<z.infer<typeof SealOutputSchema>> => {
+  const ciphertext = await seal(input.plaintext);
+  return { ciphertext };
+};
+
+export const cryptoSealModule: SyscallModule<typeof SealInputSchema, typeof SealOutputSchema> = {
+  type: "command",
+  InputSchema: SealInputSchema,
+  OutputSchema: SealOutputSchema,
+  handler: sealHandler,
+  cliAdapter: (args: string[]) => {
+    if (args.length < 1) throw new Error("Usage: crypto/seal <plaintext>");
+    return { plaintext: args[0] };
+  },
+};
+
+// ================================
+// QUERY: crypto/open
+// ================================
+
+const OpenInputSchema = z.object({
+  ciphertext: z.string().describe("The encrypted secret (pwenc:v1:...) to decrypt"),
+}).describe("Input for crypto/open syscall.");
+
+const OpenOutputSchema = z.object({
+  plaintext: z.string().describe("The decrypted plaintext"),
+}).describe("Output from crypto/open syscall.");
+
+const openHandler = async (input: z.infer<typeof OpenInputSchema>, _event: OsEvent): Promise<z.infer<typeof OpenOutputSchema>> => {
+  const plaintext = await open(input.ciphertext);
+  return { plaintext };
+};
+
+export const cryptoOpenModule: SyscallModule<typeof OpenInputSchema, typeof OpenOutputSchema> = {
+  type: "query",
+  InputSchema: OpenInputSchema,
+  OutputSchema: OpenOutputSchema,
+  handler: openHandler,
+  cliAdapter: (args: string[]) => {
+    if (args.length < 1) throw new Error("Usage: crypto/open <ciphertext>");
+    return { ciphertext: args[0] };
+  },
+};
+
+// ================================
+// QUERY: crypto/derive
+// ================================
+
+const DeriveInputSchema = z.object({}).describe("Input for crypto/derive syscall (no parameters).");
+
+const DeriveOutputSchema = z.object({
+  kid: z.string().describe("The derived Key ID (SSH key fingerprint)"),
+}).describe("Output from crypto/derive syscall.");
+
+const deriveHandler = async (_input: z.infer<typeof DeriveInputSchema>, _event: OsEvent): Promise<z.infer<typeof DeriveOutputSchema>> => {
+  const { kid } = await deriveKey();
+  return { kid };
+};
+
+export const cryptoDeriveModule: SyscallModule<typeof DeriveInputSchema, typeof DeriveOutputSchema> = {
+  type: "query",
+  InputSchema: DeriveInputSchema,
+  OutputSchema: DeriveOutputSchema,
+  handler: deriveHandler,
+  cliAdapter: (_args: string[]) => ({}),
+};
+
+// ================================
+// CLI Entry Point (Dual-Mode)
+// ================================
+
+if (import.meta.main) {
   const args = parseArgs(Deno.args, {
     string: ["root"],
     boolean: ["help", "description"],
@@ -266,19 +305,24 @@ async function main() {
   });
 
   if (args.help) {
-    console.log(HELP_TEXT);
+    console.log(`
+Usage: deno run -A crypto.ts [action] [args...]
+
+Actions:
+  seal <plaintext>      Encrypts a secret (returns pwenc:v1:...).
+  open <pwenc>          Decrypts a secret (returns plaintext).
+  derive                Debug: Derives and prints the key ID (KID).
+
+Options:
+  --help, -h            Show this help message.
+  --description         Show tool description.
+`);
     Deno.exit(0);
   }
 
   if (args.description) {
-    console.log(TOOL_DESCRIPTION);
+    console.log("Cryptographic primitives for PromptWare ØS. Implements RFC 0016 (pwenc) for sealed secrets.");
     Deno.exit(0);
-  }
-
-  const root = args.root;
-  if (!root) {
-    console.error("Error: --root <url> is required.");
-    Deno.exit(1);
   }
 
   const action = String(args._[0]);
@@ -290,14 +334,22 @@ async function main() {
   }
 
   try {
-    const result = await cryptoSyscall(root, action, ...cmdArgs);
+    let result: string;
+    if (action === "seal") {
+      if (!cmdArgs[0]) throw new Error("Missing plaintext argument");
+      result = await seal(cmdArgs[0]);
+    } else if (action === "open") {
+      if (!cmdArgs[0]) throw new Error("Missing pwenc argument");
+      result = await open(cmdArgs[0]);
+    } else if (action === "derive") {
+      const { kid } = await deriveKey();
+      result = `Derived Key ID: ${kid}`;
+    } else {
+      throw new Error(`Unknown action: ${action}`);
+    }
     console.log(result);
   } catch (e: any) {
     console.error(`Error: ${e.message}`);
     Deno.exit(1);
   }
-}
-
-if (import.meta.main) {
-  main();
 }
