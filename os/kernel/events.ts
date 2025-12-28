@@ -2,7 +2,7 @@
  * os/kernel/events.ts
  *
  * The Atomic Unit of the PromptWare OS Kernel.
- * Defines the Event Schema for the Pipe-Kernel Architecture.
+ * Defines the Event Schema for the Reactive Kernel Architecture.
  *
  * Adheres to:
  * 1. CQRS (Command/Query Responsibility Segregation)
