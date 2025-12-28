@@ -6,133 +6,95 @@
  *
  * Adheres to:
  * 1. CQRS (Command/Query Responsibility Segregation)
- * 2. Flux Standard Action (FSA)
- * 3. STOP Protocol (Semantic Token Optimization Protocol)
+ * 2. Event Sourcing with Correlation/Causation Lineage
+ * 3. CloudEvents / EventStoreDB Standards
+ * 4. STOP Protocol (Semantic Token Optimization Protocol)
  */
 
 import { z } from "jsr:@zod/zod";
-import { shortId8 } from "./core/short-id8.ts";
+import { shortId8 } from "./core/id8.ts";
 
 /**
- * The Universal Message Shape.
+ * Zod Schema for OsEvent (Single Source of Truth).
  *
- * @template T - The type of the payload.
- */
-export interface OsEvent<T = unknown> {
-  /**
-   * CQRS Discriminator.
-   * - command: "Do this" (State Mutation)
-   * - query: "Get this" (State Retrieval)
-   * - response: "Here is the result" (RPC/Return)
-   * - event: "This happened" (Notification/Log)
-   */
-  kind: "command" | "query" | "response" | "event";
-
-  /**
-   * The Domain Topic.
-   * Follows Redux style: "domain/action"
-   * Examples: "fs/read", "memory/set", "kernel/boot"
-   */
-  type: string;
-
-  /**
-   * The Data.
-   * Follows Flux Standard Action (FSA).
-   * If error is true, this MUST be an Error object or error-like shape.
-   */
-  payload: T;
-
-  /**
-   * Meta-information for the Kernel (Routing, Tracing).
-   * Optimized for STOP Protocol (Semantic Clarity).
-   */
-  metadata?: {
-    /**
-     * Unique identifier for this specific message instance.
-     * Used for distributed tracing and log correlation.
-     */
-    id: string;
-
-    /**
-     * Unix epoch timestamp (milliseconds).
-     * "timestamp" is semantically unambiguous compared to "ts".
-     */
-    timestamp: number;
-
-    /**
-     * The ID of the message that caused this one.
-     * Essential for causal chains in CQRS.
-     */
-    reference?: string;
-  };
-
-  /**
-   * Error Flag (FSA Standard).
-   * If true, payload is an Error object.
-   * Used to preserve the original intent (kind) while signaling failure.
-   */
-  error?: boolean;
-}
-
-/**
- * Zod Schema for Runtime Validation.
- * Matches the OsEvent interface.
+ * Behavioral envelope types:
+ * - command: "Do this" (State Mutation)
+ * - query: "Get this" (State Retrieval / Read-Only)
+ * - event: "This happened" (Domain Event / Notification)
+ * - response: "Here is the outcome" (Success Response)
+ * - error: "This failed" (Error Response)
+ *
+ * Aligns with CloudEvents, EventStoreDB, and JSON:API standards.
  */
 export const OsEventSchema = z.object({
-  kind: z
-    .enum(["command", "query", "response", "event"])
-    .describe("CQRS intent discriminator"),
-  type: z.string().describe("Domain topic (e.g. fs/read)"),
-  payload: z.unknown().describe("Data content or error object"),
+  type: z
+    .enum(["command", "query", "event", "response", "error"])
+    .describe("Behavioral envelope type"),
+  name: z
+    .string()
+    .describe("Domain event name in dot notation (e.g. Memory.Set, Crypto.Seal)"),
+  payload: z
+    .unknown()
+    .describe("Data payload or error object"),
   metadata: z
     .object({
-      id: z.string().describe("Unique message ID"),
+      id: z.string().describe("Unique event ID"),
       timestamp: z.number().describe("Unix epoch ms"),
-      reference: z.string().optional().describe("Causal parent ID"),
+      correlation: z.string().optional().describe("Workflow/session correlation ID"),
+      causation: z.string().optional().describe("Direct parent event ID"),
     })
     .optional()
-    .describe("Routing and tracing info"),
-  error: z.boolean().optional().describe("True if payload is error"),
+    .describe("Event metadata for routing, tracing, and lineage"),
 });
 
 /**
- * Helper to create a standard message.
+ * TypeScript type derived from Zod schema.
+ * Ensures type and runtime validation are always in sync.
+ */
+export type OsEvent<T = unknown> = Omit<z.infer<typeof OsEventSchema>, "payload"> & {
+  payload: T;
+};
+
+/**
+ * Helper to create a standard event.
  */
 export function createEvent<T>(
-  kind: OsEvent<T>["kind"],
-  type: string,
+  type: OsEvent<T>["type"],
+  name: string,
   payload: T,
   id?: string,
-  reference?: string
+  correlation?: string,
+  causation?: string
 ): OsEvent<T> {
   return {
-    kind,
     type,
+    name,
     payload,
     metadata: {
       id: id || shortId8(),
       timestamp: Date.now(),
-      reference,
+      correlation,
+      causation,
     },
   };
 }
 
 /**
- * Helper to create an error response from an existing message.
+ * Helper to create an error event from an existing event.
  */
 export function createError(
   original: OsEvent,
   error: Error | string
 ): OsEvent<Error | { message: string }> {
   return {
-    kind: original.kind, // Preserve original intent
-    type: original.type,
+    type: "error",
+    name: original.name,
     payload: error instanceof Error ? error : { message: error },
-    error: true,
     metadata: {
       id: shortId8(),
       timestamp: Date.now(),
-      reference: original.metadata?.id,
+      correlation: original.metadata?.correlation,
+      causation: original.metadata?.id,
     },
   };
 }
