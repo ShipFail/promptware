@@ -1,10 +1,12 @@
 import { assertEquals, assert, assertRejects } from "jsr:@std/assert";
 import { countGPTTokens, countClaudeTokens } from "./deps.ts";
 
+const TOOL_PATH = new URL("./stoptimizer.ts", import.meta.url).pathname;
+
 // Test RFC 0012 Section 3.6: --description flag
 Deno.test("RFC 3.6: --description flag exists and is ≤1024 chars", async () => {
   const command = new Deno.Command(Deno.execPath(), {
-    args: ["run", "--allow-net", "stoptimizer.ts", "--description"],
+    args: ["run", "--allow-net", TOOL_PATH, "--description"],
     stdout: "piped",
     stderr: "piped",
   });
@@ -59,7 +61,7 @@ Deno.test("Claude tokenizer: returns integer", async () => {
 // Test CLI: Basic token counting
 Deno.test("CLI: Basic token counting (space-separated)", async () => {
   const command = new Deno.Command(Deno.execPath(), {
-    args: ["run", "--allow-net", "stoptimizer.ts", "test"],
+    args: ["run", "--allow-net", TOOL_PATH, "test"],
     stdout: "piped",
   });
   const output = await command.output();
@@ -74,7 +76,7 @@ Deno.test("CLI: Basic token counting (space-separated)", async () => {
 // Test CLI: JSON output
 Deno.test("CLI: JSON output format", async () => {
   const command = new Deno.Command(Deno.execPath(), {
-    args: ["run", "--allow-net", "stoptimizer.ts", "--json", "test"],
+    args: ["run", "--allow-net", TOOL_PATH, "--json", "test"],
     stdout: "piped",
   });
   const output = await command.output();
@@ -92,7 +94,7 @@ Deno.test("CLI: JSON output format", async () => {
 // Test CLI: Single model output
 Deno.test("CLI: Single model output", async () => {
   const command = new Deno.Command(Deno.execPath(), {
-    args: ["run", "--allow-net", "stoptimizer.ts", "--model", "gpt-4o", "test"],
+    args: ["run", "--allow-net", TOOL_PATH, "--model", "gpt-4o", "test"],
     stdout: "piped",
   });
   const output = await command.output();
@@ -106,7 +108,7 @@ Deno.test("CLI: Single model output", async () => {
 // Test CLI: Missing argument error
 Deno.test("CLI: Missing argument returns exit code 2", async () => {
   const command = new Deno.Command(Deno.execPath(), {
-    args: ["run", "--allow-net", "stoptimizer.ts"],
+    args: ["run", "--allow-net", TOOL_PATH],
     stdout: "piped",
     stderr: "piped",
   });
@@ -118,7 +120,7 @@ Deno.test("CLI: Missing argument returns exit code 2", async () => {
 // Test CLI: Help flag
 Deno.test("CLI: --help flag", async () => {
   const command = new Deno.Command(Deno.execPath(), {
-    args: ["run", "--allow-net", "stoptimizer.ts", "--help"],
+    args: ["run", "--allow-net", TOOL_PATH, "--help"],
     stdout: "piped",
   });
   const output = await command.output();
@@ -134,7 +136,7 @@ Deno.test("STOP validation: 'args' vs 'arguments' composition", async () => {
   // This test demonstrates how users compose STOP validation in shell
   const countTokens = async (text: string): Promise<number> => {
     const command = new Deno.Command(Deno.execPath(), {
-      args: ["run", "--allow-net", "stoptimizer.ts", "--model", "gpt-4o", text],
+      args: ["run", "--allow-net", TOOL_PATH, "--model", "gpt-4o", text],
       stdout: "piped",
     });
     const output = await command.output();
@@ -154,7 +156,7 @@ Deno.test("STOP validation: 'args' vs 'arguments' composition", async () => {
 Deno.test("CLI: stdin mode with dash (-)", async () => {
   const testText = "Hello from stdin";
   const command = new Deno.Command(Deno.execPath(), {
-    args: ["run", "--allow-net", "stoptimizer.ts", "-"],
+    args: ["run", "--allow-net", TOOL_PATH, "-"],
     stdin: "piped",
     stdout: "piped",
   });
@@ -177,7 +179,7 @@ Deno.test("CLI: stdin mode with dash (-)", async () => {
 Deno.test("CLI: stdin mode with --stdin flag", async () => {
   const testText = "Hello world";
   const command = new Deno.Command(Deno.execPath(), {
-    args: ["run", "--allow-net", "stoptimizer.ts", "--stdin", "--json"],
+    args: ["run", "--allow-net", TOOL_PATH, "--stdin", "--json"],
     stdin: "piped",
     stdout: "piped",
   });
@@ -198,7 +200,7 @@ Deno.test("CLI: stdin mode with --stdin flag", async () => {
 // Test empty stdin returns error
 Deno.test("CLI: Empty stdin returns exit code 2", async () => {
   const command = new Deno.Command(Deno.execPath(), {
-    args: ["run", "--allow-net", "stoptimizer.ts", "-"],
+    args: ["run", "--allow-net", TOOL_PATH, "-"],
     stdin: "piped",
     stdout: "piped",
     stderr: "piped",
@@ -217,7 +219,7 @@ Deno.test("CLI: Empty stdin returns exit code 2", async () => {
 Deno.test("CLI: stdin handles large files", async () => {
   const largeText = "word ".repeat(1000); // ~5KB
   const command = new Deno.Command(Deno.execPath(), {
-    args: ["run", "--allow-net", "stoptimizer.ts", "--stdin", "--model", "gpt-4o"],
+    args: ["run", "--allow-net", TOOL_PATH, "--stdin", "--model", "gpt-4o"],
     stdin: "piped",
     stdout: "piped",
   });
