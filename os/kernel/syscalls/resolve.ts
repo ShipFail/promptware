@@ -1,23 +1,15 @@
+import { z } from "jsr:@zod/zod";
+import { SyscallModule } from "./contract.ts";
+import { OsEvent } from "../events.ts";
 import { parseArgs } from "jsr:@std/cli/parse-args";
 import { join, dirname } from "jsr:@std/path";
 
 /**
- * PromptWar̊e ØS Syscall: Resolve
- * Resolves a URI against a Base and Root.
- * Implements the "Law of Anchoring" and "TypeScript Import" style.
+ * PromptWare ØS Resolve Syscall
+ *
+ * Resolves URIs against a base context and OS root.
+ * Implements TypeScript-style import resolution.
  */
-
-const HELP_TEXT = `
-Usage: deno run -A resolve.ts --root <os_root> <uri> [base]
-
-Arguments:
-  uri     The URI to resolve (relative, absolute, or os://).
-  base    The base URI (context) to resolve relative paths against.
-
-Options:
-  --root <url>    The OS Root URL (Required).
-  --help, -h      Show this help message.
-`;
 
 function isUrl(path: string): boolean {
   try {
@@ -31,12 +23,11 @@ function isUrl(path: string): boolean {
 /**
  * Resolves a URI against a Base and Root.
  */
-export default async function resolve(uri: string, base?: string, explicitRoot?: string): Promise<string> {
+async function resolve(uri: string, base?: string, explicitRoot?: string): Promise<string> {
   let root = explicitRoot;
   let mounts: Record<string, string> | undefined;
 
   if (!root) {
-    // Load Root from KV
     const kv = await Deno.openKv();
     try {
       const res = await kv.get(["proc", "cmdline"]);
@@ -52,22 +43,18 @@ export default async function resolve(uri: string, base?: string, explicitRoot?:
     }
   }
 
-  // 1. Absolute URLs (http://, https://, file://)
   if (isUrl(uri)) {
-    // Handle os:// protocol
     if (uri.startsWith("os://")) {
       const path = uri.replace("os://", "");
-      
-      // Check mounts first
+
       if (mounts) {
         const parts = path.split("/");
         const topLevel = parts[0];
         if (mounts[topLevel]) {
-           const rest = parts.slice(1).join("/");
-           // If mount is a URL, resolve against it
-           if (isUrl(mounts[topLevel])) {
-             return new URL(rest, mounts[topLevel]).href;
-           }
+          const rest = parts.slice(1).join("/");
+          if (isUrl(mounts[topLevel])) {
+            return new URL(rest, mounts[topLevel]).href;
+          }
         }
       }
 
@@ -76,27 +63,49 @@ export default async function resolve(uri: string, base?: string, explicitRoot?:
     return uri;
   }
 
-  // 2. OS-Absolute Paths (starting with /)
-  // Anchored to OS Root
   if (uri.startsWith("/")) {
-    // Remove leading slash to append to root
     return new URL(uri.slice(1), root).href;
   }
 
-  // 3. Relative Paths (./, ../, or simple filenames)
-  // Anchored to Base (Context)
   if (base) {
-    // If base is a URL
     if (isUrl(base)) {
       return new URL(uri, base).href;
     }
-    // If base is a local file path
     return join(dirname(base), uri);
   }
 
-  // 4. Fallback: If no base, assume relative to Root
   return new URL(uri, root).href;
 }
+
+export const InputSchema = z.object({
+  uri: z.string().describe("The URI to resolve (relative, absolute, or os://)"),
+  base: z.string().optional().describe("Optional base context for relative paths"),
+}).describe("Input for the resolve syscall.");
+
+export const OutputSchema = z.object({
+  resolved: z.string().url().describe("The fully resolved URL"),
+}).describe("Output from the resolve syscall.");
+
+export const handler = async (input: z.infer<typeof InputSchema>, _event: OsEvent): Promise<z.infer<typeof OutputSchema>> => {
+  const resolved = await resolve(input.uri, input.base);
+  return { resolved };
+};
+
+const module: SyscallModule<typeof InputSchema, typeof OutputSchema> = {
+  type: "query",
+  InputSchema,
+  OutputSchema,
+  handler,
+  cliAdapter: (args: string[]) => {
+    if (args.length < 1) throw new Error("Usage: resolve <uri> [base]");
+    return {
+      uri: args[0],
+      base: args[1],
+    };
+  },
+};
+
+export default module;
 
 // CLI Entry Point
 if (import.meta.main) {
@@ -107,16 +116,21 @@ if (import.meta.main) {
   });
 
   if (args.help) {
-    console.log(HELP_TEXT);
+    console.log(`
+Usage: deno run -A resolve.ts [--root <os_root>] <uri> [base]
+
+Arguments:
+  uri     The URI to resolve (relative, absolute, or os://).
+  base    The base URI (context) to resolve relative paths against.
+
+Options:
+  --root <url>    The OS Root URL (optional, loads from KV if not provided).
+  --help, -h      Show this help message.
+`);
     Deno.exit(0);
   }
 
   const root = args.root;
-  if (!root) {
-    console.error("Error: --root <url> is required.");
-    Deno.exit(1);
-  }
-
   const uri = String(args._[0]);
   const base = args._[1] ? String(args._[1]) : undefined;
 
