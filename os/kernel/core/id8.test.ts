@@ -5,7 +5,7 @@
  */
 
 import { assert, assertEquals, assertNotEquals } from "jsr:@std/assert";
-import { shortId8 } from "./short-id8.ts";
+import { shortId8 } from "./id8.ts";
 
 Deno.test("shortId8 - generates 8-character string", () => {
   const id = shortId8();
