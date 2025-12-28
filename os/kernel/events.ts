@@ -11,6 +11,7 @@
  */
 
 import { z } from "jsr:@zod/zod";
+import { shortId8 } from "./core/id.ts";
 
 /**
  * The Universal Message Shape.
@@ -109,7 +110,7 @@ export function createEvent<T>(
     type,
     payload,
     metadata: {
-      id: id || crypto.randomUUID(),
+      id: id || shortId8(),
       timestamp: Date.now(),
       reference,
     },
@@ -129,7 +130,7 @@ export function createError(
     payload: error instanceof Error ? error : { message: error },
     error: true,
     metadata: {
-      id: crypto.randomUUID(),
+      id: shortId8(),
       timestamp: Date.now(),
       reference: original.metadata?.id,
     },
