@@ -2,5 +2,6 @@
   "name": "promptware-os",
   "version": "0.9.0",
   "license": "License-Ref-PPL-A-0.2",
-  "exports": "./kernel/syscall.ts"
+  "exports": "./kernel/syscall.ts",
+  "unstable": ["kv"]
 }
