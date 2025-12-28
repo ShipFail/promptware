@@ -1,5 +1,5 @@
 import { assertEquals, assertRejects } from "jsr:@std/assert";
-import fetchSyscall from "./fetch.ts";
+import fetchModule from "./fetch.ts";
 
 // Mock globalThis.fetch
 const originalFetch = globalThis.fetch;
@@ -31,11 +31,14 @@ Deno.test("RFC 0017: Fetch MUST attempt to unseal pwenc headers", async () => {
   // We expect this to fail because 'open' will fail to decrypt 'fake_ciphertext'.
   // The error message from crypto.ts 'open' is "Invalid format: payload is not base64url" or similar.
   // This proves fetch.ts detected the header and called open().
-  
+
   await assertRejects(
-    async () => await fetchSyscall("os://", url, JSON.stringify({
-      headers: { "Authorization": `Bearer ${pwenc}` }
-    })),
+    async () => await fetchModule.handler({
+      url,
+      init: {
+        headers: { "Authorization": `Bearer ${pwenc}` }
+      }
+    }, {} as any),
     Error,
     "Failed to unseal header 'authorization'"
   );
@@ -43,7 +46,7 @@ Deno.test("RFC 0017: Fetch MUST attempt to unseal pwenc headers", async () => {
 
 Deno.test("RFC 0017: Fetch MUST pass through standard requests", async () => {
   const url = "https://example.com/api";
-  
+
   mockFetch((req) => {
     assertEquals(req.url, url);
     assertEquals(req.headers.get("X-Custom"), "value");
@@ -51,10 +54,13 @@ Deno.test("RFC 0017: Fetch MUST pass through standard requests", async () => {
   });
 
   try {
-    const result = await fetchSyscall("os://", url, JSON.stringify({
-      headers: { "X-Custom": "value" }
-    }));
-    
+    const result = await fetchModule.handler({
+      url,
+      init: {
+        headers: { "X-Custom": "value" }
+      }
+    }, {} as any);
+
     assertEquals(result.status, 200);
     assertEquals(result.body, "ok");
   } finally {
@@ -64,7 +70,7 @@ Deno.test("RFC 0017: Fetch MUST pass through standard requests", async () => {
 
 Deno.test("RFC 0017: Fetch MUST return serializable response object", async () => {
   const url = "https://example.com/data";
-  
+
   mockFetch(() => new Response("test data", {
     status: 201,
     statusText: "Created",
@@ -72,8 +78,8 @@ Deno.test("RFC 0017: Fetch MUST return serializable response object", async () =
   }));
 
   try {
-    const result = await fetchSyscall("os://", url);
-    
+    const result = await fetchModule.handler({ url }, {} as any);
+
     // Verify structure
     assertEquals(typeof result, "object");
     assertEquals(result.ok, true);
@@ -81,7 +87,7 @@ Deno.test("RFC 0017: Fetch MUST return serializable response object", async () =
     assertEquals(result.statusText, "Created");
     assertEquals(result.body, "test data");
     assertEquals(result.headers["content-type"], "text/plain");
-    
+
     // Verify it's serializable
     const json = JSON.stringify(result);
     assertEquals(typeof json, "string");
