@@ -11,7 +11,7 @@
  */
 
 import { z } from "jsr:@zod/zod";
-import { shortId8 } from "./core/id.ts";
+import { shortId8 } from "./core/short-id8.ts";
 
 /**
  * The Universal Message Shape.
