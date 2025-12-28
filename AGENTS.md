@@ -112,6 +112,7 @@ All system tools (e.g., in `os/kernel/syscalls/`) must adhere to the **Dual-Mode
 1.  **Stack Standard**: 
     *   Write in **TypeScript** for **Deno**.
     *   Use **JSR imports** exclusively (e.g., `jsr:@std/cli`, `jsr:@std/fs`).
+    *   **Explicit Imports**: Always use the full JSR specifier in code (e.g., `import { z } from "jsr:@zod/zod"`). Do NOT use Import Maps for external dependencies.
     *   Use `parseArgs` from `jsr:@std/cli/parse-args` for CLI argument handling.
 
 2.  **Monolithic Kernel Architecture**: 
