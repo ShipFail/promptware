@@ -1,22 +1,16 @@
+import { z } from "jsr:@zod/zod";
+import { SyscallModule } from "./contract.ts";
+import { OsEvent } from "../events.ts";
 import { parseArgs } from "jsr:@std/cli/parse-args";
 import { parse, stringify } from "jsr:@std/yaml";
-import resolve from "./resolve.ts";
+import { join, dirname } from "jsr:@std/path";
 
 /**
- * PromptWar̊e ØS Syscall: Ingest
- * Fetches and hydrates a Markdown file (JIT Linking).
+ * PromptWare ØS Ingest Syscall
+ *
+ * Fetches and hydrates markdown files (JIT linking).
+ * Resolves skill and tool metadata from YAML frontmatter.
  */
-
-const HELP_TEXT = `
-Usage: deno run -A ingest.ts --root <os_root> <uri>
-
-Arguments:
-  uri     The URI of the markdown file to ingest.
-
-Options:
-  --root <url>    The OS Root URL (Required).
-  --help, -h      Show this help message.
-`;
 
 function isUrl(path: string): boolean {
   try {
@@ -25,6 +19,60 @@ function isUrl(path: string): boolean {
   } catch {
     return false;
   }
+}
+
+async function resolve(uri: string, base?: string, explicitRoot?: string): Promise<string> {
+  let root = explicitRoot;
+  let mounts: Record<string, string> | undefined;
+
+  if (!root) {
+    const kv = await Deno.openKv();
+    try {
+      const res = await kv.get(["proc", "cmdline"]);
+      if (res.value) {
+        const params = JSON.parse(res.value as string);
+        root = params.root;
+        mounts = params.mounts;
+      } else {
+        throw new Error("Kernel Panic: proc/cmdline not found.");
+      }
+    } finally {
+      kv.close();
+    }
+  }
+
+  if (isUrl(uri)) {
+    if (uri.startsWith("os://")) {
+      const path = uri.replace("os://", "");
+
+      if (mounts) {
+        const parts = path.split("/");
+        const topLevel = parts[0];
+        if (mounts[topLevel]) {
+          const rest = parts.slice(1).join("/");
+          if (isUrl(mounts[topLevel])) {
+            return new URL(rest, mounts[topLevel]).href;
+          }
+        }
+      }
+
+      return new URL(path, root).href;
+    }
+    return uri;
+  }
+
+  if (uri.startsWith("/")) {
+    return new URL(uri.slice(1), root).href;
+  }
+
+  if (base) {
+    if (isUrl(base)) {
+      return new URL(uri, base).href;
+    }
+    return join(dirname(base), uri);
+  }
+
+  return new URL(uri, root).href;
 }
 
 async function fetchContent(path: string): Promise<string> {
@@ -56,8 +104,7 @@ async function getSkillMetadata(path: string): Promise<{ name?: string; descript
 
 async function getToolDescription(path: string): Promise<string> {
   const MAX_LENGTH = 1024;
-  
-  // 1. Try --description (PromptWare Native)
+
   try {
     const command = new Deno.Command(Deno.execPath(), {
       args: ["run", "-A", path, "--description"],
@@ -76,7 +123,6 @@ async function getToolDescription(path: string): Promise<string> {
     // Ignore errors, fall back to --help
   }
 
-  // 2. Fallback to --help (Legacy/External)
   try {
     const command = new Deno.Command(Deno.execPath(), {
       args: ["run", "-A", path, "--help"],
@@ -84,12 +130,10 @@ async function getToolDescription(path: string): Promise<string> {
       stderr: "piped",
     });
     const output = await command.output();
-    // Even if it fails (exit code != 0), we might get useful help text in stdout/stderr
     const rawOutput = new TextDecoder().decode(output.success ? output.stdout : output.stderr).trim();
-    
-    // First Paragraph Heuristic
+
     let desc = rawOutput.split("\n\n")[0];
-    
+
     if (desc.length > MAX_LENGTH) {
       desc = desc.substring(0, MAX_LENGTH) + "... (Run with --help for full usage)";
     }
@@ -99,16 +143,14 @@ async function getToolDescription(path: string): Promise<string> {
   }
 }
 
-export default async function ingest(targetUri: string, explicitRoot?: string): Promise<string> {
+async function ingest(targetUri: string, explicitRoot?: string): Promise<string> {
   let root: string = explicitRoot || "";
 
   if (!root) {
-    // Load Root from KV (Service Locator Pattern)
     const kv = await Deno.openKv();
     try {
       const res = await kv.get(["proc", "cmdline"]);
       if (!res.value) throw new Error("Kernel Panic: proc/cmdline not found. Is the kernel initialized?");
-      // Note: KERNEL.md stores params as a JSON string
       const params = JSON.parse(res.value as string);
       root = params.root;
     } finally {
@@ -120,9 +162,8 @@ export default async function ingest(targetUri: string, explicitRoot?: string): 
     throw new Error("Kernel Panic: No root found. Unable to resolve paths.");
   }
 
-  // Resolve the target URI first
   const resolvedPath = await resolve(targetUri, undefined, root);
-  
+
   let content = "";
   try {
     content = await fetchContent(resolvedPath);
@@ -137,12 +178,10 @@ export default async function ingest(targetUri: string, explicitRoot?: string): 
   const body = content.substring(match[0].length);
   const fm = parse(rawFm) as any;
 
-  // Hydrate Skills
   if (Array.isArray(fm.skills)) {
     const hydratedSkills = [];
     for (const skillPath of fm.skills) {
       if (typeof skillPath === "string") {
-        // Resolve skill path relative to the *current file* (resolvedPath)
         const absoluteSkillPath = await resolve(skillPath, resolvedPath, root);
         const metadata = await getSkillMetadata(absoluteSkillPath);
         hydratedSkills.push({ [skillPath]: metadata });
@@ -153,7 +192,6 @@ export default async function ingest(targetUri: string, explicitRoot?: string): 
     fm.skills = hydratedSkills;
   }
 
-  // Hydrate Tools
   if (Array.isArray(fm.tools)) {
     const hydratedTools = [];
     for (const toolPath of fm.tools) {
@@ -172,8 +210,34 @@ export default async function ingest(targetUri: string, explicitRoot?: string): 
   return `---\n${newFm}---${body}`;
 }
 
+export const InputSchema = z.object({
+  uri: z.string().describe("The URI of the resource to ingest (markdown file)"),
+}).describe("Input for the ingest syscall.");
+
+export const OutputSchema = z.object({
+  content: z.string().describe("The ingested and hydrated content with resolved metadata"),
+}).describe("Output from the ingest syscall.");
+
+export const handler = async (input: z.infer<typeof InputSchema>, _event: OsEvent): Promise<z.infer<typeof OutputSchema>> => {
+  const content = await ingest(input.uri);
+  return { content };
+};
+
+const module: SyscallModule<typeof InputSchema, typeof OutputSchema> = {
+  type: "query",
+  InputSchema,
+  OutputSchema,
+  handler,
+  cliAdapter: (args: string[]) => {
+    if (args.length < 1) throw new Error("Usage: ingest <uri>");
+    return { uri: args[0] };
+  },
+};
+
+export default module;
+
 // CLI Entry Point
-async function main() {
+if (import.meta.main) {
   const args = parseArgs(Deno.args, {
     string: ["root"],
     boolean: ["help"],
@@ -181,18 +245,20 @@ async function main() {
   });
 
   if (args.help) {
-    console.log(HELP_TEXT);
+    console.log(`
+Usage: deno run -A ingest.ts [--root <os_root>] <uri>
+
+Arguments:
+  uri     The URI of the markdown file to ingest.
+
+Options:
+  --root <url>    The OS Root URL (optional, loads from KV if not provided).
+  --help, -h      Show this help message.
+`);
     Deno.exit(0);
   }
 
   const root = args.root;
-  // In fallback mode (CLI), we require root if not relying on KV.
-  // But to be safe and explicit in CLI mode, we enforce it.
-  if (!root) {
-    console.error("Error: --root <url> is required.");
-    Deno.exit(1);
-  }
-
   const uri = String(args._[0]);
 
   if (!uri || uri === "undefined") {
@@ -207,8 +273,4 @@ async function main() {
     console.error(`Error: ${e.message}`);
     Deno.exit(1);
   }
-}
-
-if (import.meta.main) {
-  main();
 }
