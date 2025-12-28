@@ -24,3 +24,19 @@ goal: Compliance
 9.  **Git Commit Protocol**: Before `git add` on NEW untracked files, ask user: "Should [filename] be committed?" Wait for confirmation.
 
 **FAILURE TO COMPLY WITH RFC 0000 IS A SYSTEM ERROR.**
+
+---
+
+## RFC Quality Gate: The 5 Core Rules
+
+Before finalizing any RFC, verify it passes the **Core Gate**:
+
+1. **Spec, Not Code**: Observable behavior only (no implementation details)
+2. **Normative Language**: MUST/SHOULD/MAY exclusively (BCP 14)
+3. **Deterministic Semantics**: Same inputs → same outputs (always)
+4. **Independent Implementability**: 2+ implementations without coordination
+5. **Testable Requirements**: Every MUST/SHOULD verifiable via black-box tests
+
+**Memory Anchor**: *"If it can't be tested, independently implemented, and stated without code, it's not an RFC."*
+
+**Validation**: Search for class/function names, verify all requirements use MUST/SHOULD/MAY, ensure examples use JSON (not language syntax).

@@ -653,23 +653,184 @@ When breaking changes are needed, define:
 
 **Status**: Deferred until first breaking change needed.
 
-### 10.3 Binary Protocol Optimization
+### 10.3 Idempotency Keys for Command Deduplication
 
-For performance-critical use cases, add:
-- CBOR or MessagePack encoding option
-- Negotiation via `mode` parameter (e.g., `--mode=binary`)
-- Backward compatibility (always support NDJSON fallback)
+**Concept**: Add optional `idempotencyKey` field to event metadata to prevent duplicate command execution.
 
-**Status**: Defer until performance profiling shows bottleneck.
+**Mechanism**:
+- Client sends command with same `idempotencyKey` twice
+- Kernel caches response for configurable TTL (e.g., 24 hours)
+- Subsequent requests return cached response without re-execution
+- Only applies to `command` type events (queries always execute)
 
-### 10.4 Pub/Sub Event Bus
+**Example Event**:
+```json
+{
+  "type": "command",
+  "name": "Memory.Set",
+  "payload": {"key": "/cart/123", "value": "..."},
+  "metadata": {
+    "id": "evt-123",
+    "timestamp": 1735000000000,
+    "idempotencyKey": "user-action-abc-def"
+  }
+}
+```
 
-Leverage `event` type for pub/sub:
-- `Event.Subscribe` syscall: Register handler for event pattern
-- `Event.Publish` syscall: Emit custom domain events
-- Subscribers receive events via stream multiplexing
+**Value**:
+- Safe retries for network failures
+- Prevent double-charging, double-creation bugs in distributed workflows
+- Foundation for at-least-once delivery semantics
 
-**Status**: Roadmap Phase 2 (after idempotency and job management).
+**Status**: Roadmap Phase 1 (near-term priority).
+
+### 10.4 Job Management for Long-Running Tasks
+
+**Concept**: New syscalls to spawn, monitor, and cancel background jobs without blocking the kernel.
+
+**New Event Names**:
+- `Job.Start` (command) - Spawns background job, returns `job_id`
+  - Input: `{name: string, payload: unknown, timeout?: number}`
+  - Output: `{jobId: string, status: "pending"}`
+- `Job.Status` (query) - Returns current job state
+  - Input: `{jobId: string}`
+  - Output: `{jobId: string, status: "pending"|"running"|"completed"|"failed", result?: unknown, error?: string}`
+- `Job.Cancel` (command) - Stops a running job
+  - Input: `{jobId: string}`
+  - Output: `{jobId: string, canceled: boolean}`
+- `Job.List` (query) - Lists all jobs with optional filters
+  - Input: `{status?: string, since?: number, limit?: number}`
+  - Output: `{jobs: Array<JobStatus>}`
+
+**Domain Events Emitted**:
+- `Job.Started` (event) - Job execution began
+- `Job.Completed` (event) - Job finished successfully
+- `Job.Failed` (event) - Job encountered an error
+
+**Use Cases**:
+- Background HTTP fetch for slow APIs (multi-second responses)
+- Multi-step content ingestion pipelines (fetch → parse → transform → store)
+- Scheduled tasks (cron-like deferred execution)
+
+**Value**:
+- Non-blocking UX (essential for LLM workflows)
+- Scalability for concurrent operations
+- Observable progress tracking via correlation IDs
+
+**Status**: Roadmap Phase 2 (after idempotency).
+
+### 10.5 Event Graph Visualization (Causal Debugging)
+
+**Concept**: Query and visualize the causal event graph for a workflow using correlation/causation chains.
+
+**New Event Name**:
+- `Event.Graph` (query)
+  - Input: `{correlationId: string, format?: "mermaid"|"json"}`
+  - Output: Mermaid diagram string or JSON graph structure
+
+**Mechanism**:
+1. Query all events with matching `correlation` ID (requires event persistence, see 10.1)
+2. Build Directed Acyclic Graph (DAG) using `causation` links
+3. Render as Mermaid flowchart for human visualization or JSON for programmatic analysis
+
+**Example Output** (Mermaid format):
+```mermaid
+graph TD
+  A[Memory.Get] --> B[Http.Fetch]
+  B --> C[Crypto.Seal]
+  C --> D[Memory.Set]
+```
+
+**Value**:
+- Debug complex LLM workflows ("show me what led to this error")
+- Human-readable audit trail for compliance
+- Unique AI-native debugging experience (no traditional OS provides causal graphs)
+
+**Status**: Roadmap Phase 3 (AI-native features).
+
+### 10.6 Semantic Event Search (LLM-Powered Observability)
+
+**Concept**: Search event history using natural language queries powered by LLM embeddings.
+
+**New Event Name**:
+- `Event.Search` (query)
+  - Input: `{query: string, limit?: number, since?: number}`
+  - Output: `{events: Array<OsEvent>, scores: Array<number>}`
+
+**Mechanism**:
+1. Embed event payloads using OpenAI/Anthropic embedding API
+2. Store embeddings in vector database (or Deno KV with cosine similarity)
+3. User queries: "Find all memory operations related to crypto keys"
+4. Returns: Semantically similar events ranked by relevance score
+
+**Example Query**:
+```json
+{
+  "type": "query",
+  "name": "Event.Search",
+  "payload": {
+    "query": "Show me all errors related to sealing encrypted data",
+    "limit": 10
+  }
+}
+```
+
+**Value**:
+- LLM can debug itself ("show me all errors related to sealing")
+- Human operators can audit in natural language (no grep/jq required)
+- Truly AI-native observability (semantic understanding, not keyword matching)
+
+**Status**: Roadmap Phase 3 (AI-native features).
+
+### 10.7 Self-Modifying Kernel (Runtime Syscall Registration)
+
+**Concept**: LLMs can extend the OS by registering new syscalls at runtime without kernel restart.
+
+**New Event Name**:
+- `Sys.Register` (command)
+  - Input: `{name: string, type: "command"|"query", code: string, inputSchema: object, outputSchema: object}`
+  - Output: `{registered: boolean, name: string, introspection: object}`
+
+**Mechanism**:
+1. LLM generates TypeScript code defining a syscall module
+2. Kernel validates code exports `InputSchema`, `OutputSchema`, `handler`
+3. Dynamically imports module via Deno's data URL feature (`import("data:text/typescript,..."`)
+4. Adds to registry; new syscall immediately available
+5. `Sys.Describe` can introspect registered syscalls
+
+**Example Input**:
+```json
+{
+  "type": "command",
+  "name": "Sys.Register",
+  "payload": {
+    "name": "Stripe.Charge",
+    "type": "command",
+    "code": "export const handler = async (input) => { /* Stripe API call */ }",
+    "inputSchema": {"type": "object", "properties": {"amount": {"type": "number"}}},
+    "outputSchema": {"type": "object", "properties": {"chargeId": {"type": "string"}}}
+  }
+}
+```
+
+**Use Cases**:
+- LLM creates domain-specific operations (e.g., `Stripe.Charge`, `Slack.PostMessage`)
+- A/B test different handler implementations without redeployment
+- Rapid prototyping: user requests new feature, LLM implements it instantly
+- User-specific workflows (e.g., `MyApp.CustomLogic`)
+
+**Value**:
+- True "software that writes itself" (AI-native self-extension)
+- Extensibility without redeployment or kernel rebuild
+- Unique capability: no traditional OS allows runtime syscall addition
+
+**Security Considerations**:
+- MUST sandbox execution (Deno permissions model)
+- MUST validate code does not escape sandbox or access parent scope
+- SHOULD rate-limit registration (prevent DoS via infinite syscall creation)
+- Runtime validation only (no compile-time type checking)
+
+**Status**: Roadmap Phase 4 (experimental, high-risk/high-reward).
 
 ---
 
