@@ -14,6 +14,8 @@ import {
   cryptoOpenModule,
   cryptoDeriveModule,
 } from "./syscalls/crypto.ts";
+import syscallAuthModule from "./syscalls/syscall-auth.ts";
+import syscallShutdownModule from "./syscalls/syscall-shutdown.ts";
 
 /**
  * Central Syscall Registry
@@ -22,6 +24,10 @@ import {
  * The router dispatches events based on event.name matching these keys.
  */
 export const registry: Record<string, SyscallModule<any, any>> = {
+  // Reserved syscalls (RFC-23 Stage 2)
+  "Syscall.Authenticate": syscallAuthModule,
+  "Syscall.Shutdown": syscallShutdownModule,
+
   // Basic utilities
   "Echo": echoModule,
   "Http.Fetch": fetchModule,

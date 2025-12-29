@@ -1,95 +1,76 @@
 /**
- * PromptWar̊e ØS Kernel Entry Point (syscall.ts)
+ * PromptWare ØS Kernel Entry Point (syscall.ts)
  *
- * The "Reactive Kernel" Runner.
- * Connects Input -> Middleware -> Router -> Output.
+ * RFC-23: Dual-Mode Syscall Bridge
+ *
+ * Supports multiple execution modes:
+ * - inline: In-process execution (default, v1.0 behavior) [Stage 1]
+ * - client: Unix socket client [Stage 3]
+ * - daemon: Unix socket server [Stage 4]
  */
 
-import { TextLineStream } from "jsr:@std/streams";
-import { JsonStringifyStream } from "jsr:@std/json";
 import { parseArgs } from "jsr:@std/cli/parse-args";
 
-import { OsEvent, createEvent, createError } from "./events.ts";
-import { routerStream } from "./streams/router.ts";
-import { loggerStream } from "./streams/logger.ts";
+import { KernelRuntime } from "./runtime/interface.ts";
+import { InlineRuntime } from "./runtime/inline.ts";
+import { ClientRuntime } from "./runtime/client.ts";
+import { DaemonRuntime } from "./runtime/daemon.ts";
+import { ensureSupportedPlatform } from "./runtime/platform.ts";
+import { createEvent } from "./events.ts";
 import { registry } from "./registry.ts";
 
 /**
- * The Main Kernel Pipeline.
+ * Legacy runKernel function (preserved for backward compatibility).
+ * @deprecated Use InlineRuntime directly.
  */
 export async function runKernel() {
-  // 1. Determine Input Source
-  let inputStream: ReadableStream<OsEvent>;
-
-  if (Deno.stdin.isTerminal()) {
-    // A. Interactive/CLI Mode (Args -> Single Event)
-    const args = parseArgs(Deno.args);
-    const name = args._[0]?.toString();
-    const payload = args._.slice(1);
-
-    if (!name) {
-      console.error("Usage: deno run -A syscall.ts <syscall> [args...]");
-      console.error("   Or: echo 'JSON' | deno run -A syscall.ts");
-      Deno.exit(1);
-    }
-
-    const event = createEvent("command", name, payload);
-    inputStream = new ReadableStream({
-      start(controller) {
-        controller.enqueue(event);
-        controller.close();
-      },
-    });
-  } else {
-    // B. Pipe Mode (Stdin -> NDJSON Stream)
-    // Protocol: NDJSON (Newline Delimited JSON)
-    // Rationale:
-    // 1. Unix-Native: Works with grep, awk, sed, and standard pipes.
-    // 2. LLM-Friendly: Sequential generation of thoughts/events.
-    // 3. Robust: JSON.stringify() guarantees single-line output (escaping internal newlines).
-    inputStream = Deno.stdin.readable
-      .pipeThrough(new TextDecoderStream())
-      .pipeThrough(new TextLineStream())
-      .pipeThrough(
-        new TransformStream<string, OsEvent>({
-          transform(line, controller) {
-            if (!line.trim()) return; // Skip empty lines
-            try {
-              const json = JSON.parse(line);
-
-              // Strict Validation: Ensure it looks like an OsEvent
-              // We do a lightweight check here for performance.
-              // Full Zod validation happens inside specific handlers if needed.
-              if (!json.type || !json.name) {
-                throw new Error("Missing required fields: type, name");
-              }
-
-              controller.enqueue(json);
-            } catch (e: any) {
-              // Protocol Violation: Emit an Error Event to the stream
-              // This ensures the pipe doesn't crash, but the caller knows something went wrong.
-              console.error(`[Kernel Protocol Violation] Invalid NDJSON: ${e.message}`);
-              // Optionally: controller.enqueue(createError(..., "Invalid NDJSON"));
-            }
-          },
-        })
-      );
+  const runtime = new InlineRuntime();
+  const exitCode = await runtime.run();
+  if (exitCode !== 0) {
+    Deno.exit(exitCode);
   }
-
-  // 2. Build Pipeline
-  // Source -> Logger -> Router -> JSON Stringifier -> Stdout
-  await inputStream
-    .pipeThrough(loggerStream)
-    .pipeThrough(routerStream)
-    .pipeThrough(new JsonStringifyStream()) // Converts objects to JSON strings
-    .pipeThrough(new TextEncoderStream())   // Converts strings to bytes
-    .pipeTo(Deno.stdout.writable);
 }
 
 // Run if main
 if (import.meta.main) {
+  const args = parseArgs(Deno.args, {
+    string: ["mode"],
+  });
+
+  // Smart default mode selection:
+  // - If args provided (CLI mode): use inline
+  // - If pipe mode (no args): use client (daemon)
+  // - Explicit --mode flag overrides
+  let defaultMode = "inline";
+  if (!args.mode) {
+    const hasArgs = args._.length > 0;
+    defaultMode = hasArgs ? "inline" : "client";
+  }
+
+  const mode = args.mode || defaultMode;
+  let runtime: KernelRuntime;
+
+  switch (mode) {
+    case "inline":
+      runtime = new InlineRuntime();
+      break;
+    case "client":
+      ensureSupportedPlatform(); // Check not Windows
+      runtime = new ClientRuntime();
+      break;
+    case "daemon":
+      ensureSupportedPlatform(); // Check not Windows
+      runtime = new DaemonRuntime();
+      break;
+    default:
+      console.error(`Error: Unknown mode: ${mode}`);
+      console.error('Valid modes: "inline", "client", "daemon"');
+      Deno.exit(1);
+  }
+
   try {
-    await runKernel();
+    const exitCode = await runtime.run();
+    Deno.exit(exitCode);
   } catch (e: any) {
     console.error(`[Kernel Panic] ${e.message}`);
     console.error(e.stack);
