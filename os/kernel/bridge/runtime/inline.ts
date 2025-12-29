@@ -10,7 +10,7 @@
 import { TextLineStream } from "jsr:@std/streams";
 import { parseArgs } from "jsr:@std/cli/parse-args";
 
-import { OsEvent, createEvent } from "../../lib/event.ts";
+import { OsEvent, createEvent } from "../../lib/os-event.ts";
 import { routerStream } from "../stream/router.ts";
 import { loggerStream } from "../stream/logger.ts";
 import { KernelRuntime } from "./interface.ts";

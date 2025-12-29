@@ -1,5 +1,5 @@
 import { z } from "jsr:@zod/zod";
-import { OsEvent } from "../lib/event.ts";
+import { OsEvent } from "../lib/os-event.ts";
 
 /**
  * A SyscallModule defines the strict contract for a kernel capability.

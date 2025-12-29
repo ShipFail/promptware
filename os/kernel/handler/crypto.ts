@@ -1,6 +1,6 @@
 import { z } from "jsr:@zod/zod";
 import { SyscallModule } from "./contract.ts";
-import { OsEvent } from "../lib/event.ts";
+import { OsEvent } from "../lib/os-event.ts";
 import { parseArgs } from "jsr:@std/cli/parse-args";
 import { encodeBase64Url, decodeBase64Url } from "jsr:@std/encoding/base64url";
 

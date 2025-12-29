@@ -5,7 +5,7 @@
  * This ensures stdout remains clean for the JSON stream.
  */
 
-import { OsEvent } from "../../lib/event.ts";
+import { OsEvent } from "../../lib/os-event.ts";
 import { SyscallStream } from "./interface.ts";
 
 export const loggerStream: SyscallStream = new TransformStream({

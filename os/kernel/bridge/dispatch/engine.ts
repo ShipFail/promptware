@@ -7,7 +7,7 @@
  * Extracted from router.ts to enable reuse across runtime modes.
  */
 
-import { OsEvent, createEvent, createError } from "../../lib/event.ts";
+import { OsEvent, createEvent, createError } from "../../lib/os-event.ts";
 import { SyscallModule } from "../../handler/contract.ts";
 
 export type Registry = Record<string, SyscallModule<any, any>>;

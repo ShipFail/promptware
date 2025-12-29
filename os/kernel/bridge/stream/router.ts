@@ -8,7 +8,7 @@
  */
 
 import { SyscallStream } from "./interface.ts";
-import { OsEvent } from "../../lib/event.ts";
+import { OsEvent } from "../../lib/os-event.ts";
 import { SyscallModule } from "../../handler/contract.ts";
 import { registry as baseRegistry } from "../../registry.ts";
 import sysDescribeModule from "../../handler/describe.ts";

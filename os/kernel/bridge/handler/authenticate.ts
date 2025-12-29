@@ -10,7 +10,7 @@
 
 import { z } from "jsr:@zod/zod";
 import { SyscallModule } from "../../handler/contract.ts";
-import { OsEvent } from "../../lib/event.ts";
+import { OsEvent } from "../../lib/os-event.ts";
 
 // Input Schema
 const AuthenticateInput = z.object({

@@ -8,7 +8,7 @@
  * - Pure Streams: Everything is a TransformStream<OsEvent, OsEvent>.
  */
 
-import { OsEvent } from "../../lib/event.ts";
+import { OsEvent } from "../../lib/os-event.ts";
 
 /**
  * A SyscallStream is a standard Web TransformStream.

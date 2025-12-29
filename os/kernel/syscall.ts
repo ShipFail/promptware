@@ -16,7 +16,7 @@ import { InlineRuntime } from "./bridge/runtime/inline.ts";
 import { ClientRuntime } from "./bridge/runtime/client.ts";
 import { DaemonRuntime } from "./bridge/runtime/daemon.ts";
 import { ensureSupportedPlatform } from "./bridge/runtime/platform.ts";
-import { createEvent } from "./lib/event.ts";
+import { createEvent } from "./lib/os-event.ts";
 import { registry } from "./registry.ts";
 
 /**

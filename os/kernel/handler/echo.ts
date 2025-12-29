@@ -1,6 +1,6 @@
 import { z } from "jsr:@zod/zod";
 import { SyscallModule } from "./contract.ts";
-import { OsEvent } from "../lib/event.ts";
+import { OsEvent } from "../lib/os-event.ts";
 
 export const InputSchema = z.object({
   message: z.string().describe("The message to echo back."),

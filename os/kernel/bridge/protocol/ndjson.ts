@@ -12,7 +12,7 @@
  * 3. Robust: JSON.stringify() guarantees single-line output (escaping internal newlines)
  */
 
-import { OsEvent } from "../../lib/event.ts";
+import { OsEvent } from "../../lib/os-event.ts";
 
 /**
  * NDJSONDecodeStream: string → OsEvent

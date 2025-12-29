@@ -9,7 +9,7 @@
 
 import { TextLineStream } from "jsr:@std/streams";
 import { KernelRuntime } from "./interface.ts";
-import { OsEvent, createEvent } from "../../lib/event.ts";
+import { OsEvent, createEvent } from "../../lib/os-event.ts";
 import { getSocketPath } from "./socket-path.ts";
 import { getEntrypointCommand } from "./entrypoint.ts";
 import { NDJSONDecodeStream, NDJSONEncodeStream } from "../protocol/ndjson.ts";

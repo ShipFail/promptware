@@ -1,8 +1,8 @@
 /**
- * os/kernel/events.ts
+ * os/kernel/lib/os-event.ts
  *
  * The Atomic Unit of the PromptWare OS Kernel.
- * Defines the Event Schema for the Reactive Kernel Architecture.
+ * Defines the OsEvent schema, factory functions, and metadata helpers.
  *
  * Adheres to:
  * 1. CQRS (Command/Query Responsibility Segregation)
