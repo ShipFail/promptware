@@ -17,6 +17,6 @@
 
 import { encodeBase64Url } from "jsr:@std/encoding/base64url";
 
-export function shortId8(): string {
+export function id8(): string {
   return encodeBase64Url(crypto.getRandomValues(new Uint8Array(6)));
 }

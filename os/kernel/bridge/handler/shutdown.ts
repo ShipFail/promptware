@@ -9,8 +9,8 @@
  */
 
 import { z } from "jsr:@zod/zod";
-import { SyscallModule } from "./contract.ts";
-import { OsEvent } from "../events.ts";
+import { SyscallModule } from "../../handler/contract.ts";
+import { OsEvent } from "../../lib/event.ts";
 import { requestDaemonShutdown } from "../runtime/daemon.ts";
 
 // Input Schema

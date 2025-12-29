@@ -11,12 +11,12 @@
 
 import { parseArgs } from "jsr:@std/cli/parse-args";
 
-import { KernelRuntime } from "./runtime/interface.ts";
-import { InlineRuntime } from "./runtime/inline.ts";
-import { ClientRuntime } from "./runtime/client.ts";
-import { DaemonRuntime } from "./runtime/daemon.ts";
-import { ensureSupportedPlatform } from "./runtime/platform.ts";
-import { createEvent } from "./events.ts";
+import { KernelRuntime } from "./bridge/runtime/interface.ts";
+import { InlineRuntime } from "./bridge/runtime/inline.ts";
+import { ClientRuntime } from "./bridge/runtime/client.ts";
+import { DaemonRuntime } from "./bridge/runtime/daemon.ts";
+import { ensureSupportedPlatform } from "./bridge/runtime/platform.ts";
+import { createEvent } from "./lib/event.ts";
 import { registry } from "./registry.ts";
 
 /**

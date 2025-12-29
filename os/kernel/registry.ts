@@ -1,21 +1,21 @@
-import { SyscallModule } from "./syscalls/contract.ts";
-import echoModule from "./syscalls/echo.ts";
-import fetchModule from "./syscalls/fetch.ts";
+import { SyscallModule } from "./handler/contract.ts";
+import echoModule from "./handler/echo.ts";
+import fetchModule from "./handler/fetch.ts";
 import {
   memoryGetModule,
   memorySetModule,
   memoryDeleteModule,
   memoryListModule,
-} from "./syscalls/memory.ts";
-import resolveModule from "./syscalls/resolve.ts";
-import ingestModule from "./syscalls/ingest.ts";
+} from "./handler/memory.ts";
+import resolveModule from "./handler/resolve.ts";
+import ingestModule from "./handler/ingest.ts";
 import {
   cryptoSealModule,
   cryptoOpenModule,
   cryptoDeriveModule,
-} from "./syscalls/crypto.ts";
-import syscallAuthModule from "./syscalls/syscall-auth.ts";
-import syscallShutdownModule from "./syscalls/syscall-shutdown.ts";
+} from "./handler/crypto.ts";
+import syscallAuthModule from "./bridge/handler/authenticate.ts";
+import syscallShutdownModule from "./bridge/handler/shutdown.ts";
 
 /**
  * Central Syscall Registry

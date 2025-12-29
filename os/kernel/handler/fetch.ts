@@ -1,6 +1,6 @@
 import { z } from "jsr:@zod/zod";
 import { SyscallModule } from "./contract.ts";
-import { OsEvent } from "../events.ts";
+import { OsEvent } from "../lib/event.ts";
 import { open } from "./crypto.ts";
 
 const PWENC_PREFIX = "pwenc:v1:";

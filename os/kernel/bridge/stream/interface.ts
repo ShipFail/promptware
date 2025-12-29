@@ -1,5 +1,5 @@
 /**
- * os/kernel/streams/interface.ts
+ * os/kernel/bridge/stream/interface.ts
  *
  * Defines the contract for Syscall Streams in the Reactive Kernel Architecture.
  *
@@ -8,7 +8,7 @@
  * - Pure Streams: Everything is a TransformStream<OsEvent, OsEvent>.
  */
 
-import { OsEvent } from "../events.ts";
+import { OsEvent } from "../../lib/event.ts";
 
 /**
  * A SyscallStream is a standard Web TransformStream.

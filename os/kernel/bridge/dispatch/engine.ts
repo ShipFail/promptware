@@ -1,5 +1,5 @@
 /**
- * os/kernel/dispatch/engine.ts
+ * os/kernel/bridge/dispatch/engine.ts
  *
  * Core Dispatch Engine (RFC-23 Stage 1)
  *
@@ -7,8 +7,8 @@
  * Extracted from router.ts to enable reuse across runtime modes.
  */
 
-import { OsEvent, createEvent, createError } from "../events.ts";
-import { SyscallModule } from "../syscalls/contract.ts";
+import { OsEvent, createEvent, createError } from "../../lib/event.ts";
+import { SyscallModule } from "../../handler/contract.ts";
 
 export type Registry = Record<string, SyscallModule<any, any>>;
 

@@ -1,5 +1,5 @@
 /**
- * os/kernel/streams/router.ts
+ * os/kernel/bridge/stream/router.ts
  *
  * The Central Dispatch for the Reactive Kernel.
  * Routes OsEvents to specific Syscall Handlers based on `event.name`.
@@ -8,10 +8,10 @@
  */
 
 import { SyscallStream } from "./interface.ts";
-import { OsEvent } from "../events.ts";
-import { SyscallModule } from "../syscalls/contract.ts";
-import { registry as baseRegistry } from "../registry.ts";
-import sysDescribeModule from "../syscalls/sys-describe.ts";
+import { OsEvent } from "../../lib/event.ts";
+import { SyscallModule } from "../../handler/contract.ts";
+import { registry as baseRegistry } from "../../registry.ts";
+import sysDescribeModule from "../../handler/describe.ts";
 import { dispatch } from "../dispatch/engine.ts";
 
 // Full Registry (Base + System Utilities)

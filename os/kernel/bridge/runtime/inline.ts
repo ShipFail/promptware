@@ -10,9 +10,9 @@
 import { TextLineStream } from "jsr:@std/streams";
 import { parseArgs } from "jsr:@std/cli/parse-args";
 
-import { OsEvent, createEvent } from "../events.ts";
-import { routerStream } from "../streams/router.ts";
-import { loggerStream } from "../streams/logger.ts";
+import { OsEvent, createEvent } from "../../lib/event.ts";
+import { routerStream } from "../stream/router.ts";
+import { loggerStream } from "../stream/logger.ts";
 import { KernelRuntime } from "./interface.ts";
 import { NDJSONDecodeStream, NDJSONEncodeStream } from "../protocol/ndjson.ts";
 

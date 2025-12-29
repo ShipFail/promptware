@@ -1,5 +1,5 @@
 /**
- * os/kernel/protocol/ndjson.ts
+ * os/kernel/bridge/protocol/ndjson.ts
  *
  * RFC-23 Stage 3: NDJSON Protocol Layer
  *
@@ -12,7 +12,7 @@
  * 3. Robust: JSON.stringify() guarantees single-line output (escaping internal newlines)
  */
 
-import { OsEvent } from "../events.ts";
+import { OsEvent } from "../../lib/event.ts";
 
 /**
  * NDJSONDecodeStream: string → OsEvent

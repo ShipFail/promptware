@@ -9,10 +9,10 @@
 
 import { TextLineStream } from "jsr:@std/streams";
 import { KernelRuntime } from "./interface.ts";
-import { OsEvent, createError } from "../events.ts";
+import { OsEvent, createError } from "../../lib/event.ts";
 import { getSocketPath } from "./socket-path.ts";
 import { NDJSONDecodeStream, NDJSONEncodeStream } from "../protocol/ndjson.ts";
-import { routerStream } from "../streams/router.ts";
+import { routerStream } from "../stream/router.ts";
 import { DaemonLogger, SyslogDaemonLogger } from "./daemon-logger.ts";
 
 // Global daemon state for graceful shutdown

@@ -12,7 +12,7 @@
  */
 
 import { z } from "jsr:@zod/zod";
-import { shortId8 } from "./core/id8.ts";
+import { id8 } from "./id8.ts";
 
 /**
  * Zod Schema for OsEvent (Single Source of Truth).
@@ -71,7 +71,7 @@ export function createEvent<T>(
     name,
     payload,
     metadata: {
-      id: id || shortId8(),
+      id: id || id8(),
       timestamp: Date.now(),
       correlation,
       causation,
@@ -91,7 +91,7 @@ export function createError(
     name: original.name,
     payload: error instanceof Error ? error : { message: error },
     metadata: {
-      id: shortId8(),
+      id: id8(),
       timestamp: Date.now(),
       correlation: original.metadata?.correlation,
       causation: original.metadata?.id,
