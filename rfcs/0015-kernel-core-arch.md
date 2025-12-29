@@ -5,9 +5,9 @@ author: Ship.Fail Crew
 status: Draft
 type: Standards Track
 created: 2025-12-22
-updated: 2025-12-22
-version: 0.6
-tags: [kernel, architecture, syscalls]
+updated: 2025-12-29
+version: 0.7
+tags: [kernel, architecture, syscalls, origin]
 ---
 
 # RFC 0015: The Prompt Kernel
@@ -72,13 +72,76 @@ Pr̊ØS enforces a strict separation between the immutable code and the mutable 
 *   **Root (Code)**: The immutable source of truth for the Operating System's source code (VFS).
     *   Defined by the `root` parameter.
     *   Example: `https://raw.githubusercontent.com/ShipFail/promptware/main/os/`
+
 *   **Origin (State)**: The security principal that defines the scope of mutable storage (KV).
-    *   Defined by the `origin` parameter.
+    *   Defined by the `origin` parameter in boot configuration (see **RFC 0014**)
     *   Example: `https://my-os.local/` or a short name like `my-os`
-    *   **Purpose**: Provides storage isolation for multi-tenant deployments.
-    *   **Scope**: The Origin parameter is passed to all syscalls and determines the storage namespace for mutable state.
-    *   **Fallback**: If no Origin is defined, the System **MUST** default to using the **Root URL** as the Origin.
-    *   **Implementation Note**: See **RFC 0019** for how Origin is passed to syscalls, and **RFC 0018** for how it is used in the Memory subsystem.
+    *   **Purpose**: Provides storage isolation for multi-tenant deployments
+    *   **Normative Requirements**: See Section 4.3.1 below
+
+#### 4.3.1. Origin Parameter Normative Specification
+
+The `origin` parameter is the **security principal for mutable state isolation**. All implementations MUST satisfy the following requirements:
+
+**Conformance Language**: The key words MUST, MUST NOT, SHOULD, and MAY in this section are to be interpreted as described in BCP 14 [RFC 2119].
+
+**1. Provision Requirement**
+
+The origin MUST be provided to all syscalls that access mutable state (storage, memory, persistent files). The mechanism for passing the origin is implementation-defined, but the requirement to provide it is normative.
+
+**2. Normalization Requirements**
+
+Before use, the origin MUST be normalized according to these rules:
+
+1. **URL Format**: If origin is a valid URL (e.g., `https://my-os.local/`), it MUST be used as-is
+2. **Name Format**: If origin is not a valid URL (e.g., `my-os`), it MUST be normalized to:
+   - Convert to lowercase
+   - Remove non-alphanumeric characters except hyphens (`-`)
+   - Format as: `https://<normalized-name>.local/`
+   - Example: `my-os` → `https://my-os.local/`, `My_OS!` → `https://my-os.local/`
+3. **Fallback**: If origin is undefined or empty, the system MUST use the `root` parameter value as the origin
+
+**3. Isolation Requirements**
+
+Different origins MUST have completely isolated storage namespaces:
+
+1. **No Cross-Origin Access**: Syscalls operating under origin A MUST NOT be able to read, write, or discover data from origin B
+2. **Deterministic Namespace**: The same origin value MUST always map to the same storage namespace across invocations
+3. **Enforcement Location**: The runtime environment MUST enforce this isolation (e.g., via location-based storage partitioning)
+
+**4. Immutability Requirements**
+
+1. **Boot-Time Configuration**: The origin MUST be set at boot time from trusted bootloader configuration (**RFC 0014**)
+2. **No User Override**: User-space code, agents, or skills MUST NOT be able to modify or override the origin parameter
+3. **Syscall Transparency**: Individual syscall implementations SHOULD NOT need to parse or validate the origin directly - they rely on the runtime's isolation enforcement
+
+**5. Security Requirements**
+
+1. **Trusted Source**: The origin value MUST originate from the bootloader front matter (trusted configuration)
+2. **No Injection**: The origin MUST NOT be injectable via user input, command-line arguments (except boot-time), or external APIs
+3. **Audit Trail**: Changes to origin (e.g., during reconfiguration) SHOULD be logged for security audit purposes
+
+**6. Usage Examples**
+
+Valid origin values and their normalized forms:
+
+| Input Origin | Normalized Origin | Notes |
+|--------------|------------------|-------|
+| `https://acme.com/` | `https://acme.com/` | Valid URL - used as-is |
+| `https://my-os.local/` | `https://my-os.local/` | Valid URL - used as-is |
+| `my-os` | `https://my-os.local/` | Name format - normalized |
+| `MyCompany_OS` | `https://mycompany-os.local/` | Name format - normalized |
+| `undefined` | `<value of root parameter>` | Fallback to root |
+| `""` (empty) | `<value of root parameter>` | Fallback to root |
+
+**7. Implementation Guidance (Non-Normative)**
+
+While the passing mechanism is implementation-defined, reference implementations MAY use:
+- Runtime location flags (e.g., Deno's `--location`)
+- Environment variables (e.g., `PWOS_ORIGIN`)
+- Process-level context objects
+
+See **RFC 0023** for implementation details in the syscall bridge.
 
 ### 4.4. Privilege Separation (The Rings)
 
