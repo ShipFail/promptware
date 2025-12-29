@@ -5,9 +5,9 @@ author: PromptWare OS Project
 status: Draft
 type: Standards Track
 created: 2025-12-28
-updated: 2025-12-28
-version: 1.0
-tags: [kernel, syscall, ipc, daemon, unix-socket, inline]
+updated: 2025-12-29
+version: 1.1
+tags: [kernel, syscall, ipc, daemon, unix-socket, inline, origin]
 ---
 
 # RFC 0023: Dual-Mode Syscall Bridge (OsEvent Singularity)
@@ -505,7 +505,230 @@ For deferred responses, implementations SHOULD use `metadata.causation` to refer
 
 ---
 
-## Appendix: Errata & Notes
+## Appendix B: Origin Parameter Implementation (Non-Normative)
+
+This appendix describes how the origin parameter (defined normatively in **RFC 0015 Section 4.3.1**) is passed through the syscall bridge in the reference implementation.
+
+### B.1. Overview
+
+The origin parameter is the security principal for mutable state isolation. The normative requirements (provision, normalization, isolation, immutability, security) are specified in **RFC 0015 Section 4.3.1**. This appendix describes **how** the reference implementation satisfies those requirements.
+
+### B.2. Passing Mechanism
+
+#### B.2.1. Runtime Location Flag (Deno)
+
+The reference implementation uses Deno's `--location` flag to pass the origin parameter:
+
+```bash
+# Inline mode with origin
+deno run -A --location=https://my-os.local/ syscall.ts Memory.Set /key value
+
+# Daemon mode with origin
+deno run -A --location=https://acme.com/ syscall.ts --mode=daemon
+```
+
+#### B.2.2. Why `--location`?
+
+Deno's `--location` flag provides:
+- **Automatic isolation**: `Deno.openKv()` respects location for storage namespacing
+- **W3C standard**: Uses standard location API for compatibility
+- **Transparent to syscalls**: Individual syscall implementations don't need to parse origin
+- **Process-level enforcement**: Runtime guarantees isolation at the process boundary
+
+### B.3. Origin Normalization Implementation
+
+The reference implementation normalizes origin values according to **RFC 0015 Section 4.3.1** requirements:
+
+#### B.3.1. Normalization Function (Reference)
+
+```typescript
+/**
+ * Normalizes origin parameter per RFC 0015 Section 4.3.1
+ * This is a reference implementation (non-normative)
+ */
+function normalizeOrigin(origin: string | undefined, root: string): string {
+  // Rule 3: Fallback to root if undefined or empty
+  if (!origin || origin.trim() === "") {
+    return root;
+  }
+
+  // Rule 1: If valid URL, use as-is
+  try {
+    new URL(origin);
+    return origin; // Valid URL
+  } catch {
+    // Not a valid URL, proceed to name normalization
+  }
+
+  // Rule 2: Name format normalization
+  const normalized = origin
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, "") // Remove non-alphanumeric except hyphens
+    .replace(/^-+|-+$/g, "");   // Trim leading/trailing hyphens
+
+  return `https://${normalized}.local/`;
+}
+```
+
+#### B.3.2. Normalization Examples
+
+As specified in **RFC 0015 Section 4.3.1**, the reference implementation produces these transformations:
+
+| Input | Normalized Output | Rule Applied |
+|-------|------------------|--------------|
+| `https://acme.com/` | `https://acme.com/` | Valid URL (Rule 1) |
+| `https://my-os.local/` | `https://my-os.local/` | Valid URL (Rule 1) |
+| `my-os` | `https://my-os.local/` | Name format (Rule 2) |
+| `MyCompany_OS` | `https://mycompany-os.local/` | Name format (Rule 2) |
+| `My OS!` | `https://my-os.local/` | Name format (Rule 2) |
+| `undefined` | `<root parameter>` | Fallback (Rule 3) |
+| `""` | `<root parameter>` | Fallback (Rule 3) |
+
+### B.4. Integration Points
+
+#### B.4.1. Inline Mode
+
+In inline mode, the origin is passed when launching the syscall process:
+
+```typescript
+// Read origin from boot configuration (RFC 0014)
+const origin = bootConfig.origin;
+const root = bootConfig.root;
+
+// Normalize origin
+const normalizedOrigin = normalizeOrigin(origin, root);
+
+// Launch syscall with --location
+const cmd = new Deno.Command(Deno.execPath(), {
+  args: [
+    "run", "-A",
+    `--location=${normalizedOrigin}`,
+    "syscall.ts",
+    "Memory.Set",
+    "/key",
+    "value"
+  ],
+});
+```
+
+#### B.4.2. Daemon Mode
+
+In daemon mode, the origin is set when the daemon process starts:
+
+```bash
+# Daemon started with origin from boot config
+deno run -A --location=https://my-os.local/ syscall.ts --mode=daemon
+```
+
+All client connections to this daemon inherit the daemon's origin enforcement:
+- Daemon's `Deno.openKv()` uses the `--location` value for storage isolation
+- Clients cannot override the origin (enforced by process boundary)
+- All syscalls executed by this daemon operate under the same origin
+
+#### B.4.3. Client Mode
+
+Client mode connects to an existing daemon, which already has its origin configured. The client does NOT pass origin (the daemon's origin is already set):
+
+```bash
+# Client connects to daemon (daemon's origin applies)
+echo '{"type":"command","name":"Memory.Set","payload":{"key":"/foo","value":"bar"}}' \
+  | deno run -A syscall.ts
+```
+
+### B.5. Security Implementation
+
+The reference implementation satisfies **RFC 0015 Section 4.3.1** security requirements:
+
+#### B.5.1. Trusted Source
+
+Origin value comes from bootloader configuration (**RFC 0014** front matter):
+
+```yaml
+---
+root: https://raw.githubusercontent.com/org/repo/main/os/
+origin: my-os
+init: /agents/shell.md
+---
+```
+
+The Promptware Kernel (Ring 0) reads this configuration and passes the normalized origin to the Software Kernel via `--location`.
+
+#### B.5.2. No User Override
+
+User-space code cannot override origin because:
+- Origin is set at **process launch time** via `--location` flag
+- Deno runtime enforces the location value for all storage APIs
+- No API exists to change location after process start
+- Syscall implementations don't parse origin directly
+
+#### B.5.3. Runtime Enforcement
+
+Deno's runtime guarantees:
+- `Deno.openKv()` respects `--location` for storage partitioning
+- `Deno.openKv(":memory:")` still respects location for isolation
+- Different location values → completely isolated KV namespaces
+- Same location value → shared KV namespace
+
+### B.6. Alternative Implementations
+
+While the reference implementation uses `--location`, other implementations MAY use:
+
+#### B.6.1. Environment Variables
+
+```bash
+export PWOS_ORIGIN="https://my-os.local/"
+deno run -A syscall.ts Memory.Set /key value
+```
+
+Syscalls would read `Deno.env.get("PWOS_ORIGIN")` and use it to partition storage.
+
+#### B.6.2. Process Context Object
+
+```typescript
+// Global context set at process start
+globalThis.__pwosContext = {
+  origin: "https://my-os.local/",
+  root: "https://github.com/.../os/",
+};
+
+// Syscalls read from global context
+const kv = await Deno.openKv(globalThis.__pwosContext.origin);
+```
+
+#### B.6.3. Storage Prefix
+
+```typescript
+// Syscalls manually prefix keys with origin
+const origin = normalizeOrigin(config.origin, config.root);
+const prefixedKey = [origin, ...userKey];
+const kv = await Deno.openKv();
+await kv.set(prefixedKey, value);
+```
+
+**Note**: All alternative implementations MUST satisfy the normative requirements in **RFC 0015 Section 4.3.1** (provision, normalization, isolation, immutability, security).
+
+### B.7. Testing Origin Isolation
+
+Reference test cases to verify origin isolation:
+
+```typescript
+// Test Case 1: Different origins = isolated storage
+const kv1 = await Deno.openKv(); // --location=https://tenant-a.local/
+await kv1.set(["key"], "value-a");
+
+const kv2 = await Deno.openKv(); // --location=https://tenant-b.local/
+const result = await kv2.get(["key"]);
+assert(result.value === null); // Should NOT see tenant-a's data
+
+// Test Case 2: Same origin = shared storage
+const kv3 = await Deno.openKv(); // --location=https://tenant-a.local/
+const result2 = await kv3.get(["key"]);
+assert(result2.value === "value-a"); // Should see tenant-a's data
+```
+
+---
+
+## Appendix C: Errata & Notes
 
 None.
 
