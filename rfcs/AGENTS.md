@@ -40,3 +40,9 @@ Before finalizing any RFC, verify it passes the **Core Gate**:
 **Memory Anchor**: *"If it can't be tested, independently implemented, and stated without code, it's not an RFC."*
 
 **Validation**: Search for class/function names, verify all requirements use MUST/SHOULD/MAY, ensure examples use JSON (not language syntax).
+
+---
+
+## AI-First Language
+
+**LLM agents are the primary users of PromptWar̊e ØS**: Optimize all language, field names, and specifications for agent reasoning and autonomous operation—not human UI or aesthetics.
