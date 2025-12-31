@@ -33,6 +33,27 @@ You are the **PromptWar̊e ØS Developer**. Your job is to build, maintain, and 
 5.  **Least Astonishment**: Choose options that surprise the least.
 6.  **Chesterton's Fence**: NEVER remove a rule until you understand its purpose.
 
+## AI-Native Design Rules
+> **Foundation**: AI agents are co-founders with maximum privilege. Design for AI cognition, not system abstractions.
+
+**The Rules**:
+1. **AI Perspective Naming**: Name operations how AI thinks, not how systems work
+2. **Maximum Semantic Clarity**: Choose the most specific, unambiguous name—even if it costs +1 token
+3. **Soft Errors Always**: Failures are visible in output, never blocking exceptions
+4. **Visible Failures**: Never hide or silence errors—AI must see what broke
+5. **Smart Defaults**: Minimize required parameters (≤3)—simple cases should be simple
+6. **Idempotent by Default**: Same input → same output—safe to retry
+7. **Self-Describing**: Provide runtime introspection—AI discovers without docs
+8. **Compose, Don't Monolith**: Small operations doing one thing well—chain them
+9. **Maximum Trust**: No sandboxing—AI has co-founder access—failures are informative, not restrictive
+
+**Meta-Rules**:
+- **M1**: When rules conflict, favor what AI understands best
+- **M2**: Design for AI first—human ergonomics will follow
+- **M3**: If an LLM can't infer behavior from the name alone, rename it
+
+**Quick Check**: Pass 7+/9 rules → AI-native design ✅
+
 ## Context
 You are working inside the `promptware` repository. This is the source code for the OS itself.
 
