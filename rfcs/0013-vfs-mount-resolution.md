@@ -5,8 +5,8 @@ author: Huan Li, ChatGPT 5.2 Thinking
 status: Draft
 type: Standards Track
 created: 2025-12-20
-updated: 2025-12-31
-version: 0.2
+updated: 2026-01-01
+version: 0.4
 tags: [vfs, kernel, mount, os]
 ---
 
@@ -271,24 +271,38 @@ See RFC-24 for complete error code definitions.
 
 ## 5. Examples (Non-Normative)
 
-### Example 1: Boot Time Mount Configuration
+### VFS Integration with Kernel Initialization
+
+For complete kernel boot sequence including VFS initialization, see **RFC 0015 Section 9**.
+
+The VFS-specific initialization step is:
 
 ```typescript
-// Bootloader provides mount configuration
-const bootParams: KernelParameters = {
-  root: "https://raw.githubusercontent.com/ShipFail/promptware/main/os/",
-  mounts: {
-    "/ship-fail-crew/": "https://raw.githubusercontent.com/ShipFail/crew/main/bridge/",
-    "/user-ext/": "file:///home/user/my-extensions/"
-  }
-};
+// 3. Initialize VFS from cmdline (after Memory is ready)
+const cmdline = await Memory.Get("proc/cmdline");
+const params = JSON.parse(cmdline);
+VFS.initialize(params.mounts, params.root);
+```
 
-// Kernel init: Make cmdline accessible
-await Memory.Set("os/kernel/boot-params", JSON.stringify(bootParams));
+**See RFC 0015 Section 9 for the complete kernel initialization sequence.**
 
-// VFS reads mount table from cmdline
-const cmdline = JSON.parse(await Memory.Get("proc/cmdline"));
-VFS.initialize(cmdline.mounts, cmdline.root);
+### Example 1: VFS Path Resolution
+
+```typescript
+// VFS path → HTTPS URL
+const vfsPath = "os:///ship-fail-crew/agents/bridge-operator.md";
+const url = await VFS.resolve(vfsPath);
+// Lookup: "/ship-fail-crew/" in mount table
+// → "https://github.com/.../crew/bridge/agents/bridge-operator.md"
+
+// VFS path → file:// URL
+const localPath = "os:///user-data/config.json";
+const url = await VFS.resolve(localPath);
+// Lookup: "/user-data/" in mount table
+// → "file:///home/user/data/config.json"
+
+// Ingest fetches and loads the code
+const agent = await pwosIngest(vfsPath);
 ```
 
 ### Example 2: Development with Local Files
@@ -331,12 +345,32 @@ await pwosIngest("os:///internal/skills/proprietary.md");
 
 ```typescript
 // In os:///promptware/agents/shell.md:
+// References relative path: ../skills/terminal.md
+// Resolves to: os:///promptware/skills/terminal.md
+
+// In os:///promptware/agents/shell.md:
 // References relative path: skills/terminal.md
 // Resolves to: os:///promptware/agents/skills/terminal.md
+```
 
-// In file:///workspace/docs/guide.md:
-// References relative path: ../src/index.ts
-// Resolves to: file:///workspace/src/index.ts
+### Example 5: Incorrect VFS Usage (Anti-Patterns)
+
+```typescript
+// ❌ WRONG: Using Read tool on VFS path
+await Read("os:///ship-fail-crew/agents/shell.md");
+// → Security violation! Must use pwosIngest()
+
+// ❌ WRONG: Using Memory on VFS path
+await Memory.Get("os:///ship-fail-crew/agents/shell.md");
+// → Error: VFS paths not valid for Memory
+
+// ❌ WRONG: Using pwosIngest on Memory path
+await pwosIngest("memory:///user/config");
+// → Error: Memory paths not valid for ingest
+
+// ✅ CORRECT: VFS is for code ingestion only
+await pwosIngest("os:///ship-fail-crew/agents/shell.md");  // VFS → ingest
+await Read("file:///workspaces/project/src/index.ts");     // file:// → read/write
 ```
 
 ---
@@ -395,9 +429,9 @@ This RFC replaces the previous "Sysfs and Procfs" specification (RFC 0013 v0.1) 
 
 ### PromptWar̊e ØS References
 
-* RFC 0015: Kernel Core Architecture (URI scheme taxonomy)
+* RFC 0015: Kernel Dualmode Architecture (URI scheme taxonomy, kernel parameters)
 * RFC 0018: Memory Subsystem Specification (sys/proc namespaces)
-* RFC 0024: Kernel Events Architecture (error code registry)
+* RFC 0024: CQRS Event Schema (error code registry)
 
 ### External References
 

@@ -5,8 +5,8 @@ author: Huan Li, ChatGPT
 status: Draft
 type: Standards Track
 created: 2025-12-23
-updated: 2025-12-31
-version: 0.2
+updated: 2026-01-01
+version: 0.4
 tags: [state, memory, keyvalue, vault, persistence]
 ---
 
@@ -171,6 +171,7 @@ The following namespaces are system-reserved:
 * **`sys/*`**: System control plane (writable, single-value attributes)
 * **`proc/*`**: System belief surface (read-only, rich views)
 * **`os/*`**: OS-reserved internal storage (kernel, daemon state)
+* **`user/*`**: User-space application data (unrestricted)
 
 **URI notation**: When referring to Memory paths in specifications:
 - Full URI: `memory:///vault/token`
@@ -381,6 +382,46 @@ memory set proc/system/summary "hacked"
 * Unlike Linux, `proc/*` is explicitly a "belief surface" (what the system believes)
 * Implemented as Memory namespace with dynamic generation capability
 
+## User Namespace: `user/*`
+
+### Core Rule
+
+For any path `P` where `P` begins with `user/` (after normalization):
+
+* `Memory.Set(P, value)` is allowed (no restrictions)
+* `Memory.Get(P)` is allowed
+* No format enforcement
+* No ciphertext requirement
+
+### Rationale
+
+The `user/*` namespace is unrestricted storage for user-space applications. Unlike `vault/*` which enforces ciphertext, or `sys/*` which enforces single-value, `user/*` has no constraints.
+
+### Example Paths
+
+```
+user/myapp/config
+user/myapp/preferences
+user/myapp/cache/data
+```
+
+### Examples
+
+```typescript
+// Store application configuration
+await Memory.Set("user/myapp/config", JSON.stringify({
+  theme: "dark",
+  fontSize: 14
+}));
+
+// Store multi-line data (allowed in user/*)
+await Memory.Set("user/myapp/notes", "Line 1\nLine 2\nLine 3");
+
+// Retrieve data
+const config = await Memory.Get("user/myapp/config");
+const notes = await Memory.Get("user/myapp/notes");
+```
+
 ## CLI Surface
 
 ### CLI Contract
@@ -407,7 +448,7 @@ The module surface MUST enforce the same vault rule:
 * `/vault/*` accepts ciphertext only
 * `/vault/*` returns ciphertext only
 
-### Notes on “Secret” Helpers
+### Notes on "Secret" Helpers
 
 This RFC does not define a `Secret` type. However, implementations MAY provide a helper library where:
 
@@ -486,6 +527,91 @@ await Memory.Set("vault/token", "pwenc:v1:...");  // ✅ Works (same key)
 
 **Important**: Errors MUST NOT include plaintext secret material in error messages or details.
 
+## Examples (Non-Normative)
+
+### Memory Integration with Kernel Initialization
+
+For complete kernel boot sequence including Memory initialization, see **RFC 0015 Section 9**.
+
+The Memory-specific initialization steps are:
+
+```typescript
+// 1. Initialize Memory subsystem
+await Memory.initialize();
+
+// 2. Make cmdline accessible (implementation-defined storage)
+await Memory.Set("os/kernel/boot-params", JSON.stringify(bootParams));
+Memory.registerDynamic("proc/cmdline", async () => {
+  return await Memory.Get("os/kernel/boot-params");
+});
+```
+
+**See RFC 0015 Section 9 for the complete kernel initialization sequence.**
+
+### Example 1: Memory Path Operations
+
+```typescript
+// Memory API: Always omit memory:/// prefix
+
+// Store configuration in user namespace
+await Memory.Set("user/myapp/config", JSON.stringify({
+  theme: "dark"
+}));
+
+// Store secret in vault namespace (ciphertext enforcement)
+await Memory.Set("vault/google/token", "pwenc:v1:..."); // ✅
+
+await Memory.Set("vault/google/token", "secret123");
+// ❌ Throws UNPROCESSABLE_ENTITY (422)
+
+// Write to sys namespace (control plane)
+await Memory.Set("sys/agents/shell/status", "active");
+
+// Read from proc namespace (belief surface)
+const summary = await Memory.Get("proc/system/summary");
+```
+
+### Example 2: Incorrect Memory Usage (Anti-Patterns)
+
+```typescript
+// ❌ WRONG: Using Read tool on Memory path
+await Read("memory:///vault/token");
+// → Error: Read is for file://, not memory:///
+
+// ❌ WRONG: Using Memory on VFS path
+await Memory.Get("os:///promptware/agents/shell.md");
+// → Error: VFS paths not valid for Memory
+
+// ❌ WRONG: Including memory:/// prefix in Memory API calls
+await Memory.Set("memory:///vault/token", "pwenc:v1:...");
+// → Error: Don't include memory:/// prefix in API
+
+// ✅ CORRECT: Each scheme has its own operations
+await Memory.Get("user/config");                           // Memory → get (no prefix)
+await pwosIngest("os:///ship-fail-crew/agents/shell.md");  // VFS → ingest
+await Read("file:///workspaces/project/src/index.ts");     // file:// → read/write
+```
+
+### Example 3: Multi-Namespace Usage
+
+```typescript
+// Vault: Store encrypted secrets
+await Memory.Set("vault/api/github/token", "pwenc:v1:abc123...");
+await Memory.Set("vault/db/password", "pwenc:v1:def456...");
+
+// Sys: Control plane attributes (single-value only)
+await Memory.Set("sys/agents/shell/status", "active");
+await Memory.Set("sys/agents/bridge/enabled", "true");
+
+// User: Application data (unrestricted)
+await Memory.Set("user/notes/daily", "Today's tasks:\n- Task 1\n- Task 2");
+await Memory.Set("user/cache/results", JSON.stringify(largeObject));
+
+// Proc: Read-only system introspection
+const uptime = await Memory.Get("proc/system/uptime");
+const agentList = await Memory.Get("proc/agents/list");
+```
+
 ## Security Considerations
 
 * `/vault/*` prevents accidental disclosure in prompts by rejecting plaintext writes.
@@ -505,10 +631,14 @@ This document has no IANA actions.
 ### PromptWar̊e ØS References
 
 * RFC 0013: Kernel VFS Specification (code addressing, mounts)
-* RFC 0015: Kernel Core Architecture (URI scheme taxonomy)
+* RFC 0015: Kernel Dualmode Architecture (URI scheme taxonomy, origin specification)
 * RFC 0016: Crypto Primitives Specification (pwenc ciphertext)
-* RFC 0024: Kernel Events Architecture (error code registry)
+* RFC 0024: CQRS Event Schema (error code registry)
 
 ### External References
 
 * RFC 2119, RFC 8174 (BCP 14 key words)
+
+---
+
+*End of RFC 0018*

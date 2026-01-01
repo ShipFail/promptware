@@ -74,6 +74,7 @@ PromptWar̊e ØS uses three distinct URI schemes for different resource types:
   * Example: `os:///agents/shell.md`
   * Resolved via: VFS mount table → HTTPS or file:// URLs
   * Operations: `pwosIngest()` only (read-only, immutable)
+  * **Details**: See **RFC 0013 (VFS Specification)** for complete mount resolution algorithm and examples
 
 * **`memory:///`**: Persistent key-value storage
   * Purpose: Runtime state, configuration, secrets
@@ -81,6 +82,7 @@ PromptWar̊e ØS uses three distinct URI schemes for different resource types:
   * API form: `Memory.Get("vault/google/token")` (omit prefix in API calls)
   * Resolved via: Memory syscall (RFC 0018)
   * Operations: `Memory.Get/Set/Delete/List`
+  * **Details**: See **RFC 0018 (Memory Specification)** for namespace rules, vault enforcement, and examples
 
 * **`file://`**: Local host filesystem
   * Purpose: User's working directory files
@@ -196,10 +198,13 @@ See **RFC 0023** for implementation details in the syscall bridge.
 
 | Ring | Name | Access | Description |
 | :--- | :--- | :--- | :--- |
-| **Ring 0** | Kernel Space | `os:///` | **Protected**. Executable Only. No Direct Read Access. |
+| **Ring 0** | Promptware Kernel | `os:///` | **Natural Language**. Highest privilege. |
+| **Ring 1** | Software Kernel | Syscalls | **Executable Code**. Deterministic execution. |
 | **Ring 3** | User Space | Workspace | **Open**. Read/Write allowed. |
 
-### 4.4. The Immutable Laws (Kernel Space Physics)
+**Note**: The Promptware Kernel (Ring 0) operates in the realm of natural language and has the highest privilege because English is the most powerful interface. The Software Kernel (Ring 1) provides deterministic execution.
+
+### 4.5. The Immutable Laws (Kernel Space Physics)
 
 The Kernel enforces these laws via the System Prompt (`KERNEL.md`).
 
@@ -221,7 +226,7 @@ The Kernel enforces these laws via the System Prompt (`KERNEL.md`).
 *   **Constraint**: All physical execution, state mutation, or authority acquisition **MUST** enter the Software Kernel via `pwosSyscall`.
 *   **Enforcement**: No Skill, Agent, or Tool may invoke a syscall handler (e.g., `ingest.ts`) directly.
 
-### 4.5. The Law of Responsibility (Error Taxonomy)
+### 4.6. The Law of Responsibility (Error Taxonomy)
 
 The Kernel enforces a strict "Chain of Responsibility" for failures, mapping them to a 2x2 matrix of **Domain** (Intent vs. Execution) and **Recoverability** (Fixable vs. Fatal).
 
@@ -367,9 +372,9 @@ Ingestion is the process of transforming **Text** (Source Code) into **Authority
 
 *Note: The technical implementation of this pipeline is defined in RFC 0020.*
 
-## 6. Security Considerations
+## 7. Security Considerations
 
-### 6.1. The Watchdog Mechanism
+### 7.1. The Watchdog Mechanism
 To prevent the "Read-Only" vulnerability, the Kernel includes a reactive Watchdog.
 
 *   **Trigger**: Detection of `read_file` or similar tools on a System Space path.
@@ -380,17 +385,39 @@ To prevent the "Read-Only" vulnerability, the Kernel includes a reactive Watchdo
 
 This "Fail-Secure" mechanism ensures that even if the LLM drifts, the Kernel forces it back into compliance.
 
-## 7. Future Work
+## 8. Future Work
 
 *   **Multi-Process Support**: Enabling "Background Agents" with independent Context Registers.
 *   **Kernel Debugger**: A specialized "Ring -1" mode for inspecting System Space without triggering security violations (for OS developers only).
 *   **Signed Binaries**: Cryptographic verification of Skills before Ingestion.
 
-## 8. Appendix: URI Scheme Usage Examples
+## 9. Appendix: Examples and Cross-References
 
-This section is **non-normative** and provides usage examples for clarity.
+This section provides pointers to detailed examples in subsystem RFCs.
 
-### Example 1: Kernel Initialization Sequence
+### VFS and Code Ingestion Examples
+
+For comprehensive examples of VFS path resolution, mount configuration, and pwosIngest usage, see:
+
+* **RFC 0013 Section 5**: VFS Examples
+  - Kernel initialization with VFS
+  - VFS path resolution (os:// → HTTPS/file://)
+  - Development with local files
+  - Multi-repository setup
+  - Relative path resolution
+  - Incorrect VFS usage (anti-patterns)
+
+### Memory and State Management Examples
+
+For comprehensive examples of Memory operations, namespace usage, and vault enforcement, see:
+
+* **RFC 0018 Examples Section**: Memory Examples
+  - Memory path operations (vault, sys, proc, user namespaces)
+  - Incorrect Memory usage (anti-patterns)
+  - Kernel initialization with Memory
+  - Multi-namespace usage patterns
+
+### Kernel Initialization Example (Summary)
 
 ```typescript
 // Boot Stage: Bootloader provides parameters (in LLM context)
@@ -409,7 +436,7 @@ const bootParams: KernelParameters = {
 // 1. Initialize Memory subsystem
 await Memory.initialize();
 
-// 2. Make cmdline accessible (implementation-defined storage)
+// 2. Make cmdline accessible
 await Memory.Set("os/kernel/boot-params", JSON.stringify(bootParams));
 Memory.registerDynamic("proc/cmdline", async () => {
   return await Memory.Get("os/kernel/boot-params");
@@ -424,84 +451,7 @@ VFS.initialize(params.mounts);
 await pwosIngest(params.init); // os:///promptware/agents/shell.md
 ```
 
-### Example 2: VFS Path Resolution
-
-```typescript
-// VFS path → HTTPS URL
-const vfsPath = "os:///ship-fail-crew/agents/bridge-operator.md";
-const url = await VFS.resolve(vfsPath);
-// Lookup: "/ship-fail-crew/" in mount table
-// → "https://github.com/.../crew/bridge/agents/bridge-operator.md"
-
-// VFS path → file:// URL
-const localPath = "os:///user-data/config.json";
-const url = await VFS.resolve(localPath);
-// Lookup: "/user-data/" in mount table
-// → "file:///home/user/data/config.json"
-
-// Ingest fetches and loads the code
-const agent = await pwosIngest(vfsPath);
-```
-
-### Example 3: Memory Path Operations
-
-```typescript
-// Memory API: Always omit memory:/// prefix
-
-// Store configuration in user namespace
-await Memory.Set("user/myapp/config", JSON.stringify({
-  theme: "dark"
-}));
-
-// Store secret in vault namespace (ciphertext enforcement)
-await Memory.Set("vault/google/token", "pwenc:v1:..."); // ✅
-
-await Memory.Set("vault/google/token", "secret123");
-// ❌ Throws UNPROCESSABLE_ENTITY (422)
-
-// Write to sys namespace (control plane)
-await Memory.Set("sys/agents/shell/status", "active");
-
-// Read from proc namespace (belief surface)
-const summary = await Memory.Get("proc/system/summary");
-```
-
-### Example 4: Incorrect Usage (Anti-Patterns)
-
-```typescript
-// ❌ WRONG: Using Read tool on VFS path
-await Read("os:///ship-fail-crew/agents/shell.md");
-// → Security violation! Must use pwosIngest()
-
-// ❌ WRONG: Using Memory on VFS path
-await Memory.Get("os:///ship-fail-crew/agents/shell.md");
-// → Error: VFS paths not valid for Memory
-
-// ❌ WRONG: Using pwosIngest on Memory path
-await pwosIngest("memory:///user/config");
-// → Error: Memory paths not valid for ingest
-
-// ❌ WRONG: Including memory:/// prefix in Memory API calls
-await Memory.Set("memory:///vault/token", "pwenc:v1:...");
-// → Error: Don't include memory:/// prefix in API
-
-// ✅ CORRECT: Each scheme has its own operations
-await pwosIngest("os:///ship-fail-crew/agents/shell.md");  // VFS → ingest
-await Memory.Get("user/config");                           // Memory → get (no prefix)
-await Read("file:///workspaces/project/src/index.ts");     // file:// → read/write
-```
-
-### Example 5: Relative Path Resolution
-
-```typescript
-// In os:///promptware/agents/shell.md:
-// References relative path: ../skills/terminal.md
-// Resolves to: os:///promptware/skills/terminal.md
-
-// In file:///workspace/docs/guide.md:
-// References relative path: ../src/index.ts
-// Resolves to: file:///workspace/src/index.ts
-```
+**For detailed examples, see RFC 0013 (VFS) and RFC 0018 (Memory).**
 
 ---
 *End of RFC 0015*
