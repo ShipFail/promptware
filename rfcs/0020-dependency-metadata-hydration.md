@@ -1,20 +1,20 @@
 ---
 rfc: 0020
-title: Content Hydration Transformation
+title: Dependency Metadata Hydration
 author: Ship.Fail
 status: Draft
 type: Standards Track
 created: 2025-12-24
 updated: 2025-12-31
 version: 2.0.0
-tags: [content, hydration, transformation, markdown, file-format]
+tags: [dependency, metadata, hydration, transformation, markdown]
 ---
 
-# RFC 0020: Content Hydration Transformation
+# RFC 0020: Dependency Metadata Hydration
 
 ## 1. Summary
 
-This RFC specifies the **Content Hydration Transformation** - a deterministic file format transformation that expands dependency references in Markdown front matter from compact URI arrays into rich URI-keyed metadata objects.
+This RFC specifies **Dependency Metadata Hydration** - a deterministic transformation that expands dependency references in Markdown front matter from compact URI arrays into rich URI-keyed metadata objects.
 
 **Transformation:**
 
@@ -545,42 +545,7 @@ All strategies are valid if consumers can programmatically detect absence.
 
 ---
 
-## Appendix C: Syscall Integration Patterns (Non-Normative)
-
-This transformation may be exposed via system calls or APIs.
-
-**Pattern 1: URI-based Input**
-
-```
-Input:  {uri: "os://agents/writer.md"}
-Output: {content: "...", metadata: {...}}
-```
-
-The syscall returns the hydrated front matter as structured data (JSON, etc.) plus the content body.
-
-**Pattern 2: Content-based Input**
-
-```
-Input:  {content: "---\nskills: [...]\n---\n...", base_uri: "os://agents/"}
-Output: {content: "---\nskills: {...}\n---\n..."}
-```
-
-The syscall accepts raw Markdown content and returns hydrated Markdown.
-
-**Pattern 3: File-based Input**
-
-```
-Input:  {input_file: "/path/to/agent.md"}
-Output: {output_file: "/path/to/agent.hydrated.md"}
-```
-
-The syscall reads a file, transforms it, and writes the output.
-
-Implementation mechanisms are outside this specification's scope.
-
----
-
-## Appendix D: Change Log
+## Appendix C: Change Log
 
 ### Version 2.0.0 (2025-12-31)
 
