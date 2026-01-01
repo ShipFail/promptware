@@ -6,7 +6,7 @@ status: Draft
 type: Standards Track
 created: 2025-12-20
 updated: 2026-01-01
-version: 0.4
+version: 0.5
 tags: [vfs, kernel, mount, os]
 ---
 
@@ -16,7 +16,12 @@ tags: [vfs, kernel, mount, os]
 
 This RFC defines the **Virtual File System (VFS)** for PromptWar̊e ØS: a mount-based abstraction layer that maps logical VFS paths (`os:///`) to physical URLs (HTTPS or file://) for code ingestion.
 
-The VFS is **exclusively for immutable code addressing**. It is not a general-purpose filesystem and does not handle runtime state (use `memory:///` for state per RFC 0018).
+The VFS provides mount-based resolution for three categories of `os:///` paths:
+1. **Immutable code** (agents, skills, kernel) - resolved to HTTPS/file:// URLs
+2. **System control plane** (`os:///sys/*`) - writable single-value attributes
+3. **System belief surface** (`os:///proc/*`) - read-only introspection views
+
+Runtime key-value storage uses `memory:///` (see RFC 0018).
 
 **Scope:**
 - Mount table definition and resolution algorithm
@@ -25,8 +30,7 @@ The VFS is **exclusively for immutable code addressing**. It is not a general-pu
 - Security constraints (HTTPS pinning, read-only enforcement)
 
 **Out of scope:**
-- Runtime state storage (see RFC 0018: Memory Subsystem)
-- System control surfaces (`sys/*`) and belief surfaces (`proc/*`) - these are Memory namespaces (RFC 0018)
+- Runtime key-value storage (see RFC 0018: Memory Subsystem for vault and general KV)
 
 ---
 
@@ -92,11 +96,10 @@ The VFS MUST:
 ### Non-Goals
 
 The VFS does NOT:
-1. Handle runtime state storage (use `memory:///` for state)
-2. Implement filesystem operations (stat, readdir, write) - URL fetch only
-3. Define `sys/*` or `proc/*` semantics (see RFC 0018)
-4. Provide sandboxing or access control (delegated to HTTPS/file:// transport)
-5. Support symbolic links, hardlinks, or other filesystem features
+1. Handle runtime key-value storage (use `memory:///` for vault and general KV)
+2. Implement filesystem operations (stat, readdir) for code paths - URL fetch only
+3. Provide sandboxing or access control (delegated to HTTPS/file:// transport)
+4. Support symbolic links, hardlinks, or other filesystem features
 
 ---
 
@@ -160,17 +163,21 @@ The `root` parameter in KernelParameters defines the default base URL for VFS re
 Given a VFS path `P` (e.g., `os:///ship-fail-crew/agents/bridge.md`):
 
 1. **Validate scheme**: Ensure `P` starts with `os:///`
-2. **Extract subpath**: Strip `os:///` → get subpath (e.g., `/ship-fail-crew/agents/bridge.md`)
-3. **Normalize path**: Ensure path is properly formatted
-4. **Find longest prefix match**: Find longest matching mount point `M` in mount table
-5. **If no match in mount table**:
+2. **Check for special paths**:
+   - If `P` starts with `os:///sys/*`: Use sys backend (see Section 4.8)
+   - If `P` starts with `os:///proc/*`: Use proc backend (see Section 4.8)
+   - Otherwise: Continue to step 3 (normal code resolution)
+3. **Extract subpath**: Strip `os:///` → get subpath (e.g., `/ship-fail-crew/agents/bridge.md`)
+4. **Normalize path**: Ensure path is properly formatted
+5. **Find longest prefix match**: Find longest matching mount point `M` in mount table
+6. **If no match in mount table**:
    - Check if `root` parameter exists in kernel parameters
    - If `root` exists: Use `root` as base URL (fallback to root mount)
    - If `root` does not exist: Throw `NOT_FOUND` (404)
 
    **Note**: In practice, `root` is always present in kernel parameters, so this error should never occur.
 
-6. **If match found**:
+7. **If match found**:
    - Base URL is `U` (from mount table or root)
    - Strip `M` from subpath → relative path `R`
    - Concatenate `U + R` → physical URL
@@ -217,6 +224,8 @@ async function pwosIngest(vfsPath: string): Promise<void> {
 **Requirements:**
 
 * `pwosIngest()` MUST reject `memory:///` paths (error: `BAD_REQUEST` 400)
+* `pwosIngest()` MUST reject `os:///sys/*` paths (error: `BAD_REQUEST` 400) - control data, not code
+* `pwosIngest()` MUST reject `os:///proc/*` paths (error: `BAD_REQUEST` 400) - view data, not code
 * `pwosIngest()` MUST reject `file://` paths outside mounted prefixes
 * `pwosIngest()` MUST support both HTTPS and file:// URLs after resolution
 
@@ -250,22 +259,143 @@ VFS operations reference the following error codes (defined in RFC-24 Error Regi
 
 See RFC-24 for complete error code definitions.
 
-### 4.7. Relationship to Memory Subsystem
+### 4.7. Special VFS Paths: System and Process Surfaces
+
+The VFS defines two special path prefixes with filesystem semantics inspired by UNIX sysfs and procfs.
+
+#### os:///sys/* - System Control Plane
+
+Provides writable control attributes (inspired by Linux `/sys`).
+
+**Semantics**:
+- **Operations**: read, write
+- **Values**: MUST be single-value attributes (no newline characters `\n`)
+- **Writable**: YES (unlike other VFS paths which are read-only)
+- **Backend**: Implementation-defined
+
+**Rationale**: Single-value enforcement ensures each attribute represents exactly one semantic value, matching Linux sysfs design.
+
+**Example paths**:
+```
+os:///sys/agents/{agent-id}/status
+os:///sys/agents/{agent-id}/lifecycle/desired_state
+os:///sys/system/debug_mode
+```
+
+**Example usage**:
+```typescript
+// Read agent status
+const status = await VFS.read("os:///sys/agents/shell/status");
+
+// Write control attribute
+await VFS.write("os:///sys/agents/shell/status", "active");
+
+// Error: multi-line value
+await VFS.write("os:///sys/agents/shell/status", "active\nstarted");
+// → Throws UNPROCESSABLE_ENTITY (422)
+```
+
+**Error codes**:
+- `UNPROCESSABLE_ENTITY` (422): Value contains newlines
+
+#### os:///proc/* - System Belief Surface
+
+Provides read-only system introspection (inspired by Linux `/proc`).
+
+**Semantics**:
+- **Operations**: read only (writes FORBIDDEN)
+- **Values**: MAY be multi-line, rich formatted, human-readable
+- **Dynamic**: MAY be generated on-demand (not pre-stored)
+- **Viewpoint-relative**: May differ based on context (agent, origin)
+- **Backend**: Implementation-defined
+
+**Rationale**: `proc/*` is a "belief surface" - it reflects what the system believes about its state, not authoritative control.
+
+**Example paths**:
+```
+os:///proc/cmdline                    # Kernel boot parameters
+os:///proc/system/summary             # System overview (multi-line)
+os:///proc/agents/{agent-id}/status   # Agent status view
+```
+
+**Example usage**:
+```typescript
+// Read kernel cmdline
+const cmdline = await VFS.read("os:///proc/cmdline");
+// Returns: {"root":"https://...","origin":"my-os",...}
+
+// Read system summary (multi-line allowed)
+const summary = await VFS.read("os:///proc/system/summary");
+// Returns:
+// PromptWareOS v1.0
+// Uptime: 3h 42m
+// Agents: 2 active
+
+// Attempt to write (fails)
+await VFS.write("os:///proc/system/summary", "hacked");
+// → Throws FORBIDDEN (403)
+```
+
+**Error codes**:
+- `FORBIDDEN` (403): Attempt to write to proc/* path
+
+#### Implementation Notes
+
+**Storage backend** is implementation-defined. Implementations MAY:
+- Store `sys/*` in Memory backend (`memory:///os/sys/*`)
+- Store `sys/*` in files (`file:///tmp/pwos-sys/*`)
+- Keep `sys/*` in-memory only (ephemeral)
+- Generate `proc/*` dynamically (recommended)
+- Store `proc/*` backing data in Memory or files
+
+The only requirement is:
+- `VFS.read("os:///sys/path")` and `VFS.write("os:///sys/path", value)` MUST work
+- `VFS.read("os:///proc/path")` MUST work
+- `VFS.write("os:///proc/path", ...)` MUST reject with FORBIDDEN (403)
+
+**Example implementation** (non-normative):
+```typescript
+// Option 1: Memory-backed sys
+async function vfsWrite(path: string, value: string) {
+  if (path.startsWith("os:///sys/")) {
+    const key = path.replace("os:///sys/", "os/sys/");
+    await Memory.Set(key, value); // Internal Memory storage
+  }
+  // ...
+}
+
+// Option 2: Dynamic proc generation
+async function vfsRead(path: string) {
+  if (path === "os:///proc/cmdline") {
+    const params = await Memory.Get("os/kernel/boot-params");
+    return params; // Dynamically fetch from internal storage
+  }
+  // ...
+}
+```
+
+### 4.8. Relationship to Memory Subsystem
 
 **Clear separation:**
 
-* VFS handles **code** (immutable, addressed by `os:///`, resolved to URL)
-* Memory handles **state** (mutable, addressed by `memory:///`, stored in KV)
+* VFS handles **all `os:///` paths**:
+  - Code (immutable): `os:///agents/*`, `os:///skills/*` → HTTPS/file:// URLs
+  - System control: `os:///sys/*` → writable attributes
+  - System views: `os:///proc/*` → read-only introspection
+* Memory handles **key-value storage** (`memory:///`):
+  - Vault: `memory:///vault/*` (ciphertext-only KV)
+  - General: `memory:///os/*` (OS internal), and unrestricted paths
 
 **No overlap:**
 
 * VFS paths (e.g., `os:///promptware/agents/shell.md`) are NOT valid for `Memory.Get/Set`
 * Memory paths (e.g., `memory:///vault/token` or `vault/token` in API) are NOT valid for `pwosIngest`
 
-**Configuration storage:**
+**Implementation note:**
 
-* Mount table is stored IN Memory (`memory:///proc/cmdline`)
-* But VFS itself does not use Memory for code storage
+* VFS backends for `os:///sys/*` and `os:///proc/*` MAY use Memory for storage internally, but this is an implementation detail
+* From the API perspective, these are VFS paths, not Memory paths
+* Configuration storage (mount table, boot params) may be stored in Memory but accessed via VFS
 
 ---
 
@@ -279,7 +409,7 @@ The VFS-specific initialization step is:
 
 ```typescript
 // 3. Initialize VFS from cmdline (after Memory is ready)
-const cmdline = await Memory.Get("proc/cmdline");
+const cmdline = await VFS.read("os:///proc/cmdline");
 const params = JSON.parse(cmdline);
 VFS.initialize(params.mounts, params.root);
 ```
@@ -373,6 +503,32 @@ await pwosIngest("os:///ship-fail-crew/agents/shell.md");  // VFS → ingest
 await Read("file:///workspaces/project/src/index.ts");     // file:// → read/write
 ```
 
+### Example 6: System Control and Introspection
+
+```typescript
+// System control via os:///sys/*
+await VFS.write("os:///sys/agents/shell/status", "active");
+await VFS.write("os:///sys/system/debug_mode", "1");
+
+const status = await VFS.read("os:///sys/agents/shell/status");
+// Returns: "active"
+
+// System introspection via os:///proc/*
+const cmdline = await VFS.read("os:///proc/cmdline");
+const summary = await VFS.read("os:///proc/system/summary");
+
+// Error: Cannot write to proc
+await VFS.write("os:///proc/cmdline", "{}");
+// → FORBIDDEN (403)
+
+// Error: Cannot ingest sys/proc
+await pwosIngest("os:///sys/agents/shell/status");
+// → BAD_REQUEST (400): sys/* is control data, not code
+
+await pwosIngest("os:///proc/cmdline");
+// → BAD_REQUEST (400): proc/* is view data, not code
+```
+
 ---
 
 ## 6. Implementation Plan
@@ -395,15 +551,20 @@ await Read("file:///workspaces/project/src/index.ts");     // file:// → read/w
 
 ## 7. Compatibility
 
-This RFC replaces the previous "Sysfs and Procfs" specification (RFC 0013 v0.1) with a pure VFS specification.
+**Breaking changes from v0.4 to v0.5:**
+- `sys/*` and `proc/*` moved from Memory (RFC-0018) back to VFS
+- Now accessed as `os:///sys/*` and `os:///proc/*` (not `memory:///sys/*` or `memory:///proc/*`)
+- VFS expanded from code-only to include system control and belief surfaces
 
-**Breaking changes from v0.1:**
-- `/sys` and `/proc` are no longer defined in this RFC (moved to RFC-0018: Memory Subsystem)
-- VFS is now explicitly code-only (state is handled by Memory subsystem)
+**Migration from v0.4:**
+- Replace `Memory.Get("proc/cmdline")` → `VFS.read("os:///proc/cmdline")`
+- Replace `Memory.Set("sys/path", value)` → `VFS.write("os:///sys/path", value)`
+- Replace `Memory.Get("sys/path")` → `VFS.read("os:///sys/path")`
 
-**Migration:**
-- Code using VFS for code ingestion: No changes needed
-- Code expecting `/sys` and `/proc` from VFS: Update to use Memory subsystem (RFC-0018)
+**Historical changes:**
+- v0.1: `/sys` and `/proc` were in VFS specification
+- v0.2-v0.4: `/sys` and `/proc` moved to RFC-0018 (Memory Subsystem)
+- v0.5: `/sys` and `/proc` returned to VFS as `os:///sys/*` and `os:///proc/*`
 
 ---
 
