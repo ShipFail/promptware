@@ -6,7 +6,7 @@ status: Draft
 type: Standards Track
 created: 2025-12-22
 updated: 2026-01-01
-version: 0.8
+version: 0.9
 tags: [kernel, dualmode, architecture, syscalls, foundation]
 ---
 
@@ -59,8 +59,9 @@ The Kernel manages the LLM's context window as a structured memory space.
     *   Stores the **Context Identity** (absolute URI) of the currently active agent or skill.
     *   Analogous to TypeScript's `__filename`, it allows the agent to resolve relative paths ("whoami").
     *   Updated *only* via `pwosIngest()`.
-*   **Kernel Parameters**: `proc/cmdline`
+*   **Kernel Parameters**: `os:///proc/cmdline`
     *   Stores boot parameters (Root URI, Init Agent).
+    *   Read-only view of kernel boot configuration.
 *   **Virtual File System (VFS)**: `os:///`
     *   A logical addressing scheme for all System Resources.
     *   Abstracts physical locations (GitHub URLs, local files) into a unified namespace.
@@ -82,7 +83,8 @@ PromptWar̊e ØS uses three distinct URI schemes for different resource types:
   * API form: `Memory.Get("vault/google/token")` (omit prefix in API calls)
   * Resolved via: Memory syscall (RFC 0018)
   * Operations: `Memory.Get/Set/Delete/List`
-  * **Details**: See **RFC 0018 (Memory Specification)** for namespace rules, vault enforcement, and examples
+  * **Details**: See **RFC 0018 (Memory Specification)** for vault enforcement and KV operations
+  * **Note**: `sys/*` and `proc/*` are NOT Memory namespaces (moved to VFS in v0.5)
 
 * **`file://`**: Local host filesystem
   * Purpose: User's working directory files
@@ -270,14 +272,14 @@ PID 0 MUST immediately execute the following sequence to bring the system to a u
     *   Memory subsystem is now ready for operations
 
 2.  **Persist Kernel Parameters**:
-    *   Make boot parameters accessible at `memory:///proc/cmdline`
-    *   Implementation-defined: may store in separate namespace or file
-    *   Requirement: `Memory.Get("proc/cmdline")` MUST return parameters
+    *   Make boot parameters accessible at `os:///proc/cmdline`
+    *   Implementation-defined: may store in Memory (`os/kernel/boot-params`), file, or in-memory
+    *   Requirement: `VFS.read("os:///proc/cmdline")` MUST return parameters
 
 3.  **Initialize VFS**:
-    *   Read mount table from `Memory.Get("proc/cmdline")`
+    *   Read mount table from `VFS.read("os:///proc/cmdline")`
     *   Parse `params.mounts` and initialize VFS resolution
-    *   VFS is now ready for `pwosIngest()` operations
+    *   VFS is now ready for `pwosIngest()` and `sys/*`/`proc/*` operations
 
 4.  **Launch Init Agent**:
     *   Execute `pwosIngest(params.init)`
@@ -290,10 +292,10 @@ PID 0 MUST immediately execute the following sequence to bring the system to a u
 
 ### 5.3. Kernel Parameter Schema
 
-**Storage location**: `memory:///proc/cmdline` (URI specification)
-**API access**: `Memory.Get("proc/cmdline")` (omit prefix)
+**Storage location**: `os:///proc/cmdline` (URI specification)
+**API access**: `VFS.read("os:///proc/cmdline")`
 
-The Kernel Parameters MUST be readable at `memory:///proc/cmdline` and MUST adhere to the following JSON Schema:
+The Kernel Parameters MUST be readable at `os:///proc/cmdline` and MUST adhere to the following JSON Schema:
 
 ```typescript
 interface KernelParameters {
@@ -341,8 +343,8 @@ The `root` parameter is equivalent to the `/` mount and SHOULD NOT be duplicated
 
 How `proc/cmdline` is stored is implementation-defined (may be in-memory, file, or separate Memory namespace). The only requirement is:
 
-* `Memory.Get("proc/cmdline")` MUST return the kernel parameters JSON
-* `Memory.Set("proc/cmdline", ...)` MUST be rejected (read-only, per RFC 0018)
+* `VFS.read("os:///proc/cmdline")` MUST return the kernel parameters JSON
+* `VFS.write("os:///proc/cmdline", ...)` MUST be rejected (read-only, per RFC 0013)
 
 **Example implementation** (non-normative):
 
@@ -351,14 +353,14 @@ How `proc/cmdline` is stored is implementation-defined (may be in-memory, file, 
 // Implementation may store in a separate location
 await Memory.Set("os/kernel/boot-params", JSON.stringify(params));
 
-// Memory subsystem provides proc/cmdline as read-only view
-Memory.registerDynamic("proc/cmdline", async () => {
+// VFS provides proc/cmdline as read-only view
+VFS.registerProc("cmdline", async () => {
   return await Memory.Get("os/kernel/boot-params");
 });
 
 // API view: proc/cmdline is read-only
-const cmdline = await Memory.Get("proc/cmdline"); // ✅ Works
-await Memory.Set("proc/cmdline", "{}"); // ❌ FORBIDDEN (403)
+const cmdline = await VFS.read("os:///proc/cmdline"); // ✅ Works
+await VFS.write("os:///proc/cmdline", "{}"); // ❌ FORBIDDEN (403)
 ```
 
 ## 6. The Lifecycle of Authority (Ingestion)
@@ -438,12 +440,12 @@ await Memory.initialize();
 
 // 2. Make cmdline accessible
 await Memory.Set("os/kernel/boot-params", JSON.stringify(bootParams));
-Memory.registerDynamic("proc/cmdline", async () => {
+VFS.registerProc("cmdline", async () => {
   return await Memory.Get("os/kernel/boot-params");
 });
 
 // 3. Initialize VFS from cmdline
-const cmdline = await Memory.Get("proc/cmdline");
+const cmdline = await VFS.read("os:///proc/cmdline");
 const params = JSON.parse(cmdline);
 VFS.initialize(params.mounts);
 
