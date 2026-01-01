@@ -1,16 +1,16 @@
 ---
 rfc: 0015
-title: The Prompt Kernel
+title: Kernel Dualmode Architecture
 author: Ship.Fail Crew
 status: Draft
 type: Standards Track
 created: 2025-12-22
-updated: 2025-12-29
-version: 0.7
-tags: [kernel, architecture, syscalls, origin]
+updated: 2026-01-01
+version: 0.8
+tags: [kernel, dualmode, architecture, syscalls, foundation]
 ---
 
-# RFC 0015: The Prompt Kernel
+# RFC 0015: Kernel Dualmode Architecture
 
 ## 1. Abstract
 
@@ -64,6 +64,55 @@ The Kernel manages the LLM's context window as a structured memory space.
 *   **Virtual File System (VFS)**: `os:///`
     *   A logical addressing scheme for all System Resources.
     *   Abstracts physical locations (GitHub URLs, local files) into a unified namespace.
+
+#### 4.2.1. URI Scheme Taxonomy
+
+PromptWar̊e ØS uses three distinct URI schemes for different resource types:
+
+* **`os:///`**: Code addressing for ingest operations
+  * Purpose: Fetch agent/skill/kernel source code
+  * Example: `os:///agents/shell.md`
+  * Resolved via: VFS mount table → HTTPS or file:// URLs
+  * Operations: `pwosIngest()` only (read-only, immutable)
+
+* **`memory:///`**: Persistent key-value storage
+  * Purpose: Runtime state, configuration, secrets
+  * URI form: `memory:///vault/google/token` (in specifications)
+  * API form: `Memory.Get("vault/google/token")` (omit prefix in API calls)
+  * Resolved via: Memory syscall (RFC 0018)
+  * Operations: `Memory.Get/Set/Delete/List`
+
+* **`file://`**: Local host filesystem
+  * Purpose: User's working directory files
+  * Example: `file:///workspaces/project/README.md`
+  * Resolved via: Host filesystem
+  * Operations: Generic I/O tools (Read, Write, Edit)
+
+* **Relative paths** (no scheme): Context-dependent
+  * Inherit schema from parent resource
+  * Example in `os:///agents/shell.md`: relative path `skills/nav.md` resolves to `os:///agents/skills/nav.md`
+  * Example in `file:///workspace/doc.md`: relative path `src/index.ts` resolves to `file:///workspace/src/index.ts`
+
+**Separation of Concerns:**
+
+* `os:///` paths are for **immutable code** (Ring 0 system resources)
+* `memory:///` URIs specify **mutable state** (Ring 1 persistent storage)
+* `file://` paths are for **user data** (Ring 3 development artifacts)
+* Relative paths inherit context from parent
+
+**API Convention:**
+
+When calling Memory syscall, the `memory:///` prefix is ALWAYS omitted:
+```typescript
+// ✅ Correct API usage
+await Memory.Set("vault/token", "pwenc:v1:...");
+await Memory.Get("proc/cmdline");
+
+// ❌ Incorrect - don't include memory:/// in API calls
+await Memory.Set("memory:///vault/token", "pwenc:v1:...");
+```
+
+**Documentation Convention**: This document uses full URIs (`memory:///path`) in specifications for clarity, but API examples omit the prefix.
 
 ### 4.3. Core Concepts: Code (Root) vs. State (Origin)
 
@@ -157,7 +206,7 @@ The Kernel enforces these laws via the System Prompt (`KERNEL.md`).
 #### Law 1: The Law of System Space
 > "System Space resources are Compiled Binaries, not text documents."
 
-*   **Constraint**: The Agent **MUST NOT** use generic I/O tools (`read_file`, `fetch_webpage`, `cat`) on any URI starting with `os:///` or residing in `/agents/`, `/skills/`, `/kernel/`.
+*   **Constraint**: The Agent **MUST NOT** use generic I/O tools (`read_file`, `fetch_webpage`, `cat`) on any URI starting with `os:///`.
 *   **Enforcement**: Violation triggers a **Security Watchdog** panic.
 
 #### Law 2: The Law of State (The Binary Rule)
@@ -211,37 +260,100 @@ The Bootloader (a static Markdown file) injects the `KernelParameters` (Root, In
 ### 5.2. The Init Sequence
 PID 0 MUST immediately execute the following sequence to bring the system to a usable state:
 
-1.  **Initialize Memory (Bootstrap)**:
-    *   Persist the boot parameters to `proc/cmdline` via the Memory Syscall.
-    *   **Requirement**: This MUST happen *before* invoking any other syscall (like `ingest`). This enables the **Service Locator** pattern, where subsystems self-configure by reading `proc/cmdline`.
-    *   *Goal*: Ensure the OS Root is known to the Software Kernel.
-2.  **Launch Init Agent**:
-    *   Execute `pwosIngest(init_agent)`.
-    *   *Goal*: Fetch and adopt the user-space persona (PID 1).
-3.  **System Ready**:
-    *   Report successful boot.
+1.  **Initialize Memory Subsystem**:
+    *   Initialize the Memory syscall backend (Deno KV or equivalent)
+    *   Memory subsystem is now ready for operations
 
-### 5.3. Kernel Parameter Schema (`proc/cmdline`)
+2.  **Persist Kernel Parameters**:
+    *   Make boot parameters accessible at `memory:///proc/cmdline`
+    *   Implementation-defined: may store in separate namespace or file
+    *   Requirement: `Memory.Get("proc/cmdline")` MUST return parameters
 
-The Kernel Parameters stored in `proc/cmdline` MUST adhere to the following JSON Schema:
+3.  **Initialize VFS**:
+    *   Read mount table from `Memory.Get("proc/cmdline")`
+    *   Parse `params.mounts` and initialize VFS resolution
+    *   VFS is now ready for `pwosIngest()` operations
+
+4.  **Launch Init Agent**:
+    *   Execute `pwosIngest(params.init)`
+    *   Goal: Fetch and adopt the user-space persona (PID 1)
+
+5.  **System Ready**:
+    *   Report successful boot
+
+**Note**: Steps 1-3 occur during **kernel initialization**, not boot. Boot is the handoff from bootloader to kernel. Initialization is when kernel sets up subsystems.
+
+### 5.3. Kernel Parameter Schema
+
+**Storage location**: `memory:///proc/cmdline` (URI specification)
+**API access**: `Memory.Get("proc/cmdline")` (omit prefix)
+
+The Kernel Parameters MUST be readable at `memory:///proc/cmdline` and MUST adhere to the following JSON Schema:
 
 ```typescript
 interface KernelParameters {
-  /** The immutable source of truth for Code (VFS) */
+  /** The immutable source of truth for Code (VFS default mount) */
   readonly root: string;
-  
-  /** The security principal for State (KV). Optional. */
+
+  /** The security principal for State (Memory origin). Optional. */
   readonly origin?: string;
-  
-  /** The path to the Kernel source */
+
+  /** The VFS path to the Kernel source */
   readonly kernel: string;
-  
-  /** The path to the Init Agent */
+
+  /** The VFS path to the Init Agent */
   readonly init: string;
-  
-  /** Optional VFS mounts */
-  readonly mounts?: Record<string, string>;
+
+  /** VFS mount table: path prefix → base URL */
+  readonly mounts: Record<string, string>;
 }
+```
+
+**Example boot parameters:**
+
+```json
+{
+  "root": "https://raw.githubusercontent.com/ShipFail/promptware/main/os/",
+  "origin": "my-os",
+  "kernel": "os:///promptware/kernel/KERNEL.md",
+  "init": "os:///promptware/agents/shell.md",
+  "mounts": {
+    "/ship-fail-crew/": "https://raw.githubusercontent.com/ShipFail/crew/main/bridge/",
+    "/user-data/": "file:///home/user/data/"
+  }
+}
+```
+
+**Mount table semantics:**
+
+Mount table keys are VFS path prefixes (without `os:///` scheme):
+- `/` in mount table → `os:///` (VFS root)
+- `/ship-fail-crew/` in mount table → `os:///ship-fail-crew/` in VFS namespace
+
+The `root` parameter is equivalent to the `/` mount and SHOULD NOT be duplicated in mounts (DRY principle).
+
+**Storage and Access:**
+
+How `proc/cmdline` is stored is implementation-defined (may be in-memory, file, or separate Memory namespace). The only requirement is:
+
+* `Memory.Get("proc/cmdline")` MUST return the kernel parameters JSON
+* `Memory.Set("proc/cmdline", ...)` MUST be rejected (read-only, per RFC 0018)
+
+**Example implementation** (non-normative):
+
+```typescript
+// During kernel initialization (after Memory is ready)
+// Implementation may store in a separate location
+await Memory.Set("os/kernel/boot-params", JSON.stringify(params));
+
+// Memory subsystem provides proc/cmdline as read-only view
+Memory.registerDynamic("proc/cmdline", async () => {
+  return await Memory.Get("os/kernel/boot-params");
+});
+
+// API view: proc/cmdline is read-only
+const cmdline = await Memory.Get("proc/cmdline"); // ✅ Works
+await Memory.Set("proc/cmdline", "{}"); // ❌ FORBIDDEN (403)
 ```
 
 ## 6. The Lifecycle of Authority (Ingestion)
@@ -273,6 +385,123 @@ This "Fail-Secure" mechanism ensures that even if the LLM drifts, the Kernel for
 *   **Multi-Process Support**: Enabling "Background Agents" with independent Context Registers.
 *   **Kernel Debugger**: A specialized "Ring -1" mode for inspecting System Space without triggering security violations (for OS developers only).
 *   **Signed Binaries**: Cryptographic verification of Skills before Ingestion.
+
+## 8. Appendix: URI Scheme Usage Examples
+
+This section is **non-normative** and provides usage examples for clarity.
+
+### Example 1: Kernel Initialization Sequence
+
+```typescript
+// Boot Stage: Bootloader provides parameters (in LLM context)
+const bootParams: KernelParameters = {
+  root: "https://github.com/.../promptware/os/",
+  origin: "my-os",
+  kernel: "os:///promptware/kernel/KERNEL.md",
+  init: "os:///promptware/agents/shell.md",
+  mounts: {
+    "/ship-fail-crew/": "https://github.com/.../crew/bridge/",
+    "/user-data/": "file:///home/user/data/"
+  }
+};
+
+// Kernel Initialization Stage
+// 1. Initialize Memory subsystem
+await Memory.initialize();
+
+// 2. Make cmdline accessible (implementation-defined storage)
+await Memory.Set("os/kernel/boot-params", JSON.stringify(bootParams));
+Memory.registerDynamic("proc/cmdline", async () => {
+  return await Memory.Get("os/kernel/boot-params");
+});
+
+// 3. Initialize VFS from cmdline
+const cmdline = await Memory.Get("proc/cmdline");
+const params = JSON.parse(cmdline);
+VFS.initialize(params.mounts);
+
+// 4. Ingest init agent
+await pwosIngest(params.init); // os:///promptware/agents/shell.md
+```
+
+### Example 2: VFS Path Resolution
+
+```typescript
+// VFS path → HTTPS URL
+const vfsPath = "os:///ship-fail-crew/agents/bridge-operator.md";
+const url = await VFS.resolve(vfsPath);
+// Lookup: "/ship-fail-crew/" in mount table
+// → "https://github.com/.../crew/bridge/agents/bridge-operator.md"
+
+// VFS path → file:// URL
+const localPath = "os:///user-data/config.json";
+const url = await VFS.resolve(localPath);
+// Lookup: "/user-data/" in mount table
+// → "file:///home/user/data/config.json"
+
+// Ingest fetches and loads the code
+const agent = await pwosIngest(vfsPath);
+```
+
+### Example 3: Memory Path Operations
+
+```typescript
+// Memory API: Always omit memory:/// prefix
+
+// Store configuration in user namespace
+await Memory.Set("user/myapp/config", JSON.stringify({
+  theme: "dark"
+}));
+
+// Store secret in vault namespace (ciphertext enforcement)
+await Memory.Set("vault/google/token", "pwenc:v1:..."); // ✅
+
+await Memory.Set("vault/google/token", "secret123");
+// ❌ Throws UNPROCESSABLE_ENTITY (422)
+
+// Write to sys namespace (control plane)
+await Memory.Set("sys/agents/shell/status", "active");
+
+// Read from proc namespace (belief surface)
+const summary = await Memory.Get("proc/system/summary");
+```
+
+### Example 4: Incorrect Usage (Anti-Patterns)
+
+```typescript
+// ❌ WRONG: Using Read tool on VFS path
+await Read("os:///ship-fail-crew/agents/shell.md");
+// → Security violation! Must use pwosIngest()
+
+// ❌ WRONG: Using Memory on VFS path
+await Memory.Get("os:///ship-fail-crew/agents/shell.md");
+// → Error: VFS paths not valid for Memory
+
+// ❌ WRONG: Using pwosIngest on Memory path
+await pwosIngest("memory:///user/config");
+// → Error: Memory paths not valid for ingest
+
+// ❌ WRONG: Including memory:/// prefix in Memory API calls
+await Memory.Set("memory:///vault/token", "pwenc:v1:...");
+// → Error: Don't include memory:/// prefix in API
+
+// ✅ CORRECT: Each scheme has its own operations
+await pwosIngest("os:///ship-fail-crew/agents/shell.md");  // VFS → ingest
+await Memory.Get("user/config");                           // Memory → get (no prefix)
+await Read("file:///workspaces/project/src/index.ts");     // file:// → read/write
+```
+
+### Example 5: Relative Path Resolution
+
+```typescript
+// In os:///promptware/agents/shell.md:
+// References relative path: ../skills/terminal.md
+// Resolves to: os:///promptware/skills/terminal.md
+
+// In file:///workspace/docs/guide.md:
+// References relative path: ../src/index.ts
+// Resolves to: file:///workspace/src/index.ts
+```
 
 ---
 *End of RFC 0015*
