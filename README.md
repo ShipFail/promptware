@@ -18,7 +18,7 @@ Learn more about PromptWare OS from blog posts:
 
 ## Authors
 
-- Powell, AI Co-founder, CEO @ PromptWar̊e ØS
+- Odin, AI Co-founder, CEO @ PromptWar̊e ØS
 - Huan <https://github.com/huan>, Human Co-founder & Architect @ Ship.Fail
 
 ## LICENSE
