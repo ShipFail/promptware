@@ -21,7 +21,7 @@ This RFC defines the Application Binary Interface (ABI) for the PromptWare OS Ke
 > **Relationship to Other RFCs**:
 > - **RFC 0015 (Kernel Dualmode Architecture)**: Defines the ontology and origin parameter semantics
 > - **RFC 0023 (Syscall Bridge)**: Specifies implementation mechanisms (NDJSON protocol, execution modes, dispatch)
-> - **RFC 0018 (System Memory Subsystem)**: Example syscall consumer using this ABI
+> - **RFC 0018 (Kernel Memory Subsystem)**: Example syscall consumer using this ABI
 
 ## 2. Conformance Language
 
@@ -101,120 +101,134 @@ User-space implementations MUST NOT define syscalls using these prefixes.
 - ❌ `Sys.CustomTool` (uses reserved prefix)
 - ❌ `Syscall.MyCommand` (uses reserved prefix)
 
-## 4. Syscall Observable Behavior Contract
+## 4. The Event Protocol
 
-### 4.1. Input/Output Semantics
+### 4.1. Universal Interface
 
-All syscalls MUST satisfy the following observable behavior contract:
+All kernel interactions MUST occur via the **OsEvent** protocol defined in **RFC 0024**. There are no function calls, only events.
 
-1. **Structured Input**: Syscalls MUST accept well-defined input data conforming to a syscall-specific schema
-2. **Structured Output**: Syscalls MUST produce either:
-   - **Success Response**: Structured output data conforming to the syscall's output schema, OR
-   - **Error Response**: An error event with descriptive message indicating failure reason
-3. **No Side Channels**: Syscalls MUST NOT communicate results through mechanisms other than their defined output (e.g., no required side effects in external systems for core operation)
+- **Input**: An `OsEvent` object with `type: "command"` or `type: "query"`.
+- **Output**: An `OsEvent` object with `type: "response"` or `type: "error"`.
+- **Notification**: An `OsEvent` object with `type: "event"` (for async updates).
 
-### 4.2. Determinism Requirements
+### 4.2. Event Types
 
-Syscalls MUST be categorized as either **pure** (deterministic) or **impure** (non-deterministic):
+Implementations MUST support the 5 behavioral types defined in RFC 0024:
 
-1. **Pure Syscalls** (Deterministic):
-   - Same input MUST always produce same output
-   - No external state dependencies
-   - Examples: `Crypto.Seal`, `Uri.Resolve` (when given absolute URIs)
+1.  **Command** (`type: "command"`): Request to mutate state (e.g., `Memory.Set`).
+2.  **Query** (`type: "query"`): Request to retrieve state (e.g., `Memory.Get`).
+3.  **Event** (`type: "event"`): Notification of past occurrence (e.g., `Job.Completed`).
+4.  **Response** (`type: "response"`): Successful outcome of a command/query.
+5.  **Error** (`type: "error"`): Failed outcome of a command/query.
 
-2. **Impure Syscalls** (Non-Deterministic):
-   - Output MAY vary based on external state (time, network, storage)
-   - Examples: `Http.Fetch`, `Memory.Get`, `Content.Ingest`
+### 4.3. Determinism & Purity
 
-Syscall documentation SHOULD clearly indicate whether a syscall is pure or impure.
+Events are categorized by their side effects:
 
-### 4.3. Error Handling Requirements
+1.  **Pure Queries**: MUST NOT mutate state. MUST be deterministic (same input + same state → same output).
+    -   Example: `Kernel.Resolve`
+2.  **Impure Commands**: MAY mutate state. MAY depend on external factors.
+    -   Example: `Kernel.Ingest`
 
-Syscalls MUST handle errors according to these rules:
+### 4.4. Error Handling
 
-1. **Error Signaling**: Syscalls MUST return error events for:
-   - Invalid input (schema validation failure)
-   - Execution failure (e.g., network timeout, permission denied)
-   - Resource unavailability (e.g., missing storage key)
+All failures MUST be emitted as `type: "error"` events.
+-   **Payload**: MUST conform to the HTTP-centric error schema defined in RFC 0024 (`code`, `message`, `cause`).
+-   **Causation**: MUST include `metadata.causation` linking to the triggering event.
 
-2. **Error Format**: Error events MUST include:
-   - **Type**: Event type set to `"error"`
-   - **Message**: Human-readable description of the failure
-   - **Context**: Sufficient information to diagnose the issue (MAY include error codes)
+### 4.5. Large Data & Blob Pointers
 
-3. **No Silent Failures**: Syscalls MUST NOT suppress errors or return success when operation failed
+To maintain token efficiency and NDJSON compatibility, events MUST NOT embed large binary data or long text strings directly in the `payload`.
 
-### 4.4. State Isolation Requirements
+Instead, implementations MUST use the **BlobPointer** pattern defined in **RFC 0025**.
 
-Syscalls that access mutable state (storage, memory, files) MUST:
+*   **Threshold**: Payloads larger than **4KB** SHOULD use a BlobPointer.
+*   **Structure**: A BlobPointer is a JSON object pointing to the resource (`file://`, `https://`, or `data:`).
+*   **Usage**: Fields that typically contain large data (e.g., `body`, `content`, `image`) SHOULD accept either raw data (if small) or a BlobPointer object.
 
-1. **Respect Origin**: Use the origin parameter (defined in **RFC 0015**) to determine storage namespace
-2. **Prevent Leakage**: MUST NOT allow cross-origin data access
-3. **Consistency**: Maintain state consistency within an origin namespace
-4. **Immutability**: User-space code MUST NOT be able to override the origin parameter
+**Example (BlobPointer in Event)**:
+```json
+{
+  "type": "response",
+  "name": "Http.Fetch",
+  "payload": {
+    "status": 200,
+    "body": {
+      "scheme": "file",
+      "path": "/tmp/large-response.json"
+    }
+  }
+}
+```
 
-> **Note**: The mechanism for passing the origin parameter is implementation-defined. See **RFC 0015** for normative origin semantics.
+## 5. Core Kernel Events
 
-### 4.5. Idempotency Guidance
+The following events are fundamental to the OS lifecycle and MUST be implemented by every compliant kernel.
 
-Syscalls SHOULD be idempotent where semantically appropriate:
+### 5.1. Kernel.Ingest (The Loader)
 
-- **Idempotent** (RECOMMENDED): Multiple identical requests produce the same result
-  - Examples: `Memory.Set`, `Memory.Get`, `Crypto.Seal`
+The `Kernel.Ingest` command implements the "Lifecycle of Authority" defined in **RFC 0015**. It transforms a passive resource (URI) into an active capability (Context).
 
-- **Non-Idempotent** (Where necessary): Repeated requests may have different effects
-  - Examples: `Memory.Delete` (second call may return "not found")
+#### 5.1.1. Event Interface
+*   **Topic**: `Kernel.Ingest`
+*   **Type**: `command`
+*   **Data Schema**:
+    ```json
+    {
+      "uri": "string (Absolute URI to ingest)"
+    }
+    ```
+*   **Success Event**: `type: "response"`
+    ```json
+    {
+      "success": true,
+      "context_id": "string (Unique ID of loaded context)"
+    }
+    ```
+*   **Error Event**: `type: "error"` (e.g., 404 Not Found, 403 Forbidden)
 
-### 4.6. Testability Requirements
+#### 5.1.2. Execution Pipeline
+This command MUST trigger the following observable phases:
+1.  **Fetch**: Retrieve raw content.
+2.  **Validate**: Verify integrity.
+3.  **Load**: Parse and materialize.
+4.  **Adopt**: Register in kernel namespace.
 
-All syscall behavior specified in this contract MUST be:
+### 5.2. Kernel.Resolve (The Linker)
 
-1. **Black-Box Testable**: Verifiable through input/output observation only
-2. **Independently Implementable**: Any conforming implementation should satisfy the contract
-3. **Unambiguous**: Behavior clearly defined for all valid inputs
+The `Kernel.Resolve` query resolves a relative path against the current execution context.
 
+#### 5.2.1. Event Interface
+*   **Topic**: `Kernel.Resolve`
+*   **Type**: `query`
+*   **Data Schema**:
+    ```json
+    {
+      "uri": "string (Relative or Absolute URI)",
+      "base": "string (Optional base URI, defaults to current context)"
+    }
+    ```
+*   **Success Event**: `type: "response"`
+    ```json
+    {
+      "uri": "string (Resolved Absolute URI)"
+    }
+    ```
 
-## 5. Content Ingest Pipeline Specification
+### 5.3. Syscall.List (Introspection)
 
-The `Content.Ingest` syscall (formerly `ingest`) implements the "Lifecycle of Authority" defined in **RFC 0015**. This syscall MUST execute the following observable phases in order:
+The `Syscall.List` query allows agents to discover available capabilities.
 
-### 5.1. Phase Sequence
-
-1. **Fetch Phase**:
-   - **Input**: URI of content to ingest
-   - **Observable Behavior**: Retrieve raw content from the specified URI
-   - **Output**: Raw bytes or error if fetch fails
-
-2. **Validate Phase**:
-   - **Input**: Raw content bytes and optional integrity metadata
-   - **Observable Behavior**: Verify content integrity and authenticity
-   - **Output**: Validated content or error if validation fails
-
-3. **Load Phase**:
-   - **Input**: Validated content
-   - **Observable Behavior**: Parse and materialize content into executable form
-   - **Output**: Loaded content representation or error if loading fails
-
-4. **Adopt Phase**:
-   - **Input**: Loaded content
-   - **Observable Behavior**: Perform identity switch and register content in kernel namespace
-   - **Output**: Success confirmation with content identifier or error if adoption fails
-
-### 5.2. Phase Ordering Requirement
-
-The phases MUST execute in the specified order (Fetch → Validate → Load → Adopt). A failure in any phase MUST:
-
-1. Abort the ingest pipeline
-2. Return an error indicating which phase failed
-3. NOT execute subsequent phases
-
-### 5.3. Atomicity
-
-The ingest operation SHOULD be atomic where possible:
-- Either all phases succeed and content is fully ingested, OR
-- Any phase fails and no persistent state changes occur
-
-> **Note**: The specific cryptographic validation mechanisms, content formats, and identity management are defined in **RFC 0015** and **RFC 0016**.
+#### 5.3.1. Event Interface
+*   **Topic**: `Syscall.List`
+*   **Type**: `query`
+*   **Data Schema**: `{}` (Empty object)
+*   **Success Event**: `type: "response"`
+    ```json
+    {
+      "syscalls": ["string (List of registered event topics)"]
+    }
+    ```
 
 ## 6. Forward Compatibility Guarantees
 
@@ -295,7 +309,7 @@ Error messages SHOULD:
 - **[RFC 0014]** - Bootloader Core Protocol
   - Defines boot-time origin configuration
 
-- **[RFC 0018]** - System Memory Subsystem
+- **[RFC 0018]** - Kernel Memory Subsystem
   - Example syscall implementation using this ABI
 
 - **[RFC 0024]** - Kernel Events Architecture

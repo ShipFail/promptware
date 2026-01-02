@@ -78,7 +78,7 @@ PromptWar̊e ØS uses a **unified VFS architecture** under the `os:///` scheme w
     * **VFS Driver: HTTP** (RFC 0029): `os:///agents/*`, `os:///skills/*`, etc. (catch-all for non-reserved paths)
       * Operations: Read (source text), Ingest (load into context)
       * Mount table resolution: longest-prefix matching → HTTPS/file:// URLs
-    * **System Memory Subsystem** (RFC 0018): `os:///memory/*` (persistent KV storage)
+    * **Kernel Memory Subsystem** (RFC 0018): `os:///memory/*` (persistent KV storage)
       * Operations: Read, Write, List, Delete
       * Vault enforcement: `os:///memory/vault/*` requires `pwenc:v1:*` ciphertext
     * **VFS Driver: Sysfs** (RFC 0027): `os:///sys/*` (control plane, writable)
@@ -437,7 +437,7 @@ For comprehensive examples of individual VFS drivers:
   - Read vs Ingest operations
   - Version pinning recommendations
 
-* **RFC 0018 (System Memory Subsystem)**: Persistent KV storage
+* **RFC 0018 (Kernel Memory Subsystem)**: Persistent KV storage
   - Vault ciphertext enforcement (`pwenc:v1:*`)
   - Memory operations (read/write/list/delete)
   - Kernel parameter storage

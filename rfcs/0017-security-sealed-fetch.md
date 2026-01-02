@@ -230,7 +230,7 @@ await sealed.use(async (token) => {
 ### PromptWar̊e ØS References
 
 * [RFC 0016: Crypto Primitives Specification](0016-security-crypto-primitives.md)
-* [RFC 0018: System Memory Subsystem](0018-system-memory-subsystem.md)
+* [RFC 0018: Kernel Memory Subsystem](0018-kernel-memory-subsystem.md)
 
 ### External References
 

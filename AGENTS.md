@@ -79,7 +79,7 @@ You are working inside the `promptware` repository. This is the source code for 
 *   **Deno KV Backend**: Use `pwosMemory` (backed by Deno KV) for all mutable application state.
 *   **Strict Isolation**: All system tools MUST run with `--location <origin>` (from Bootloader) to ensure multi-tenant isolation.
 *   **Hierarchical Keys**: Use path-like keys (e.g., `users/alice/settings`) to organize state.
-*   *Detail*: [rfcs/0018-system-memory-subsystem.md](rfcs/0018-system-memory-subsystem.md)
+*   *Detail*: [rfcs/0018-kernel-memory-subsystem.md](rfcs/0018-kernel-memory-subsystem.md)
 
 ### 3. Tool-Based Context Separation
 *   **User Space (Local)**: Standard tools (`read_file`, `run_in_terminal`) operate on the **Local Filesystem**.

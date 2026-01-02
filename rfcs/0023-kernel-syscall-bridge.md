@@ -159,55 +159,55 @@ Signature mode is signaled by an authentication payload with `scheme: "signature
 
 If signature verification fails, the daemon MUST close the connection immediately.
 
-### 4.6 Reserved Syscall Names
+### 4.6 Reserved Syscall Events
 
-The following names are reserved by the bridge framework.
+The following events are reserved by the bridge framework.
 
-#### 4.6.1 `Syscall.Authenticate` (mandatory prologue)
+#### 4.6.1 Syscall.Authenticate (Mandatory Prologue)
 
-**Purpose:** mandatory connection prologue; optional authentication by configuration.
+Mandatory connection prologue; optional authentication by configuration.
 
-* Daemon MUST send `Syscall.Authenticate` as the first frame on every new connection:
-  * `type: "command"`
-  * `name: "Syscall.Authenticate"`
-* Client MUST respond before any other client-originated frames are processed:
-  * `type: "response"`
-  * `name: "Syscall.Authenticate"`
+*   **Topic**: `Syscall.Authenticate`
+*   **Type**: `command` (Sent by Daemon to Client)
+*   **Data Schema (Daemon Request)**:
+    ```json
+    {
+      "scheme": "string ('none' | 'signature')",
+      "challenge": "string (Optional base64 challenge for signature scheme)"
+    }
+    ```
+*   **Success Event**: `type: "response"` (Sent by Client to Daemon)
+    ```json
+    {
+      "signature": "string (Optional base64 signature if scheme='signature')"
+    }
+    ```
+*   **Error Event**: `type: "error"` (Connection closed immediately)
 
-The daemon authentication `payload` MUST include a `scheme` field.
+**Behavior**:
+1.  Daemon sends `Syscall.Authenticate` as the first frame.
+2.  Client MUST respond with a valid `response` event.
+3.  If verification fails, Daemon closes connection.
 
-**Open mode (no SSH public key configured):**
+#### 4.6.2 Syscall.Shutdown
 
-```json
-{"scheme":"none"}
-```
+Manual daemon shutdown.
 
-In open mode, the client MUST still send a response (payload MAY be empty).
+*   **Topic**: `Syscall.Shutdown`
+*   **Type**: `command`
+*   **Data Schema**: `{}` (Empty)
+*   **Success Event**: `type: "response"`
+    ```json
+    {
+      "success": true
+    }
+    ```
+*   **Error Event**: `type: "error"`
 
-**Signature mode (SSH public key configured):**
-
-```json
-{"scheme":"signature","challenge":"<base64>"}
-```
-
-In signature mode, the client response payload MUST include a signature over the provided challenge. The signing mechanism and key access are implementation-defined. The server MUST verify the signature using the configured SSH public key.
-
-If verification fails, the daemon MUST close the connection immediately. If verification succeeds, the daemon MUST continue processing subsequent frames.
-
-#### 4.3.2 `Syscall.Shutdown`
-
-**Purpose:** manual daemon shutdown.
-
-* Client MAY send a `command` named `Syscall.Shutdown`.
-* Daemon SHOULD:
-  * stop accepting new connections,
-  * finish processing current input frames,
-  * flush outputs,
-  * close active connections,
-  * remove the socket file,
-  * exit.
-
-Authorization relies on Unix socket directory permissions (see Security Considerations).
+**Behavior**:
+1.  Daemon stops accepting new connections.
+2.  Flushes pending outputs.
+3.  Closes active connections and exits.
 
 ### 4.4 Architecture
 

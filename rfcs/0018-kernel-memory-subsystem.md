@@ -1,6 +1,6 @@
 ---
 rfc: 0018
-title: System Memory Subsystem
+title: Kernel Memory Subsystem
 author: Huan Li, ChatGPT, Claude, GitHub Copilot
 status: Draft
 type: Standards Track
@@ -10,7 +10,7 @@ version: 1.0
 tags: [vfs, driver, memory, keyvalue, vault]
 ---
 
-# RFC 0018: System Memory Subsystem
+# RFC 0018: Kernel Memory Subsystem
 
 ## 1. Abstract
 
@@ -88,7 +88,92 @@ If the relative path starts with `vault/` (e.g., `vault/api_key`), the value MUS
 *   **Usage**:
     *   `os:///private/notes` → Physically stored as `secure_zone/notes`.
 
-## 9. References
+## 9. Event Interface
+
+The Memory Subsystem MUST expose the following events via the Kernel ABI (RFC 0019).
+
+### 9.1. Memory.Get
+
+Retrieves a value from the KV store.
+
+*   **Topic**: `Memory.Get`
+*   **Type**: `query`
+*   **Data Schema**:
+    ```json
+    {
+      "key": "string (Path to retrieve, e.g., '/config/theme')"
+    }
+    ```
+*   **Success Event**: `type: "response"`
+    ```json
+    {
+      "value": "any (The stored value)"
+    }
+    ```
+*   **Error Event**: `type: "error"` (e.g., 404 Not Found)
+
+### 9.2. Memory.Set
+
+Stores a value in the KV store.
+
+*   **Topic**: `Memory.Set`
+*   **Type**: `command`
+*   **Data Schema**:
+    ```json
+    {
+      "key": "string (Path to store)",
+      "value": "any (Value to store)"
+    }
+    ```
+*   **Success Event**: `type: "response"`
+    ```json
+    {
+      "success": true
+    }
+    ```
+*   **Error Event**: `type: "error"` (e.g., 422 Unprocessable Entity for Vault violations)
+
+### 9.3. Memory.List
+
+Lists keys under a prefix.
+
+*   **Topic**: `Memory.List`
+*   **Type**: `query`
+*   **Data Schema**:
+    ```json
+    {
+      "prefix": "string (Path prefix to list)"
+    }
+    ```
+*   **Success Event**: `type: "response"`
+    ```json
+    {
+      "keys": ["string (List of child keys)"]
+    }
+    ```
+*   **Error Event**: `type: "error"`
+
+### 9.4. Memory.Delete
+
+Removes a key and its value.
+
+*   **Topic**: `Memory.Delete`
+*   **Type**: `command`
+*   **Data Schema**:
+    ```json
+    {
+      "key": "string (Path to delete)"
+    }
+    ```
+*   **Success Event**: `type: "response"`
+    ```json
+    {
+      "success": true
+    }
+    ```
+*   **Error Event**: `type: "error"`
+
+## 10. References
 
 ### PromptWar̊e ØS References
 *   [RFC 0026: VFS Driver Interface Specification](0026-vfs-driver-interface.md)
