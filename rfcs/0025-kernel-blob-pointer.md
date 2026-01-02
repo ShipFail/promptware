@@ -14,7 +14,7 @@ tags: [kernel, blob, serialization, events, ndjson]
 
 ## 1. Summary
 
-This RFC specifies **BlobPointer**, a minimal JSON-serializable object used to point to an external blob resource (e.g., a local file, an HTTPS URL, or a Data URL) from within PromptWar̊e ØS OsEvents.
+This RFC specifies **BlobPointer**, a minimal JSON-serializable object used to point to an external blob resource (e.g., a local file, an HTTPS URL, or a Data URL) from within PromptWar̊e ØS OsMessages.
 
 BlobPointer is designed to minimize token usage in Prompt Kernel context, maximize LLM readability and cognitive simplicity, follow established URI component terminology, provide deterministic normalization rules, and be independently implementable and testable.
 
@@ -24,10 +24,10 @@ BlobPointer is **a pointer**, not a container. BlobPointer **MUST NOT** embed la
 
 ## 2. Motivation
 
-PromptWar̊e ØS OsEvents require a mechanism to reference external blob resources (files, URLs, data) without embedding large content directly in event payloads. This need arises from:
+PromptWar̊e ØS OsMessages require a mechanism to reference external blob resources (files, URLs, data) without embedding large content directly in message data. This need arises from:
 
 1. **Token Efficiency**: LLM context windows are precious. Embedding large blobs wastes tokens.
-2. **NDJSON Compatibility**: Event streams use NDJSON. Inline binary data breaks readability.
+2. **NDJSON Compatibility**: Message streams use NDJSON. Inline binary data breaks readability.
 3. **Ephemeral Plumbing**: Kernels need to pass intermediate artifacts (e.g., ingested markdown, tool outputs) between components.
 4. **Deterministic Serialization**: For testing, logging, and replay, pointer representation must be canonical.
 
@@ -302,10 +302,10 @@ The `data` scheme SHOULD only be used when:
 
 ## 7. Compatibility
 
-* **PromptWar̊e ØS Integration**: BlobPointer is designed for embedding in OsEvents (see RFC 0024).
+* **PromptWar̊e ØS Integration**: BlobPointer is designed for embedding in OsMessages (see RFC 0024).
 * **NDJSON Compatibility**: BlobPointer is JSON-serializable and NDJSON-friendly.
 * **Ephemeral References**: BlobPointer references **ephemeral** blob resources used as intermediate plumbing between kernels.
-* **Durable Logs**: Durable event logs **SHOULD NOT** include BlobPointer references as the sole source of truth for important state.
+* **Durable Logs**: Durable message logs **SHOULD NOT** include BlobPointer references as the sole source of truth for important state.
 * **General Reusability**: While a PromptWar̊e ØS primitive, the data model is designed to remain generally reusable.
 
 ---
@@ -380,7 +380,7 @@ The 4096-byte recommendation for `data:` scheme payloads is a token-efficiency g
 ## 10. Implementation Plan
 
 1. **Reference Implementation**: Add BlobPointer validation and normalization to Software Kernel
-2. **OsEvent Integration**: Update event serialization to support BlobPointer fields
+2. **OsMessage Integration**: Update message serialization to support BlobPointer fields
 3. **Test Suite**: Implement black-box tests per §11
 4. **Documentation**: Update kernel documentation with BlobPointer examples
 
@@ -475,7 +475,7 @@ A future RFC **MAY** promote the 4096-byte `data:` size limit from SHOULD to MUS
 
 ### PromptWar̊e ØS References
 
-* [RFC 0024: Kernel Events Architecture](0024-kernel-events-architecture.md)
+* [RFC 0024: CQRS Message Schema](0024-cqrs-message-schema.md)
 
 ### External References
 
@@ -491,7 +491,7 @@ A future RFC **MAY** promote the 4096-byte `data:` size limit from SHOULD to MUS
 * **Ephemeral Resource**: A temporary file or URL used for intermediate processing
 * **Normalization**: The process of converting a URI representation to canonical form
 * **NDJSON**: Newline-Delimited JSON, a streaming JSON format
-* **OsEvent**: A PromptWar̊e ØS event message (see RFC 0024)
+* **OsMessage**: A PromptWar̊e ØS message (see RFC 0024)
 
 ---
 

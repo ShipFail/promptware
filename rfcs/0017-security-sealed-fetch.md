@@ -1,7 +1,7 @@
 ---
 rfc: 0017
 title: Sealed Handling & sealedFetch Helper Specification
-author: Huan Li, ChatGPT, GitHub Copilot (Gemini 3 Pro)
+author: Huan Li, ChatGPT, GitHub Copilot
 status: Draft
 type: Standards Track
 created: 2025-12-23
@@ -121,9 +121,9 @@ This RFC defines the `Network.Fetch` command, which performs the actual HTTP req
  * found in headers just before transmission.
  */
 type NetworkFetchCommand = {
-  type: "command";
-  name: "Network.Fetch";
-  payload: {
+  kind: "command";
+  type: "Network.Fetch";
+  data: {
     /** The URL to fetch. */
     url: string;
     
@@ -146,13 +146,13 @@ type NetworkFetchCommand = {
 
 ```typescript
 /**
- * [Response] Network.Fetch
+ * [Reply] Network.Fetch
  * The result of the HTTP request.
  */
-type NetworkFetchResponse = {
-  type: "response";
-  name: "Network.Fetch";
-  payload: {
+type NetworkFetchReply = {
+  kind: "reply";
+  type: "Network.Fetch";
+  data: {
     /** HTTP status code (e.g., 200, 404). */
     status: number;
     
@@ -172,29 +172,29 @@ type NetworkFetchResponse = {
 
 When processing a `Network.Fetch` command, the Kernel Event Handler **MUST**:
 
-1.  **Scan Headers**: Iterate through all keys in `payload.headers`.
+1.  **Scan Headers**: Iterate through all keys in `data.headers`.
 2.  **Detect Sealed Values**: Identify values starting with the `pwenc:v1:` prefix.
 3.  **Unseal In-Memory**: Decrypt these values using the Foundation Crypto (RFC 0016) *immediately* before transmission.
 4.  **Substitute**: Replace the ciphertext with plaintext in the outbound HTTP request.
 5.  **Execute**: Perform the network request.
-6.  **Sanitize**: Ensure the plaintext is **NEVER** logged, stored, or included in the `Network.Fetch` response event.
+6.  **Sanitize**: Ensure the plaintext is **NEVER** logged, stored, or included in the `Network.Fetch` reply message.
 
 **Constraints**:
 *   The handler **MUST NOT** modify the response body.
 *   The handler **MUST NOT** attempt to encrypt the response (unless explicitly requested by a future feature).
-*   If unsealing fails (invalid ciphertext), the handler **MUST** emit an `error` event (Code 422) and **MUST NOT** send the request.
+*   If unsealing fails (invalid ciphertext), the handler **MUST** emit an `error` message (Code 422) and **MUST NOT** send the request.
 
 ## Client-Side Adaptation (sealedFetch)
 
-To maintain compatibility with existing ecosystems (e.g., W3C Fetch), client libraries SHOULD provide an adapter that maps standard function calls to `Network.Fetch` events.
+To maintain compatibility with existing ecosystems (e.g., W3C Fetch), client libraries SHOULD provide an adapter that maps standard function calls to `Network.Fetch` messages.
 
 ### Adaptation Behavior
 
 When adapting a standard fetch-like interface (accepting `input` and `init` arguments) to the Kernel:
 
-1.  **Normalization**: Convert the `input` (URL/Request) and `init` (options) into a `Network.Fetch` command payload.
-2.  **Dispatch**: Emit the `Network.Fetch` command via the system event bus.
-3.  **Rehydration**: Convert the `Network.Fetch` response payload back into the host environment's standard Response object.
+1.  **Normalization**: Convert the `input` (URL/Request) and `init` (options) into a `Network.Fetch` command data.
+2.  **Dispatch**: Emit the `Network.Fetch` command via the system message bus.
+3.  **Rehydration**: Convert the `Network.Fetch` reply data back into the host environment's standard Response object.
 
 **Note**: The *unsealing* of headers happens inside the **Kernel Event Handler** for `Network.Fetch`, not in the client-side helper. This ensures the plaintext never exists in the client's memory space, only in the ephemeral kernel process.
 

@@ -37,37 +37,37 @@ The Vector Subsystem operates as a specialized storage engine. While it MAY be m
 ### 4.1. The Embedding Model
 The subsystem MUST be configured with a default Embedding Model (e.g., `text-embedding-3-small` or a local ONNX model). This ensures that all vectors in a collection are compatible.
 
-## 5. Event Interface
+## 5. Message Interface
 
-The Vector Subsystem MUST expose the following events via the Kernel ABI (RFC 0019).
+The Vector Subsystem MUST expose the following messages via the Kernel ABI (RFC 0019).
 
 ### 5.1. Vector.Embed
 
 Generates an embedding vector for the given text.
 
-*   **Topic**: `Vector.Embed`
-*   **Type**: `query` (Pure calculation)
-*   **Data Schema**:
+*   **Kind**: `query`
+*   **Type**: `Vector.Embed`
+*   **Data**:
     ```json
     {
       "text": "string (Text to embed)"
     }
     ```
-*   **Success Event**: `type: "response"`
+*   **Success Reply**: `kind: "reply"`, `type: "Vector.Embed"`
     ```json
     {
       "vector": "[number] (Array of floats)"
     }
     ```
-*   **Error Event**: `type: "error"`
+*   **Error Reply**: `kind: "error"`, `type: "Vector.Embed"`
 
 ### 5.2. Vector.Store
 
 Stores a document in the vector database. The subsystem AUTOMATICALLY generates the embedding for the text.
 
-*   **Topic**: `Vector.Store`
-*   **Type**: `command`
-*   **Data Schema**:
+*   **Kind**: `command`
+*   **Type**: `Vector.Store`
+*   **Data**:
     ```json
     {
       "collection": "string (Name of the collection)",
@@ -76,21 +76,21 @@ Stores a document in the vector database. The subsystem AUTOMATICALLY generates 
       "metadata": "object (Optional JSON metadata)"
     }
     ```
-*   **Success Event**: `type: "response"`
+*   **Success Reply**: `kind: "reply"`, `type: "Vector.Store"`
     ```json
     {
       "success": true
     }
     ```
-*   **Error Event**: `type: "error"`
+*   **Error Reply**: `kind: "error"`, `type: "Vector.Store"`
 
 ### 5.3. Vector.Search
 
 Performs a semantic similarity search.
 
-*   **Topic**: `Vector.Search`
-*   **Type**: `query`
-*   **Data Schema**:
+*   **Kind**: `query`
+*   **Type**: `Vector.Search`
+*   **Data**:
     ```json
     {
       "collection": "string (Target collection)",
@@ -98,7 +98,7 @@ Performs a semantic similarity search.
       "limit": "number (Max results, default 5)"
     }
     ```
-*   **Success Event**: `type: "response"`
+*   **Success Reply**: `kind: "reply"`, `type: "Vector.Search"`
     ```json
     {
       "results": [
@@ -111,28 +111,28 @@ Performs a semantic similarity search.
       ]
     }
     ```
-*   **Error Event**: `type: "error"`
+*   **Error Reply**: `kind: "error"`, `type: "Vector.Search"`
 
 ### 5.4. Vector.Delete
 
 Removes a document.
 
-*   **Topic**: `Vector.Delete`
-*   **Type**: `command`
-*   **Data Schema**:
+*   **Kind**: `command`
+*   **Type**: `Vector.Delete`
+*   **Data**:
     ```json
     {
       "collection": "string",
       "id": "string"
     }
     ```
-*   **Success Event**: `type: "response"`
+*   **Success Reply**: `kind: "reply"`, `type: "Vector.Delete"`
     ```json
     {
       "success": true
     }
     ```
-*   **Error Event**: `type: "error"`
+*   **Error Reply**: `kind: "error"`, `type: "Vector.Delete"`
 
 ## 6. VFS Integration (Optional)
 

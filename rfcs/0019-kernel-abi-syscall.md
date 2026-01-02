@@ -101,29 +101,29 @@ User-space implementations MUST NOT define syscalls using these prefixes.
 - ❌ `Sys.CustomTool` (uses reserved prefix)
 - ❌ `Syscall.MyCommand` (uses reserved prefix)
 
-## 4. The Event Protocol
+## 4. The Message Protocol
 
 ### 4.1. Universal Interface
 
-All kernel interactions MUST occur via the **OsEvent** protocol defined in **RFC 0024**. There are no function calls, only events.
+All kernel interactions MUST occur via the **OsMessage** protocol defined in **RFC 0024**. There are no function calls, only messages.
 
-- **Input**: An `OsEvent` object with `type: "command"` or `type: "query"`.
-- **Output**: An `OsEvent` object with `type: "response"` or `type: "error"`.
-- **Notification**: An `OsEvent` object with `type: "event"` (for async updates).
+- **Input**: An `OsMessage` object with `kind: "command"` or `kind: "query"`.
+- **Output**: An `OsMessage` object with `kind: "reply"` or `kind: "error"`.
+- **Notification**: An `OsMessage` object with `kind: "event"` (for async updates).
 
-### 4.2. Event Types
+### 4.2. Message Kinds
 
-Implementations MUST support the 5 behavioral types defined in RFC 0024:
+Implementations MUST support the 5 behavioral kinds defined in RFC 0024:
 
-1.  **Command** (`type: "command"`): Request to mutate state (e.g., `Memory.Set`).
-2.  **Query** (`type: "query"`): Request to retrieve state (e.g., `Memory.Get`).
-3.  **Event** (`type: "event"`): Notification of past occurrence (e.g., `Job.Completed`).
-4.  **Response** (`type: "response"`): Successful outcome of a command/query.
-5.  **Error** (`type: "error"`): Failed outcome of a command/query.
+1.  **Command** (`kind: "command"`): Request to mutate state (e.g., `Memory.Set`).
+2.  **Query** (`kind: "query"`): Request to retrieve state (e.g., `Memory.Get`).
+3.  **Event** (`kind: "event"`): Notification of past occurrence (e.g., `Job.Completed`).
+4.  **Reply** (`kind: "reply"`): Successful outcome of a command/query.
+5.  **Error** (`kind: "error"`): Failed outcome of a command/query.
 
 ### 4.3. Determinism & Purity
 
-Events are categorized by their side effects:
+Messages are categorized by their side effects:
 
 1.  **Pure Queries**: MUST NOT mutate state. MUST be deterministic (same input + same state → same output).
     -   Example: `Kernel.Resolve`
@@ -132,26 +132,26 @@ Events are categorized by their side effects:
 
 ### 4.4. Error Handling
 
-All failures MUST be emitted as `type: "error"` events.
--   **Payload**: MUST conform to the HTTP-centric error schema defined in RFC 0024 (`code`, `message`, `cause`).
--   **Causation**: MUST include `metadata.causation` linking to the triggering event.
+All failures MUST be emitted as `kind: "error"` messages.
+-   **Data**: MUST conform to the HTTP-centric error schema defined in RFC 0024 (`code`, `message`, `cause`).
+-   **Causation**: MUST include `metadata.causation` linking to the triggering message.
 
 ### 4.5. Large Data & Blob Pointers
 
-To maintain token efficiency and NDJSON compatibility, events MUST NOT embed large binary data or long text strings directly in the `payload`.
+To maintain token efficiency and NDJSON compatibility, messages MUST NOT embed large binary data or long text strings directly in the `data`.
 
 Instead, implementations MUST use the **BlobPointer** pattern defined in **RFC 0025**.
 
-*   **Threshold**: Payloads larger than **4KB** SHOULD use a BlobPointer.
+*   **Threshold**: Data larger than **4KB** SHOULD use a BlobPointer.
 *   **Structure**: A BlobPointer is a JSON object pointing to the resource (`file://`, `https://`, or `data:`).
 *   **Usage**: Fields that typically contain large data (e.g., `body`, `content`, `image`) SHOULD accept either raw data (if small) or a BlobPointer object.
 
-**Example (BlobPointer in Event)**:
+**Example (BlobPointer in Message)**:
 ```json
 {
-  "type": "response",
-  "name": "Http.Fetch",
-  "payload": {
+  "kind": "reply",
+  "type": "Http.Fetch",
+  "data": {
     "status": 200,
     "body": {
       "scheme": "file",
@@ -161,31 +161,31 @@ Instead, implementations MUST use the **BlobPointer** pattern defined in **RFC 0
 }
 ```
 
-## 5. Core Kernel Events
+## 5. Core Kernel Messages
 
-The following events are fundamental to the OS lifecycle and MUST be implemented by every compliant kernel.
+The following messages are fundamental to the OS lifecycle and MUST be implemented by every compliant kernel.
 
 ### 5.1. Kernel.Ingest (The Loader)
 
 The `Kernel.Ingest` command implements the "Lifecycle of Authority" defined in **RFC 0015**. It transforms a passive resource (URI) into an active capability (Context).
 
-#### 5.1.1. Event Interface
-*   **Topic**: `Kernel.Ingest`
-*   **Type**: `command`
-*   **Data Schema**:
+#### 5.1.1. Message Interface
+*   **Kind**: `command`
+*   **Type**: `Kernel.Ingest`
+*   **Data**:
     ```json
     {
       "uri": "string (Absolute URI to ingest)"
     }
     ```
-*   **Success Event**: `type: "response"`
+*   **Success Reply**: `kind: "reply"`, `type: "Kernel.Ingest"`
     ```json
     {
       "success": true,
       "context_id": "string (Unique ID of loaded context)"
     }
     ```
-*   **Error Event**: `type: "error"` (e.g., 404 Not Found, 403 Forbidden)
+*   **Error Reply**: `kind: "error"`, `type: "Kernel.Ingest"` (e.g., 404 Not Found, 403 Forbidden)
 
 #### 5.1.2. Execution Pipeline
 This command MUST trigger the following observable phases:
@@ -198,17 +198,17 @@ This command MUST trigger the following observable phases:
 
 The `Kernel.Resolve` query resolves a relative path against the current execution context.
 
-#### 5.2.1. Event Interface
-*   **Topic**: `Kernel.Resolve`
-*   **Type**: `query`
-*   **Data Schema**:
+#### 5.2.1. Message Interface
+*   **Kind**: `query`
+*   **Type**: `Kernel.Resolve`
+*   **Data**:
     ```json
     {
       "uri": "string (Relative or Absolute URI)",
       "base": "string (Optional base URI, defaults to current context)"
     }
     ```
-*   **Success Event**: `type: "response"`
+*   **Success Reply**: `kind: "reply"`, `type: "Kernel.Resolve"`
     ```json
     {
       "uri": "string (Resolved Absolute URI)"
@@ -219,14 +219,14 @@ The `Kernel.Resolve` query resolves a relative path against the current executio
 
 The `Syscall.List` query allows agents to discover available capabilities.
 
-#### 5.3.1. Event Interface
-*   **Topic**: `Syscall.List`
-*   **Type**: `query`
-*   **Data Schema**: `{}` (Empty object)
-*   **Success Event**: `type: "response"`
+#### 5.3.1. Message Interface
+*   **Kind**: `query`
+*   **Type**: `Syscall.List`
+*   **Data**: `{}` (Empty object)
+*   **Success Reply**: `kind: "reply"`, `type: "Syscall.List"`
     ```json
     {
-      "syscalls": ["string (List of registered event topics)"]
+      "syscalls": ["string (List of registered message types)"]
     }
     ```
 
@@ -312,8 +312,8 @@ Error messages SHOULD:
 - **[RFC 0018]** - Kernel Memory Subsystem
   - Example syscall implementation using this ABI
 
-- **[RFC 0024]** - Kernel Events Architecture
-  - Defines OsEvent schema for event-driven syscall communication
+- **[RFC 0024]** - CQRS Message Schema
+  - Defines OsMessage schema for message-driven syscall communication
 
 ## 9. Appendix: Change Log
 

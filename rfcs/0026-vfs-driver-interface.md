@@ -115,7 +115,7 @@ Drivers MUST operate exclusively on **Relative Paths**.
 
 ## 7. Error Handling
 
-Drivers MUST map backend-specific errors to the standard PromptWar̊e ØS Error Taxonomy (RFC 0024).
+Drivers MUST map backend-specific errors to the standard PromptWar̊e ØS Error Data Schema (RFC 0024).
 
 | Condition | Standard Error Code |
 | :--- | :--- |
@@ -135,7 +135,7 @@ Drivers MUST map backend-specific errors to the standard PromptWar̊e ØS Error 
 
 ### PromptWar̊e ØS References
 *   [RFC 0013: VFS Core Architecture](0013-vfs-core-architecture.md)
-*   [RFC 0024: CQRS Event Schema](0024-cqrs-event-schema.md)
+*   [RFC 0024: CQRS Message Schema](0024-cqrs-message-schema.md)
 
 ### External References
 *   [RFC 2119: Key words for use in RFCs](https://www.rfc-editor.org/rfc/rfc2119)
