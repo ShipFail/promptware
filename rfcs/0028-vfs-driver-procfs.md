@@ -1,6 +1,6 @@
 ---
 rfc: 0028
-title: Proc VFS Driver Specification
+title: VFS Driver: Procfs
 author: Huan Li, Claude, GitHub Copilot
 status: Draft
 type: Standards Track
@@ -10,7 +10,7 @@ version: 1.0
 tags: [vfs, driver, proc, introspection]
 ---
 
-# RFC 0028: Proc VFS Driver Specification
+# RFC 0028: VFS Driver: Procfs
 
 ## 1. Abstract
 

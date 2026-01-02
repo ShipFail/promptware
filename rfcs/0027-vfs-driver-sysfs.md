@@ -1,6 +1,6 @@
 ---
 rfc: 0027
-title: Sys VFS Driver Specification
+title: VFS Driver: Sysfs
 author: Huan Li, Claude, GitHub Copilot
 status: Draft
 type: Standards Track
@@ -10,7 +10,7 @@ version: 1.0
 tags: [vfs, driver, sys, control]
 ---
 
-# RFC 0027: Sys VFS Driver Specification
+# RFC 0027: VFS Driver: Sysfs
 
 ## 1. Abstract
 

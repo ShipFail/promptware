@@ -79,19 +79,19 @@ You are working inside the `promptware` repository. This is the source code for 
 *   **Deno KV Backend**: Use `pwosMemory` (backed by Deno KV) for all mutable application state.
 *   **Strict Isolation**: All system tools MUST run with `--location <origin>` (from Bootloader) to ensure multi-tenant isolation.
 *   **Hierarchical Keys**: Use path-like keys (e.g., `users/alice/settings`) to organize state.
-*   *Detail*: [rfcs/0018-kernel-memory-spec.md](rfcs/0018-kernel-memory-spec.md)
+*   *Detail*: [rfcs/0018-system-memory-subsystem.md](rfcs/0018-system-memory-subsystem.md)
 
 ### 3. Tool-Based Context Separation
 *   **User Space (Local)**: Standard tools (`read_file`, `run_in_terminal`) operate on the **Local Filesystem**.
 *   **Kernel Space (VFS)**: System calls (`pwosResolve`, `pwosSyscall`, `pwosIngest`) operate on the **OS Virtual Filesystem**.
 *   **No Ambiguity**: Never mix contexts. If you need a local file, use a local tool. If you need an OS resource, use a Kernel syscall.
-*   *Detail*: [rfcs/0013-kernel-vfs-sysfs.md](rfcs/0013-kernel-vfs-sysfs.md)
+*   *Detail*: [rfcs/0013-vfs-core-architecture.md](rfcs/0013-vfs-core-architecture.md)
 
 ### 4. Explicit Addressing
 *   **`os://` Protocol**: Use `os://path/to/resource` to explicitly reference OS resources (e.g., `os://skills/writer.md`).
 *   **Default Context**: `pwosIngest` defaults to the `os://` protocol.
 *   **Local Paths**: Standard paths (`/src/main.ts`, `./README.md`) always refer to the Local Disk.
-*   *Detail*: [rfcs/0013-kernel-vfs-sysfs.md](rfcs/0013-kernel-vfs-sysfs.md)
+*   *Detail*: [rfcs/0013-vfs-core-architecture.md](rfcs/0013-vfs-core-architecture.md)
 
 ### 5. Promptware/Software Dualism
 *   **Promptware Kernel (`KERNEL.md`)**: The "Intent" of the OS. Written in English (Intent) and Literate TypeScript (Interface). It defines *why* things happen.
@@ -99,7 +99,7 @@ You are working inside the `promptware` repository. This is the source code for 
 *   **The Law of Singular Entry**: Never implement complex logic (URL parsing, regex) in the Promptware Kernel. Always dispatch to the Software Kernel via `pwosSyscall`.
 *   **The Law of Anchoring**: All internal OS paths must be relative to the **OS Root** or the **Current Context** (`__filename`).
 *   **The Law of Language**: Use `camelCase` for all Kernel APIs to match TypeScript conventions.
-*   *Detail*: [rfcs/0015-kernel-core-arch.md](rfcs/0015-kernel-core-arch.md) and [rfcs/0019-kernel-abi-syscall.md](rfcs/0019-kernel-abi-syscall.md)
+*   *Detail*: [rfcs/0015-kernel-dualmode-architecture.md](rfcs/0015-kernel-dualmode-architecture.md) and [rfcs/0019-kernel-abi-syscall.md](rfcs/0019-kernel-abi-syscall.md)
 
 ### 6. The Law of Parsimony
 *   **Maximize Signal**: Eliminate noise. Write for the machine: crystal clear, ruthlessly short.

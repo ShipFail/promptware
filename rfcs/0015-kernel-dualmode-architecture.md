@@ -72,18 +72,18 @@ PromptWar̊e ØS uses a **unified VFS architecture** under the `os:///` scheme w
 
 * **`os:///`**: Unified VFS namespace (all system resources)
   * Purpose: All system resources (code, state, control, introspection)
-  * Resolved via: **VFS Core** routes to driver based on path prefix (see **RFC 0013 v0.6**)
+  * Resolved via: **VFS Core** routes to driver based on path prefix (see **RFC 0013**)
   * Architecture: **RFC 0026 (VFS Driver Interface)** defines driver contract
   * Drivers:
-    * **Code Driver** (RFC 0029): `os:///agents/*`, `os:///skills/*`, etc. (catch-all for non-reserved paths)
+    * **VFS Driver: HTTP** (RFC 0029): `os:///agents/*`, `os:///skills/*`, etc. (catch-all for non-reserved paths)
       * Operations: Read (source text), Ingest (load into context)
       * Mount table resolution: longest-prefix matching → HTTPS/file:// URLs
-    * **Memory Driver** (RFC 0018 v0.6): `os:///memory/*` (persistent KV storage)
+    * **System Memory Subsystem** (RFC 0018): `os:///memory/*` (persistent KV storage)
       * Operations: Read, Write, List, Delete
       * Vault enforcement: `os:///memory/vault/*` requires `pwenc:v1:*` ciphertext
-    * **Sys Driver** (RFC 0027): `os:///sys/*` (control plane, writable)
+    * **VFS Driver: Sysfs** (RFC 0027): `os:///sys/*` (control plane, writable)
       * Operations: Read, Write (single-value enforcement)
-    * **Proc Driver** (RFC 0028): `os:///proc/*` (introspection, read-only)
+    * **VFS Driver: Procfs** (RFC 0028): `os:///proc/*` (introspection, read-only)
       * Operations: Read (dynamic generation)
 
 * **`file://`**: Local host filesystem
@@ -421,7 +421,7 @@ For comprehensive VFS architecture documentation, see:
   - Path normalization conventions
   - Validation hook pattern
 
-* **RFC 0013 v0.6 (VFS Core Specification)**: Thin orchestration layer
+* **RFC 0013 (VFS Core Architecture)**: Thin orchestration layer
   - Driver routing algorithm
   - Capability enforcement
   - Unified API surface (read/write/ingest/list/delete)
@@ -431,24 +431,24 @@ For comprehensive VFS architecture documentation, see:
 
 For comprehensive examples of individual VFS drivers:
 
-* **RFC 0029 (Code VFS Driver)**: Code ingestion and mount resolution
+* **RFC 0029 (VFS Driver: HTTP)**: Code ingestion and mount resolution
   - Mount table initialization
   - Longest-prefix path matching
   - Read vs Ingest operations
   - Version pinning recommendations
 
-* **RFC 0018 v0.6 (Memory VFS Driver)**: Persistent KV storage
+* **RFC 0018 (System Memory Subsystem)**: Persistent KV storage
   - Vault ciphertext enforcement (`pwenc:v1:*`)
   - Memory operations (read/write/list/delete)
   - Kernel parameter storage
   - Migration guide from Memory API to VFS API
 
-* **RFC 0027 (Sys VFS Driver)**: Control plane operations
+* **RFC 0027 (VFS Driver: Sysfs)**: Control plane operations
   - Single-value enforcement (no newlines)
   - Writable control attributes
   - System configuration examples
 
-* **RFC 0028 (Proc VFS Driver)**: System introspection
+* **RFC 0028 (VFS Driver: Procfs)**: System introspection
   - Dynamic generation pattern
   - Read-only belief surface
   - Kernel cmdline exposure
@@ -498,7 +498,7 @@ await pwosIngest(params.init);  // os:///promptware/agents/shell.md
                                 // Routed to Code driver → mount resolution → fetch
 ```
 
-**For detailed examples, see RFC 0013 v0.6 (VFS Core), RFC 0026 (VFS Driver Interface), and individual driver RFCs (0018, 0027, 0028, 0029).**
+**For detailed examples, see RFC 0013 (VFS Core Architecture), RFC 0026 (VFS Driver Interface), and individual driver RFCs (0018, 0027, 0028, 0029).**
 
 ---
 *End of RFC 0015*

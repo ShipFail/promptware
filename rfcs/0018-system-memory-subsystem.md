@@ -1,6 +1,6 @@
 ---
 rfc: 0018
-title: Memory VFS Driver Specification
+title: System Memory Subsystem
 author: Huan Li, ChatGPT, Claude, GitHub Copilot
 status: Draft
 type: Standards Track
@@ -10,7 +10,7 @@ version: 1.0
 tags: [vfs, driver, memory, keyvalue, vault]
 ---
 
-# RFC 0018: Memory VFS Driver Specification
+# RFC 0018: System Memory Subsystem
 
 ## 1. Abstract
 

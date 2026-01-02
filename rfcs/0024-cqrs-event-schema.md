@@ -1053,7 +1053,7 @@ None. All design decisions have been finalized and approved.
 
 - [RFC 0022: Semantic Token Optimization Protocol (STOP)](0022-semantic-token-optimization-protocol.md)
 - [RFC 0016: Security Crypto Primitives Specification](0016-security-crypto-primitives.md)
-- [RFC 0018: Kernel Memory Specification](0018-kernel-memory-spec.md)
+- [RFC 0018: System Memory Subsystem](0018-system-memory-subsystem.md)
 - [RFC 0023: Dual-Mode Syscall Bridge Specification](0023-kernel-syscall-bridge.md)
 - [RFC 0025: BlobPointer Serialization](0025-kernel-blob-pointer.md)
 

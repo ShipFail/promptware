@@ -134,7 +134,7 @@ Drivers MUST map backend-specific errors to the standard PromptWar̊e ØS Error 
 ## 9. References
 
 ### PromptWar̊e ØS References
-*   [RFC 0013: Kernel VFS Specification](0013-vfs-mount-resolution.md)
+*   [RFC 0013: VFS Core Architecture](0013-vfs-core-architecture.md)
 *   [RFC 0024: CQRS Event Schema](0024-cqrs-event-schema.md)
 
 ### External References

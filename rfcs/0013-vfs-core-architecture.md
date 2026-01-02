@@ -1,6 +1,6 @@
 ---
 rfc: 0013
-title: Kernel VFS Specification
+title: VFS Core Architecture
 author: Huan Li, ChatGPT, Claude, GitHub Copilot
 status: Draft
 type: Standards Track
@@ -10,7 +10,7 @@ version: 1.0
 tags: [vfs, kernel, mount, os, orchestration]
 ---
 
-# RFC 0013: Kernel VFS Specification
+# RFC 0013: VFS Core Architecture
 
 ## 1. Abstract
 

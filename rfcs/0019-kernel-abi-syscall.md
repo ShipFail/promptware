@@ -19,9 +19,9 @@ This RFC defines the Application Binary Interface (ABI) for the PromptWare OS Ke
 > **Scope Note**: This document defines the *syscall interface contract* - the observable, testable behavior that any implementation MUST provide. It does NOT specify implementation mechanisms (wire protocols, dispatch mechanisms, or execution modes), which are covered in **RFC 0023 (Syscall Bridge)**. This contract is the "Constitution of Execution" and is intended to be forward-compatible across different runtime implementations.
 
 > **Relationship to Other RFCs**:
-> - **RFC 0015 (Kernel Core)**: Defines the ontology and origin parameter semantics
+> - **RFC 0015 (Kernel Dualmode Architecture)**: Defines the ontology and origin parameter semantics
 > - **RFC 0023 (Syscall Bridge)**: Specifies implementation mechanisms (NDJSON protocol, execution modes, dispatch)
-> - **RFC 0018 (Memory Spec)**: Example syscall consumer using this ABI
+> - **RFC 0018 (System Memory Subsystem)**: Example syscall consumer using this ABI
 
 ## 2. Conformance Language
 
@@ -281,7 +281,7 @@ Error messages SHOULD:
 - **[RFC 2119]** - Key words for use in RFCs to Indicate Requirement Levels
   - https://www.rfc-editor.org/rfc/rfc2119
 
-- **[RFC 0015]** - PromptWare OS Kernel Core Architecture
+- **[RFC 0015]** - Kernel Dualmode Architecture
   - Defines kernel ontology and origin parameter semantics
 
 - **[RFC 0016]** - Security & Cryptographic Primitives
@@ -295,7 +295,7 @@ Error messages SHOULD:
 - **[RFC 0014]** - Bootloader Core Protocol
   - Defines boot-time origin configuration
 
-- **[RFC 0018]** - Kernel Memory Specification
+- **[RFC 0018]** - System Memory Subsystem
   - Example syscall implementation using this ABI
 
 - **[RFC 0024]** - Kernel Events Architecture

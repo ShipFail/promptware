@@ -1,6 +1,6 @@
 ---
 rfc: 0029
-title: HTTP VFS Driver Specification
+title: VFS Driver: HTTP
 author: Huan Li, Claude, GitHub Copilot
 status: Draft
 type: Standards Track
@@ -10,7 +10,7 @@ version: 1.0
 tags: [vfs, driver, http, code, fetch]
 ---
 
-# RFC 0029: HTTP VFS Driver Specification
+# RFC 0029: VFS Driver: HTTP
 
 ## 1. Abstract
 
@@ -97,7 +97,7 @@ To support a community skill library, a second instance is mounted.
 ## 9. References
 
 ### PromptWar̊e ØS References
-*   [RFC 0013: Kernel VFS Specification](0013-vfs-mount-resolution.md)
+*   [RFC 0013: VFS Core Architecture](0013-vfs-core-architecture.md)
 *   [RFC 0026: VFS Driver Interface Specification](0026-vfs-driver-interface.md)
 *   [RFC 0020: Dependency Metadata Hydration](0020-dependency-metadata-hydration.md)
 
