@@ -76,7 +76,7 @@ PromptWar̊e ØS uses a **unified VFS architecture** under the `os:///` scheme w
   * Architecture: **RFC 0026 (VFS Driver Interface)** defines driver contract
   * Drivers:
     * **VFS Driver: HTTP** (RFC 0029): `os:///agents/*`, `os:///skills/*`, etc. (catch-all for non-reserved paths)
-      * Operations: Read (source text), Ingest (load into context)
+      * Operations: Read (source text)
       * Mount table resolution: longest-prefix matching → HTTPS/file:// URLs
     * **Kernel Memory Subsystem** (RFC 0018): `os:///memory/*` (persistent KV storage)
       * Operations: Read, Write, List, Delete
@@ -116,7 +116,9 @@ await VFS.read("os:///memory/vault/token");        // Memory driver
 await VFS.write("os:///memory/vault/token", "pwenc:v1:...");
 await VFS.read("os:///proc/cmdline");               // Proc driver
 await VFS.write("os:///sys/config/mode", "debug");  // Sys driver
-await VFS.ingest("os:///agents/shell.md");          // Code driver
+
+// Kernel Syscall (not VFS operation)
+await pwosIngest("os:///agents/shell.md");          // Kernel loads via VFS.read()
 
 // Legacy Memory API (may be deprecated in future)
 await Memory.Get("vault/token");  // Equivalent to VFS.read("os:///memory/vault/token")
@@ -379,12 +381,13 @@ await VFS.write("os:///proc/cmdline", "{}"); // ❌ FORBIDDEN (403)
 
 ## 6. The Lifecycle of Authority (Ingestion)
 
-Ingestion is the process of transforming **Text** (Source Code) into **Authority** (Capability). It is not merely "loading a file"; it is a formal state transition.
+Ingestion is the process of transforming **Text** (Source Code) into **Authority** (Capability). It is a **Kernel Syscall** (`pwosIngest`), not a VFS operation.
 
-1.  **Fetch**: The raw bits are retrieved from storage.
-2.  **Validate**: The integrity and authenticity of the bits are verified.
-3.  **Load**: The bits are materialized into the Execution Context.
-4.  **Adopt**: The Agent formally accepts the new identity or capability.
+1.  **Check Capability**: The Kernel verifies the target VFS node has the `EXECUTABLE` capability.
+2.  **Fetch**: The Kernel calls `VFS.read()` to retrieve the raw bits from storage.
+3.  **Validate**: The integrity and authenticity of the bits are verified.
+4.  **Load**: The bits are materialized into the Execution Context.
+5.  **Adopt**: The Agent formally accepts the new identity or capability.
 
 *Note: The technical implementation of this pipeline is defined in RFC 0020.*
 

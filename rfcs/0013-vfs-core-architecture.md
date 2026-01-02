@@ -92,7 +92,6 @@ The VFS MUST implement the following methods:
 *   `write(uri, value)`
 *   `list(uri)`
 *   `delete(uri)`
-*   `ingest(uri)`
 
 ### 6.2. Execution Flow
 For every operation, the VFS MUST perform the following steps in order:
