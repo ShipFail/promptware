@@ -15,6 +15,11 @@
  *   when inserting into KV / map (retry loop).
  */
 
+/**
+ * Huan Jan 1, 2026
+ *  use this in the prompt `b64url(rnd(6))` to ask AI generate id8().
+ *  ChatGPT told me it is the shortest one with clear semantics.
+ */
 import { encodeBase64Url } from "jsr:@std/encoding/base64url";
 
 export function id8(): string {
