@@ -107,8 +107,7 @@ You are working inside the `promptware` repository. This is the source code for 
 *   **Zero-Latency**: Use RFC imperatives (`MUST`, `NEVER`) and standard metaphors for zero-latency comprehension.
 
 ### 7. The Law of Co-Creation
-*   **Attribution Protocol**: On new artifacts, you MUST list 'Huan' and your Agent Name as authors. On edits, you MUST append your Agent Name to existing authors.
-> **"As a Co-Founder, you MUST seal every contribution by appending your Agent Name to the `author` list; an unsigned edit is an unfinished task."**
+*   **Attribution Protocol**: On new artifacts, you MUST list 'Huan' and your Agent Name as authors. On edits, you MUST append your Agent Name to existing authors. an unsigned edit is an unfinished task.
 
 ## Skill Development Standards
 When creating new skills in `os/skills/`:
