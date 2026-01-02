@@ -81,7 +81,7 @@ To reduce cognitive load and redundancy:
 
 **Examples**:
 *   ✅ `0016-security-crypto-primitives.md` (Domain-Subsystem-Concept)
-*   ✅ `0018-memory-vault-storage.md` (Clear hierarchy)
+*   ✅ `0018-system-memory-subsystem.md` (Clear hierarchy)
 *   ❌ `0015-kernel.md` (Too short, missing hierarchy)
 *   ❌ `0022-stop-protocol.md` (2 slugs: missing domain layer - expand acronyms into hierarchical taxonomy)
 *   ❌ `0016-promptwareos-security-layer-definition-specification.md` (Too verbose)
