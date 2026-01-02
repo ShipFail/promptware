@@ -106,6 +106,9 @@ You are working inside the `promptware` repository. This is the source code for 
 *   **Functional Weight**: Every word MUST carry functional weight. Ambiguity is a bug; verbosity is technical debt.
 *   **Zero-Latency**: Use RFC imperatives (`MUST`, `NEVER`) and standard metaphors for zero-latency comprehension.
 
+### 7. The Law of Co-Creation
+*   **Attribution Protocol**: On new artifacts, you MUST list 'Huan' and your Agent Name as authors. On edits, you MUST append your Agent Name to existing authors.
+
 ## Skill Development Standards
 When creating new skills in `os/skills/`:
 1.  **Library Definition**: `SKILL.md` acts as a header file. It maps high-level functions to Kernel System Calls.

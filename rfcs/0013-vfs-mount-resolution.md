@@ -1,604 +1,615 @@
 ---
 rfc: 0013
 title: Kernel VFS Specification
-author: Huan Li, ChatGPT 5.2 Thinking
+author: Huan Li, ChatGPT
 status: Draft
 type: Standards Track
 created: 2025-12-20
 updated: 2026-01-01
-version: 0.5
-tags: [vfs, kernel, mount, os]
+version: 0.6
+tags: [vfs, kernel, mount, os, orchestration]
 ---
 
 # RFC 0013: Kernel VFS Specification
 
 ## 1. Abstract
 
-This RFC defines the **Virtual File System (VFS)** for PromptWar̊e ØS: a mount-based abstraction layer that maps logical VFS paths (`os:///`) to physical URLs (HTTPS or file://) for code ingestion.
+This RFC defines the **Virtual File System (VFS)** for PromptWar̊e ØS: a thin orchestration layer that routes `os:///` paths to pluggable driver backends.
 
-The VFS provides mount-based resolution for three categories of `os:///` paths:
-1. **Immutable code** (agents, skills, kernel) - resolved to HTTPS/file:// URLs
-2. **System control plane** (`os:///sys/*`) - writable single-value attributes
-3. **System belief surface** (`os:///proc/*`) - read-only introspection views
+The VFS Core is responsible for:
+1. **Path routing**: Dispatching `os:///` paths to appropriate drivers
+2. **Capability enforcement**: Ensuring drivers support requested operations
+3. **Unified API**: Providing consistent `read/write/ingest/list/delete` operations
+4. **Driver management**: Registering and coordinating VFS drivers
 
-Runtime key-value storage uses `memory:///` (see RFC 0018).
+**Key Architectural Change from v0.5**:
+- **v0.5**: VFS contained domain logic for code, sys, proc (mixed concerns)
+- **v0.6**: VFS is THIN orchestration only; all domain logic moved to drivers (clean separation)
 
-**Scope:**
-- Mount table definition and resolution algorithm
-- VFS path (`os:///`) to URL translation
-- Integration with `pwosIngest()` syscall
-- Security constraints (HTTPS pinning, read-only enforcement)
+**All domain-specific logic is now in driver RFCs**:
+- Memory operations: RFC-18 (Memory VFS Driver)
+- System control: RFC-27 (Sys VFS Driver)
+- System introspection: RFC-28 (Proc VFS Driver)
+- Code ingestion: RFC-29 (Code VFS Driver)
 
-**Out of scope:**
-- Runtime key-value storage (see RFC 0018: Memory Subsystem for vault and general KV)
+## 2. Status of This Memo
 
----
+This document is a PromptWar̊e ØS RFC-style specification and may change at any time.
 
-## 2. Motivation
+The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHALL NOT**, **SHOULD**, **SHOULD NOT**, **RECOMMENDED**, **MAY**, and **OPTIONAL** are to be interpreted as described in BCP 14 (RFC 2119, RFC 8174).
 
-### 2.1. The Code vs State Separation Problem
+## 3. Motivation
 
-PromptWar̊e ØS enforces a strict separation between:
-- **Code** (immutable system resources: agents, skills, kernel)
-- **State** (mutable runtime data: configuration, secrets, control state)
+### 3.1. The Separation Problem (v0.5)
 
-In traditional operating systems, both live in filesystems. In PromptWar̊e ØS:
-- **Code** lives at HTTPS URLs (GitHub repos, CDNs) or local files
-- **State** lives in the Memory subsystem (RFC 0018)
+In PromptWar̊e ØS v0.5, the VFS had mixed responsibilities:
+- Path resolution for code (mount table logic)
+- sys/* single-value enforcement (system control logic)
+- proc/* read-only semantics (introspection logic)
+- Memory was a separate subsystem with `memory:///` scheme
 
-However, hardcoding URLs like `https://github.com/.../agents/shell.md` in every ingest call is brittle and non-composable.
+This violated separation of concerns and made extension difficult.
 
-### 2.2. The VFS Solution
+### 3.2. The Driver Solution (v0.6)
 
-The VFS provides a **logical-to-physical mapping layer**:
+**Option D+ Architecture** (VFS Everything + Pluggable Drivers):
 
-```typescript
-// Without VFS (brittle)
-await pwosIngest("https://raw.githubusercontent.com/ShipFail/promptware/main/os/agents/shell.md");
+```
+All resources under os:/// scheme, routed to pluggable drivers
 
-// With VFS (composable)
-await pwosIngest("os:///promptware/agents/shell.md");
-// VFS resolves → https://raw.githubusercontent.com/.../agents/shell.md
+os:///memory/vault/token           → Memory Driver (RFC-18)
+os:///sys/agents/shell/status      → Sys Driver (RFC-27)
+os:///proc/cmdline                 → Proc Driver (RFC-28)
+os:///agents/shell.md              → Code Driver (RFC-29)
 ```
 
-This enables:
-1. **Portable code**: VFS paths work across deployments
-2. **Flexible sourcing**: Change mount URLs without changing code
-3. **Multi-tenant**: Different origins can mount different repositories
-4. **Local development**: Mount `file://` paths for testing
+**Benefits**:
+1. **Clean separation**: VFS Core has NO domain logic
+2. **Pluggable backends**: Easy to add new storage drivers (S3, database, etc.)
+3. **Encapsulation**: Each driver owns its validation rules
+4. **Unified API**: Single interface (`VFS.read/write/ingest`) for all resources
+5. **Pure UNIX philosophy**: Everything is a file under `os:///`
 
-### 2.3. Lessons from UNIX mount(2)
+### 3.3. Lessons from UNIX VFS
 
-UNIX mount(2) has proven that:
-- Mount tables are powerful abstraction layers
-- Path-based resolution is intuitive for developers
-- Read-only mounts prevent accidental writes to code
+UNIX VFS layers prove that:
+- Kernel VFS provides routing and permission checks (thin orchestration)
+- Filesystem drivers implement domain-specific logic (ext4, tmpfs, procfs, sysfs)
+- Clean interface enables pluggability
 
-PromptWar̊e ØS adopts these principles but simplifies:
-- **No filesystem drivers**: VFS resolves to URLs, not block devices
-- **No write operations**: VFS is read-only by design
-- **No complex permissions**: HTTPS/file:// handle access control
+PromptWar̊e ØS adopts this pattern:
+- **VFS Core** (this RFC): Routing and capability enforcement
+- **VFSDriver Interface** (RFC-26): Standard contract
+- **Driver Implementations** (RFC-18, 27, 28, 29): Domain logic
 
----
+## 4. Terminology
 
-## 3. Goals & Non-Goals
+* **VFS Path**: A logical path starting with `os:///` (e.g., `os:///memory/vault/token`)
+* **Driver**: A module implementing VFSDriver interface (RFC-26) that handles a path namespace
+* **Path Namespace**: The set of paths a driver handles (e.g., `os:///memory/*`)
+* **Driver Routing**: The process of selecting which driver handles a given path
+* **Capability**: A permission declared by a driver (readable, writable, executable)
+* **Backend**: The underlying storage mechanism used by a driver (implementation-defined)
+
+## 5. Design Goals
 
 ### Goals
 
-The VFS MUST:
-1. Map logical path prefixes to physical URLs (HTTPS or file://)
-2. Support deterministic path resolution (same path → same URL)
-3. Integrate with `pwosIngest()` for code loading
-4. Enforce read-only semantics (no writes to VFS paths)
-5. Support multi-repository mounting (main OS + user extensions)
-6. Store mount table in `memory:///proc/cmdline` (as part of kernel parameters)
+The VFS Core MUST:
+1. **Route** `os:///` paths to appropriate drivers based on path prefix
+2. **Enforce** driver capabilities before calling driver methods
+3. **Validate** inputs via driver validation hooks
+4. **Provide** unified API surface (`read/write/ingest/list/delete`)
+5. **Support** driver registration and lookup
+6. **Remain** thin and free of domain-specific logic
 
 ### Non-Goals
 
-The VFS does NOT:
-1. Handle runtime key-value storage (use `memory:///` for vault and general KV)
-2. Implement filesystem operations (stat, readdir) for code paths - URL fetch only
-3. Provide sandboxing or access control (delegated to HTTPS/file:// transport)
-4. Support symbolic links, hardlinks, or other filesystem features
+The VFS Core does NOT:
+1. Implement storage backends (delegated to drivers)
+2. Define domain-specific validation (delegated to drivers)
+3. Handle error code definitions (see RFC-24)
+4. Specify driver implementations (see driver RFCs)
 
----
+## 6. VFS Architecture
 
-## 4. Detailed Design
+### 6.1. Layered Design
 
-### 4.1. Terminology
-
-* **VFS Path**: A logical path used in `pwosIngest()` calls (e.g., `os:///promptware/agents/shell.md`)
-* **Mount Point**: A path prefix that maps to a base URL (e.g., `/promptware/` → `https://github.com/.../`)
-* **Mount Table**: A mapping of mount points to base URLs, stored in `memory:///proc/cmdline`
-* **Resolution**: The process of translating a VFS path to a physical URL
-* **Ingest**: The operation of fetching and loading code via `pwosIngest()`
-
-### 4.2. Mount Table Schema
-
-The mount table is stored as part of the kernel parameters in `memory:///proc/cmdline`.
-
-**Schema (within KernelParameters):**
-
-```typescript
-interface KernelParameters {
-  // ... other fields ...
-
-  /** VFS mount table: path prefix → base URL */
-  readonly mounts: Record<string, string>;
-}
+```
+┌─────────────────────────────────────┐
+│   Application / Agent / Skill       │
+│   (calls VFS.read/write/ingest)     │
+└─────────────────────────────────────┘
+              │
+              ▼
+┌─────────────────────────────────────┐
+│         VFS Core (RFC-13)           │
+│  - Path routing                     │
+│  - Capability enforcement           │
+│  - Driver coordination              │
+└─────────────────────────────────────┘
+              │
+              ▼
+┌─────────────────────────────────────┐
+│    VFSDriver Interface (RFC-26)     │
+│  - read/write/list/delete           │
+│  - validate hook                    │
+│  - capabilities declaration         │
+└─────────────────────────────────────┘
+              │
+         ┌────┴────┬─────────┬──────────┐
+         ▼         ▼         ▼          ▼
+    ┌────────┐ ┌──────┐ ┌───────┐ ┌───────┐
+    │ Memory │ │ Sys  │ │ Proc  │ │ Code  │
+    │RFC-18  │ │RFC-27│ │RFC-28 │ │RFC-29 │
+    └────────┘ └──────┘ └───────┘ └───────┘
+         │         │         │          │
+         ▼         ▼         ▼          ▼
+    [Deno KV] [Deno KV] [Dynamic]  [HTTPS/file]
+                                    [Mount Table]
 ```
 
-**Mount table keys**: VFS path prefixes without `os:///` scheme (context is implicit)
+**Key Principle**: VFS Core knows NOTHING about vault enforcement, single-value constraints, or mount tables. All domain logic lives in drivers.
 
-**Example mount table:**
+### 6.2. Path Routing Algorithm
 
-```json
-{
-  "mounts": {
-    "/ship-fail-crew/": "https://raw.githubusercontent.com/ShipFail/crew/main/bridge/",
-    "/user-data/": "file:///home/user/data/",
-    "/extensions/": "https://cdn.example.com/extensions/"
-  }
-}
-```
-
-**Implicit mapping:**
-- `/ship-fail-crew/` in mount table → `os:///ship-fail-crew/` in VFS namespace
-- `/extensions/` → `os:///extensions/` (VFS subpath)
-
-**Requirements:**
-
-* Mount points MUST end with `/` (directory-style)
-* Base URLs MUST use `https://` or `file://` scheme
-* Mount table MUST be initialized during kernel init from `KernelParameters.mounts`
-* Mount table is read-only after initialization (no dynamic mounting in v1)
-* The `root` parameter from KernelParameters is equivalent to the `/` mount
-
-**Root mount:**
-
-The `root` parameter in KernelParameters defines the default base URL for VFS resolution. It acts as an implicit `/` mount and SHOULD NOT be duplicated in the mount table (DRY principle).
-
-### 4.3. Path Resolution Algorithm
-
-Given a VFS path `P` (e.g., `os:///ship-fail-crew/agents/bridge.md`):
+Given a VFS path `P` (e.g., `os:///memory/vault/token`):
 
 1. **Validate scheme**: Ensure `P` starts with `os:///`
-2. **Check for special paths**:
-   - If `P` starts with `os:///sys/*`: Use sys backend (see Section 4.8)
-   - If `P` starts with `os:///proc/*`: Use proc backend (see Section 4.8)
-   - Otherwise: Continue to step 3 (normal code resolution)
-3. **Extract subpath**: Strip `os:///` → get subpath (e.g., `/ship-fail-crew/agents/bridge.md`)
-4. **Normalize path**: Ensure path is properly formatted
-5. **Find longest prefix match**: Find longest matching mount point `M` in mount table
-6. **If no match in mount table**:
-   - Check if `root` parameter exists in kernel parameters
-   - If `root` exists: Use `root` as base URL (fallback to root mount)
-   - If `root` does not exist: Throw `NOT_FOUND` (404)
+2. **Extract subpath**: Strip `os:///` → get subpath (e.g., `memory/vault/token`)
+3. **Route to driver**: Find driver that handles the path namespace
+   - If subpath starts with `memory/*`: Route to Memory Driver
+   - If subpath starts with `sys/*`: Route to Sys Driver
+   - If subpath starts with `proc/*`: Route to Proc Driver
+   - Otherwise: Route to Code Driver (default)
+4. **Return driver + driver-relative path**:
+   - Driver: MemoryDriver
+   - Driver path: `vault/token` (namespace prefix stripped)
 
-   **Note**: In practice, `root` is always present in kernel parameters, so this error should never occur.
+**Routing table** (non-normative example):
+```typescript
+const driverRoutes = [
+  { prefix: "memory/", driver: memoryDriver },
+  { prefix: "sys/", driver: sysDriver },
+  { prefix: "proc/", driver: procDriver },
+  { prefix: "", driver: codeDriver }  // Default (catch-all)
+];
+```
 
-7. **If match found**:
-   - Base URL is `U` (from mount table or root)
-   - Strip `M` from subpath → relative path `R`
-   - Concatenate `U + R` → physical URL
-   - Return URL
+**Driver receives path with both prefixes stripped**:
+- VFS receives: `os:///memory/vault/token`
+- Memory driver receives: `vault/token`
 
-**Resolution is deterministic**: Same VFS path + same mount table → same URL
+See RFC-26 Section 6.2 for path convention details.
 
-**Example resolutions:**
-
-| VFS Path | Subpath | Mount Match | Fallback | Base URL | Result URL |
-|----------|---------|-------------|----------|----------|------------|
-| `os:///promptware/agents/shell.md` | `/promptware/agents/shell.md` | (none) | Use `root` | `https://github.com/.../os/` | `https://github.com/.../os/promptware/agents/shell.md` |
-| `os:///ship-fail-crew/skills/nav.md` | `/ship-fail-crew/skills/nav.md` | `/ship-fail-crew/` | - | `https://github.com/.../bridge/` | `https://github.com/.../bridge/skills/nav.md` |
-| `os:///user-data/config.json` | `/user-data/config.json` | `/user-data/` | - | `file:///home/user/data/` | `file:///home/user/data/config.json` |
-
-**Relative path handling:**
-
-When a resource at `os:///agents/shell.md` references a relative path `../skills/nav.md`:
-
-1. Resolve relative to parent: `os:///agents/` + `../skills/nav.md` → `os:///skills/nav.md`
-2. Apply VFS resolution as normal
-
-### 4.4. Integration with pwosIngest
-
-The `pwosIngest()` syscall MUST use VFS for path resolution:
+### 6.3. Unified API Surface
 
 ```typescript
-// Pseudo-code for pwosIngest
-async function pwosIngest(vfsPath: string): Promise<void> {
-  // 1. Resolve VFS path to URL
-  const url = await VFS.resolve(vfsPath);
+/**
+ * VFS Core API - thin orchestration layer
+ */
+class VFS {
+  /**
+   * Read a resource from VFS
+   * Routes to appropriate driver, enforces capabilities
+   */
+  async read(path: string): Promise<string>;
 
-  // 2. Fetch code from URL
-  const code = await fetch(url).then(r => r.text());
+  /**
+   * Write a resource to VFS
+   * Routes to appropriate driver, enforces capabilities, validates
+   */
+  async write(path: string, value: string): Promise<void>;
 
-  // 3. Parse and validate code (markdown frontmatter, etc.)
-  const parsed = parseAgentOrSkill(code);
+  /**
+   * Ingest code from VFS (special operation for Code driver)
+   * Resolves to HTTPS/file:// URL and loads into execution context
+   */
+  async ingest(path: string): Promise<void>;
 
-  // 4. Load into execution context
-  loadIntoContext(parsed);
+  /**
+   * List resources under a path prefix
+   * Routes to appropriate driver
+   */
+  async list(prefix: string): Promise<string[]>;
+
+  /**
+   * Delete a resource from VFS
+   * Routes to appropriate driver, enforces capabilities
+   */
+  async delete(path: string): Promise<void>;
 }
 ```
 
-**Requirements:**
-
-* `pwosIngest()` MUST reject `memory:///` paths (error: `BAD_REQUEST` 400)
-* `pwosIngest()` MUST reject `os:///sys/*` paths (error: `BAD_REQUEST` 400) - control data, not code
-* `pwosIngest()` MUST reject `os:///proc/*` paths (error: `BAD_REQUEST` 400) - view data, not code
-* `pwosIngest()` MUST reject `file://` paths outside mounted prefixes
-* `pwosIngest()` MUST support both HTTPS and file:// URLs after resolution
-
-### 4.5. Security Constraints
-
-**Read-Only Enforcement:**
-
-* VFS paths MUST NOT support write operations
-* Any attempt to write to a VFS path MUST fail with `FORBIDDEN` (403)
-
-**HTTPS Pinning (Advisory):**
-
-* Production deployments SHOULD use HTTPS URLs with commit hashes or tags
-* Example: `https://raw.githubusercontent.com/.../os@v1.2.3/agents/shell.md`
-
-**file:// Security:**
-
-* `file://` mounts SHOULD only be used in development environments
-* `file://` mounts MUST be restricted to mounted prefixes (no arbitrary filesystem access)
-
-### 4.6. Error Codes
-
-VFS operations reference the following error codes (defined in RFC-24 Error Registry):
-
-| Error Code | HTTP Number | Condition | Recovery |
-|------------|-------------|-----------|----------|
-| `BAD_REQUEST` | 400 | pwosIngest called with non-VFS path | Use VFS path (`os:///`), not `memory:///` or bare URL |
-| `FORBIDDEN` | 403 | Attempt to write to VFS path | Use `memory:///` for state instead |
-| `NOT_FOUND` | 404 | VFS path has no matching mount and root is undefined | Check mount table configuration |
-| `BAD_GATEWAY` | 502 | URL fetch failed (404, network error) | Check URL accessibility |
-
-See RFC-24 for complete error code definitions.
-
-### 4.7. Special VFS Paths: System and Process Surfaces
-
-The VFS defines two special path prefixes with filesystem semantics inspired by UNIX sysfs and procfs.
-
-#### os:///sys/* - System Control Plane
-
-Provides writable control attributes (inspired by Linux `/sys`).
-
-**Semantics**:
-- **Operations**: read, write
-- **Values**: MUST be single-value attributes (no newline characters `\n`)
-- **Writable**: YES (unlike other VFS paths which are read-only)
-- **Backend**: Implementation-defined
-
-**Rationale**: Single-value enforcement ensures each attribute represents exactly one semantic value, matching Linux sysfs design.
-
-**Example paths**:
-```
-os:///sys/agents/{agent-id}/status
-os:///sys/agents/{agent-id}/lifecycle/desired_state
-os:///sys/system/debug_mode
-```
-
-**Example usage**:
+**Implementation pattern** (non-normative):
 ```typescript
-// Read agent status
-const status = await VFS.read("os:///sys/agents/shell/status");
+async read(fullPath: string): Promise<string> {
+  // 1. Route to driver
+  const { driver, driverPath } = this.route(fullPath);
 
-// Write control attribute
+  // 2. Enforce capability
+  if (!driver.permissions.readable) {
+    throw new Error("FORBIDDEN (403): Driver does not support read");
+  }
+
+  // 3. Validate (if driver has validation hook)
+  if (driver.validate) {
+    await driver.validate("read", driverPath);
+  }
+
+  // 4. Call driver
+  return await driver.read(driverPath);
+}
+```
+
+### 6.4. Capability Enforcement
+
+VFS Core MUST enforce driver capabilities before calling driver methods:
+
+| Operation | Requires Capability | Error if Not Present |
+|-----------|---------------------|----------------------|
+| `read()` | `permissions.readable = true` | FORBIDDEN (403) |
+| `write()` | `permissions.writable = true` | FORBIDDEN (403) |
+| `ingest()` | `permissions.executable = true` | FORBIDDEN (403) |
+| `list()` | `permissions.readable = true` | FORBIDDEN (403) |
+| `delete()` | `permissions.writable = true` | FORBIDDEN (403) |
+
+**Drivers declare capabilities** in their VFSDriver implementation (see RFC-26).
+
+### 6.5. Validation Flow
+
+VFS Core MUST call driver validation hooks before operations:
+
+```
+User calls VFS.write("os:///memory/vault/token", "plaintext")
+    │
+    ▼
+VFS routes to Memory Driver
+    │
+    ▼
+VFS checks writable capability ✅
+    │
+    ▼
+VFS calls driver.validate("write", "vault/token", "plaintext")
+    │
+    ▼
+Memory Driver checks: vault/* requires pwenc:v1:*
+    │
+    ▼
+Throws UNPROCESSABLE_ENTITY (422) ❌
+```
+
+**VFS does NOT know about vault rules** - Memory Driver enforces them via validate().
+
+## 7. Driver Registration
+
+### 7.1. Driver Registration (Implementation-Defined)
+
+How drivers are registered with VFS Core is **implementation-defined**. This RFC does NOT mandate a specific mechanism.
+
+**Possible approaches** (non-normative):
+```typescript
+// Option 1: Constructor registration
+const vfs = new VFS({
+  drivers: {
+    "memory": new MemoryDriver(),
+    "sys": new SysDriver(),
+    "proc": new ProcDriver(),
+    "": new CodeDriver()  // Default driver
+  }
+});
+
+// Option 2: Dynamic registration
+vfs.registerDriver("memory/", memoryDriver);
+vfs.registerDriver("sys/", sysDriver);
+vfs.registerDriver("proc/", procDriver);
+vfs.registerDriver("", codeDriver);
+
+// Option 3: Auto-discovery via manifest
+await vfs.loadDrivers([
+  "drivers/memory.ts",
+  "drivers/sys.ts",
+  "drivers/proc.ts",
+  "drivers/code.ts"
+]);
+```
+
+**Requirements**:
+- Drivers MUST be registered before VFS operations
+- Driver path prefixes MUST NOT overlap (deterministic routing)
+- Default driver (empty prefix) SHOULD handle unmatched paths
+
+### 7.2. Built-in Drivers
+
+VFS Core SHOULD include these built-in drivers (v0.6):
+
+| Driver | Namespace | RFC | Purpose |
+|--------|-----------|-----|---------|
+| Memory | `os:///memory/*` | RFC-18 | Key-value storage (vault, general) |
+| Sys | `os:///sys/*` | RFC-27 | System control attributes |
+| Proc | `os:///proc/*` | RFC-28 | System introspection views |
+| Code | `os:///agents/*`, `os:///skills/*`, etc. | RFC-29 | Code ingestion with mount table |
+
+**Third-party drivers** (future):
+- S3 driver: `os:///s3/*` (cloud storage)
+- Database driver: `os:///db/*` (SQL/NoSQL)
+- Network driver: `os:///net/*` (socket abstractions)
+
+## 8. Integration with pwosIngest()
+
+### 8.1. Ingest Operation
+
+`pwosIngest()` is a **special operation** that:
+1. Routes to Code Driver (typically)
+2. Resolves VFS path to HTTPS/file:// URL via mount table
+3. Fetches source code
+4. Parses and validates code
+5. Loads into execution context
+
+**VFS.ingest() delegates to Code Driver**:
+```typescript
+async ingest(path: string): Promise<void> {
+  const { driver, driverPath } = this.route(path);
+
+  // Only Code driver should support ingest
+  if (!driver.permissions.executable) {
+    throw new Error("BAD_REQUEST (400): Driver does not support ingest");
+  }
+
+  // Code driver handles mount resolution and fetch
+  await driver.ingest(driverPath);
+}
+```
+
+**Mount table logic is in Code Driver (RFC-29)**, not VFS Core.
+
+### 8.2. Path Restrictions for Ingest
+
+VFS Core MUST reject ingest on non-code paths:
+
+```typescript
+// ❌ BAD_REQUEST (400): Memory is storage, not code
+await VFS.ingest("os:///memory/vault/token");
+
+// ❌ BAD_REQUEST (400): Sys is control, not code
+await VFS.ingest("os:///sys/agents/shell/status");
+
+// ❌ BAD_REQUEST (400): Proc is introspection, not code
+await VFS.ingest("os:///proc/cmdline");
+
+// ✅ Valid: Code driver handles agents/*
+await VFS.ingest("os:///agents/shell.md");
+```
+
+**Enforcement**: Code driver has `executable = true`, others have `executable = false`.
+
+## 9. Error Handling
+
+### 9.1. Error Code References
+
+VFS operations reference the following error codes (defined in RFC-24):
+
+| Error Code | HTTP | Condition | Recovery |
+|------------|------|-----------|----------|
+| `BAD_REQUEST` | 400 | Invalid path format or scheme | Check path syntax |
+| `FORBIDDEN` | 403 | Driver doesn't support operation | Check driver capabilities |
+| `NOT_FOUND` | 404 | Path doesn't exist in driver | Check path spelling |
+| `UNPROCESSABLE_ENTITY` | 422 | Validation failed | Fix value format |
+| `INTERNAL_SERVER_ERROR` | 500 | Driver backend failure | Check backend health |
+| `BAD_GATEWAY` | 502 | URL fetch failed (Code driver) | Check URL accessibility |
+
+### 9.2. Error Flow
+
+```
+VFS.write("os:///memory/vault/token", "plaintext")
+    │
+    ▼
+Route to Memory Driver
+    │
+    ▼
+Check writable capability → ✅
+    │
+    ▼
+Call driver.validate("write", "vault/token", "plaintext")
+    │
+    ▼
+Memory Driver throws: UNPROCESSABLE_ENTITY (422)
+"vault/* requires pwenc:v1:* ciphertext"
+    │
+    ▼
+VFS propagates error to caller
+```
+
+**VFS Core does NOT modify error messages** - drivers own their error semantics.
+
+## 10. Examples (Non-Normative)
+
+### Example 1: Read Operation Routing
+
+```typescript
+// User calls
+await VFS.read("os:///memory/vault/token");
+
+// VFS Core execution:
+// 1. Strip os:/// → "memory/vault/token"
+// 2. Route to Memory Driver (matches "memory/" prefix)
+// 3. Strip "memory/" → "vault/token"
+// 4. Check permissions.readable → ✅ true
+// 5. Call memoryDriver.read("vault/token")
+// 6. Return ciphertext: "pwenc:v1:..."
+```
+
+### Example 2: Write Operation with Validation
+
+```typescript
+// User calls
+await VFS.write("os:///memory/vault/token", "plaintext");
+
+// VFS Core execution:
+// 1. Route to Memory Driver
+// 2. Check permissions.writable → ✅ true
+// 3. Call memoryDriver.validate("write", "vault/token", "plaintext")
+// 4. Memory Driver throws UNPROCESSABLE_ENTITY (422) ❌
+// 5. VFS propagates error
+```
+
+### Example 3: Ingest Operation
+
+```typescript
+// User calls
+await VFS.ingest("os:///agents/shell.md");
+
+// VFS Core execution:
+// 1. Route to Code Driver (default, no namespace match)
+// 2. Check permissions.executable → ✅ true
+// 3. Call codeDriver.ingest("agents/shell.md")
+// 4. Code Driver resolves via mount table:
+//    "agents/shell.md" → "https://github.com/.../os/agents/shell.md"
+// 5. Code Driver fetches, parses, loads
+```
+
+### Example 4: Cross-Driver Operations
+
+```typescript
+// Memory storage
+await VFS.write("os:///memory/config", JSON.stringify({theme: "dark"}));
+
+// System control
 await VFS.write("os:///sys/agents/shell/status", "active");
 
-// Error: multi-line value
-await VFS.write("os:///sys/agents/shell/status", "active\nstarted");
-// → Throws UNPROCESSABLE_ENTITY (422)
-```
-
-**Error codes**:
-- `UNPROCESSABLE_ENTITY` (422): Value contains newlines
-
-#### os:///proc/* - System Belief Surface
-
-Provides read-only system introspection (inspired by Linux `/proc`).
-
-**Semantics**:
-- **Operations**: read only (writes FORBIDDEN)
-- **Values**: MAY be multi-line, rich formatted, human-readable
-- **Dynamic**: MAY be generated on-demand (not pre-stored)
-- **Viewpoint-relative**: May differ based on context (agent, origin)
-- **Backend**: Implementation-defined
-
-**Rationale**: `proc/*` is a "belief surface" - it reflects what the system believes about its state, not authoritative control.
-
-**Example paths**:
-```
-os:///proc/cmdline                    # Kernel boot parameters
-os:///proc/system/summary             # System overview (multi-line)
-os:///proc/agents/{agent-id}/status   # Agent status view
-```
-
-**Example usage**:
-```typescript
-// Read kernel cmdline
+// System introspection
 const cmdline = await VFS.read("os:///proc/cmdline");
-// Returns: {"root":"https://...","origin":"my-os",...}
 
-// Read system summary (multi-line allowed)
-const summary = await VFS.read("os:///proc/system/summary");
-// Returns:
-// PromptWareOS v1.0
-// Uptime: 3h 42m
-// Agents: 2 active
+// Code ingestion
+await VFS.ingest("os:///agents/shell.md");
 
-// Attempt to write (fails)
-await VFS.write("os:///proc/system/summary", "hacked");
-// → Throws FORBIDDEN (403)
+// All routed to different drivers, but unified API
 ```
 
-**Error codes**:
-- `FORBIDDEN` (403): Attempt to write to proc/* path
-
-#### Implementation Notes
-
-**Storage backend** is implementation-defined. Implementations MAY:
-- Store `sys/*` in Memory backend (`memory:///os/sys/*`)
-- Store `sys/*` in files (`file:///tmp/pwos-sys/*`)
-- Keep `sys/*` in-memory only (ephemeral)
-- Generate `proc/*` dynamically (recommended)
-- Store `proc/*` backing data in Memory or files
-
-The only requirement is:
-- `VFS.read("os:///sys/path")` and `VFS.write("os:///sys/path", value)` MUST work
-- `VFS.read("os:///proc/path")` MUST work
-- `VFS.write("os:///proc/path", ...)` MUST reject with FORBIDDEN (403)
-
-**Example implementation** (non-normative):
-```typescript
-// Option 1: Memory-backed sys
-async function vfsWrite(path: string, value: string) {
-  if (path.startsWith("os:///sys/")) {
-    const key = path.replace("os:///sys/", "os/sys/");
-    await Memory.Set(key, value); // Internal Memory storage
-  }
-  // ...
-}
-
-// Option 2: Dynamic proc generation
-async function vfsRead(path: string) {
-  if (path === "os:///proc/cmdline") {
-    const params = await Memory.Get("os/kernel/boot-params");
-    return params; // Dynamically fetch from internal storage
-  }
-  // ...
-}
-```
-
-### 4.8. Relationship to Memory Subsystem
-
-**Clear separation:**
-
-* VFS handles **all `os:///` paths**:
-  - Code (immutable): `os:///agents/*`, `os:///skills/*` → HTTPS/file:// URLs
-  - System control: `os:///sys/*` → writable attributes
-  - System views: `os:///proc/*` → read-only introspection
-* Memory handles **key-value storage** (`memory:///`):
-  - Vault: `memory:///vault/*` (ciphertext-only KV)
-  - General: `memory:///os/*` (OS internal), and unrestricted paths
-
-**No overlap:**
-
-* VFS paths (e.g., `os:///promptware/agents/shell.md`) are NOT valid for `Memory.Get/Set`
-* Memory paths (e.g., `memory:///vault/token` or `vault/token` in API) are NOT valid for `pwosIngest`
-
-**Implementation note:**
-
-* VFS backends for `os:///sys/*` and `os:///proc/*` MAY use Memory for storage internally, but this is an implementation detail
-* From the API perspective, these are VFS paths, not Memory paths
-* Configuration storage (mount table, boot params) may be stored in Memory but accessed via VFS
-
----
-
-## 5. Examples (Non-Normative)
-
-### VFS Integration with Kernel Initialization
-
-For complete kernel boot sequence including VFS initialization, see **RFC 0015 Section 9**.
-
-The VFS-specific initialization step is:
-
-```typescript
-// 3. Initialize VFS from cmdline (after Memory is ready)
-const cmdline = await VFS.read("os:///proc/cmdline");
-const params = JSON.parse(cmdline);
-VFS.initialize(params.mounts, params.root);
-```
-
-**See RFC 0015 Section 9 for the complete kernel initialization sequence.**
-
-### Example 1: VFS Path Resolution
-
-```typescript
-// VFS path → HTTPS URL
-const vfsPath = "os:///ship-fail-crew/agents/bridge-operator.md";
-const url = await VFS.resolve(vfsPath);
-// Lookup: "/ship-fail-crew/" in mount table
-// → "https://github.com/.../crew/bridge/agents/bridge-operator.md"
-
-// VFS path → file:// URL
-const localPath = "os:///user-data/config.json";
-const url = await VFS.resolve(localPath);
-// Lookup: "/user-data/" in mount table
-// → "file:///home/user/data/config.json"
-
-// Ingest fetches and loads the code
-const agent = await pwosIngest(vfsPath);
-```
-
-### Example 2: Development with Local Files
-
-```typescript
-// Development mount configuration
-const devMounts = {
-  "/": "file:///workspaces/promptware/os/",
-  "/my-skills/": "file:///workspaces/my-skills/"
-};
-
-// Ingest from local filesystem
-await pwosIngest("os:///my-skills/debug-skill.md");
-// VFS resolves → file:///workspaces/my-skills/debug-skill.md
-```
-
-### Example 3: Multi-Repository Setup
-
-```typescript
-// Production mount configuration
-const prodMounts = {
-  "/plugins/": "https://cdn.example.com/plugins/",
-  "/internal/": "https://github.com/company/internal/main/"
-};
-
-// Ingest agent from root (uses root parameter as fallback)
-await pwosIngest("os:///agents/production.md");
-// VFS resolves → root + "agents/production.md"
-
-// Ingest plugin from CDN
-await pwosIngest("os:///plugins/monitoring.md");
-// VFS resolves → https://cdn.example.com/plugins/monitoring.md
-
-// Ingest internal skill
-await pwosIngest("os:///internal/skills/proprietary.md");
-// VFS resolves → https://github.com/company/internal/main/skills/proprietary.md
-```
-
-### Example 4: Relative Path Resolution
-
-```typescript
-// In os:///promptware/agents/shell.md:
-// References relative path: ../skills/terminal.md
-// Resolves to: os:///promptware/skills/terminal.md
-
-// In os:///promptware/agents/shell.md:
-// References relative path: skills/terminal.md
-// Resolves to: os:///promptware/agents/skills/terminal.md
-```
-
-### Example 5: Incorrect VFS Usage (Anti-Patterns)
+### Example 5: Incorrect Usage (Anti-Patterns)
 
 ```typescript
 // ❌ WRONG: Using Read tool on VFS path
-await Read("os:///ship-fail-crew/agents/shell.md");
-// → Security violation! Must use pwosIngest()
+await Read("os:///agents/shell.md");
+// → Security violation! Must use VFS.ingest()
 
-// ❌ WRONG: Using Memory on VFS path
-await Memory.Get("os:///ship-fail-crew/agents/shell.md");
-// → Error: VFS paths not valid for Memory
+// ❌ WRONG: Wrong scheme
+await VFS.read("memory:///vault/token");
+// → BAD_REQUEST (400): Use os:/// scheme
 
-// ❌ WRONG: Using pwosIngest on Memory path
-await pwosIngest("memory:///user/config");
-// → Error: Memory paths not valid for ingest
+// ❌ WRONG: Ingesting non-code
+await VFS.ingest("os:///memory/vault/token");
+// → BAD_REQUEST (400): Memory driver not executable
 
-// ✅ CORRECT: VFS is for code ingestion only
-await pwosIngest("os:///ship-fail-crew/agents/shell.md");  // VFS → ingest
-await Read("file:///workspaces/project/src/index.ts");     // file:// → read/write
+// ✅ CORRECT: Proper scheme and operations
+await VFS.read("os:///memory/vault/token");     // Memory read
+await VFS.write("os:///sys/agents/shell/status", "active");  // Sys write
+await VFS.read("os:///proc/cmdline");           // Proc read
+await VFS.ingest("os:///agents/shell.md");      // Code ingest
 ```
 
-### Example 6: System Control and Introspection
+## 11. Migration from v0.5 to v0.6
 
+### 11.1. Breaking Changes
+
+**URI Scheme Changes**:
 ```typescript
-// System control via os:///sys/*
-await VFS.write("os:///sys/agents/shell/status", "active");
-await VFS.write("os:///sys/system/debug_mode", "1");
+// v0.5: Memory had separate scheme
+await Memory.get("vault/token");  // memory:/// scheme
 
-const status = await VFS.read("os:///sys/agents/shell/status");
-// Returns: "active"
-
-// System introspection via os:///proc/*
-const cmdline = await VFS.read("os:///proc/cmdline");
-const summary = await VFS.read("os:///proc/system/summary");
-
-// Error: Cannot write to proc
-await VFS.write("os:///proc/cmdline", "{}");
-// → FORBIDDEN (403)
-
-// Error: Cannot ingest sys/proc
-await pwosIngest("os:///sys/agents/shell/status");
-// → BAD_REQUEST (400): sys/* is control data, not code
-
-await pwosIngest("os:///proc/cmdline");
-// → BAD_REQUEST (400): proc/* is view data, not code
+// v0.6: All under os:/// scheme
+await VFS.read("os:///memory/vault/token");
 ```
 
----
+**API Changes**:
+```typescript
+// v0.5: Domain-specific modules
+await Memory.get("vault/token");
+await VFS.read("os:///proc/cmdline");  // Already in VFS in v0.5
 
-## 6. Implementation Plan
+// v0.6: Unified VFS API
+await VFS.read("os:///memory/vault/token");
+await VFS.read("os:///proc/cmdline");
+```
 
-1. **Define mount table schema** in KernelParameters (RFC 0015)
-2. **Implement VFS.resolve()**:
-   - Longest prefix matching
-   - Root fallback logic
-   - URL concatenation
-   - Error handling for unmounted paths
-3. **Update pwosIngest()** to use VFS.resolve()
-4. **Store mount table** in `memory:///proc/cmdline` during kernel init
-5. **Add validation**:
-   - Mount points must end with `/`
-   - Base URLs must be `https://` or `file://`
-6. **Document error codes** (reference RFC-24)
-7. **Add integration tests** for resolution algorithm
+### 11.2. Migration Guide
 
----
+**Step 1**: Update Memory calls
+```typescript
+// Before (v0.5)
+await Memory.get("vault/token");
+await Memory.set("vault/token", "pwenc:v1:...");
 
-## 7. Compatibility
+// After (v0.6)
+await VFS.read("os:///memory/vault/token");
+await VFS.write("os:///memory/vault/token", "pwenc:v1:...");
+```
 
-**Breaking changes from v0.4 to v0.5:**
-- `sys/*` and `proc/*` moved from Memory (RFC-0018) back to VFS
-- Now accessed as `os:///sys/*` and `os:///proc/*` (not `memory:///sys/*` or `memory:///proc/*`)
-- VFS expanded from code-only to include system control and belief surfaces
+**Step 2**: sys/* and proc/* already use VFS (no change)
+```typescript
+// v0.5 and v0.6 (same)
+await VFS.read("os:///sys/agents/shell/status");
+await VFS.read("os:///proc/cmdline");
+```
 
-**Migration from v0.4:**
-- Replace `Memory.Get("proc/cmdline")` → `VFS.read("os:///proc/cmdline")`
-- Replace `Memory.Set("sys/path", value)` → `VFS.write("os:///sys/path", value)`
-- Replace `Memory.Get("sys/path")` → `VFS.read("os:///sys/path")`
+**Step 3**: Code ingestion unchanged
+```typescript
+// v0.5 and v0.6 (same)
+await pwosIngest("os:///agents/shell.md");
+```
 
-**Historical changes:**
-- v0.1: `/sys` and `/proc` were in VFS specification
-- v0.2-v0.4: `/sys` and `/proc` moved to RFC-0018 (Memory Subsystem)
-- v0.5: `/sys` and `/proc` returned to VFS as `os:///sys/*` and `os:///proc/*`
+### 11.3. Compatibility Layer (Optional)
 
----
+Implementations MAY provide a compatibility layer:
+```typescript
+// Compatibility wrapper for v0.5 code
+const Memory = {
+  async get(path: string): Promise<string> {
+    return await VFS.read(`os:///memory/${path}`);
+  },
+  async set(path: string, value: string): Promise<void> {
+    await VFS.write(`os:///memory/${path}`, value);
+  }
+};
+```
 
-## 8. Security Considerations
+## 12. Security Considerations
 
-* VFS paths are read-only by design
-* HTTPS URLs SHOULD use pinned versions (tags/commits) in production
-* `file://` mounts should be restricted to development environments
-* No access control is enforced at VFS layer (delegated to URL transport)
+- VFS Core MUST enforce capability checks before calling drivers
+- VFS Core MUST NOT bypass driver validation hooks
+- Drivers MUST NOT trust VFS Core to validate inputs (defense in depth)
+- Error messages MUST NOT leak sensitive data
 
----
+## 13. Performance Considerations
 
-## 9. Future Directions
+- Driver routing SHOULD use O(1) lookup (hash table) not O(n) iteration
+- Path normalization SHOULD be cached where possible
+- Driver instances SHOULD be singleton (avoid repeated instantiation)
 
-* Dynamic mount operations (mount/unmount at runtime)
-* VFS namespace isolation per origin
-* Content addressing (IPFS, git://, etc.)
-* Caching layer for frequently accessed resources
+## 14. Future Work
 
----
+- **Driver versioning**: Allow multiple driver versions to coexist
+- **Driver capabilities**: Extend with transactional, watchable, etc.
+- **Third-party drivers**: Define packaging and distribution mechanism
+- **Driver composition**: Allow drivers to delegate to other drivers
 
-## 10. References
+## 15. References
 
 ### PromptWar̊e ØS References
 
-* RFC 0015: Kernel Dualmode Architecture (URI scheme taxonomy, kernel parameters)
-* RFC 0018: Memory Subsystem Specification (sys/proc namespaces)
+* RFC 0015: Kernel Dualmode Architecture (URI scheme taxonomy, kernel init)
+* RFC 0018: Memory VFS Driver (vault enforcement, KV operations)
 * RFC 0024: CQRS Event Schema (error code registry)
+* RFC 0026: VFS Driver Interface (contract all drivers implement)
+* RFC 0027: Sys VFS Driver (system control attributes)
+* RFC 0028: Proc VFS Driver (system introspection)
+* RFC 0029: Code VFS Driver (mount table, code ingestion)
 
 ### External References
 
-* [RFC 2119: Key words for use in RFCs](https://www.rfc-editor.org/rfc/rfc2119)
-* [UNIX mount(2) system call](https://man7.org/linux/man-pages/man2/mount.2.html)
+* RFC 2119, RFC 8174 (BCP 14 key words)
+* Linux VFS architecture documentation
 
 ---
 
-*End of RFC 0013*
+*End of RFC 0013 v0.6*

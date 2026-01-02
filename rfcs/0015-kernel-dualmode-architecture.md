@@ -5,8 +5,8 @@ author: Ship.Fail Crew
 status: Draft
 type: Standards Track
 created: 2025-12-22
-updated: 2026-01-01
-version: 0.9
+updated: 2026-01-02
+version: 0.10
 tags: [kernel, dualmode, architecture, syscalls, foundation]
 ---
 
@@ -68,23 +68,23 @@ The Kernel manages the LLM's context window as a structured memory space.
 
 #### 4.2.1. URI Scheme Taxonomy
 
-PromptWar̊e ØS uses three distinct URI schemes for different resource types:
+PromptWar̊e ØS uses a **unified VFS architecture** under the `os:///` scheme with pluggable drivers (v0.6):
 
-* **`os:///`**: Code addressing for ingest operations
-  * Purpose: Fetch agent/skill/kernel source code
-  * Example: `os:///agents/shell.md`
-  * Resolved via: VFS mount table → HTTPS or file:// URLs
-  * Operations: `pwosIngest()` only (read-only, immutable)
-  * **Details**: See **RFC 0013 (VFS Specification)** for complete mount resolution algorithm and examples
-
-* **`memory:///`**: Persistent key-value storage
-  * Purpose: Runtime state, configuration, secrets
-  * URI form: `memory:///vault/google/token` (in specifications)
-  * API form: `Memory.Get("vault/google/token")` (omit prefix in API calls)
-  * Resolved via: Memory syscall (RFC 0018)
-  * Operations: `Memory.Get/Set/Delete/List`
-  * **Details**: See **RFC 0018 (Memory Specification)** for vault enforcement and KV operations
-  * **Note**: `sys/*` and `proc/*` are NOT Memory namespaces (moved to VFS in v0.5)
+* **`os:///`**: Unified VFS namespace (all system resources)
+  * Purpose: All system resources (code, state, control, introspection)
+  * Resolved via: **VFS Core** routes to driver based on path prefix (see **RFC 0013 v0.6**)
+  * Architecture: **RFC 0026 (VFS Driver Interface)** defines driver contract
+  * Drivers:
+    * **Code Driver** (RFC 0029): `os:///agents/*`, `os:///skills/*`, etc. (catch-all for non-reserved paths)
+      * Operations: Read (source text), Ingest (load into context)
+      * Mount table resolution: longest-prefix matching → HTTPS/file:// URLs
+    * **Memory Driver** (RFC 0018 v0.6): `os:///memory/*` (persistent KV storage)
+      * Operations: Read, Write, List, Delete
+      * Vault enforcement: `os:///memory/vault/*` requires `pwenc:v1:*` ciphertext
+    * **Sys Driver** (RFC 0027): `os:///sys/*` (control plane, writable)
+      * Operations: Read, Write (single-value enforcement)
+    * **Proc Driver** (RFC 0028): `os:///proc/*` (introspection, read-only)
+      * Operations: Read (dynamic generation)
 
 * **`file://`**: Local host filesystem
   * Purpose: User's working directory files
@@ -97,26 +97,33 @@ PromptWar̊e ØS uses three distinct URI schemes for different resource types:
   * Example in `os:///agents/shell.md`: relative path `skills/nav.md` resolves to `os:///agents/skills/nav.md`
   * Example in `file:///workspace/doc.md`: relative path `src/index.ts` resolves to `file:///workspace/src/index.ts`
 
-**Separation of Concerns:**
+**Separation of Concerns (v0.6):**
 
-* `os:///` paths are for **immutable code** (Ring 0 system resources)
-* `memory:///` URIs specify **mutable state** (Ring 1 persistent storage)
+* `os:///` is the **unified VFS namespace** for all system resources (Ring 0)
+  * `os:///agents/*`, `os:///skills/*` → Code Driver (immutable code)
+  * `os:///memory/*` → Memory Driver (mutable persistent state)
+  * `os:///sys/*` → Sys Driver (control plane, writable)
+  * `os:///proc/*` → Proc Driver (introspection, read-only)
 * `file://` paths are for **user data** (Ring 3 development artifacts)
 * Relative paths inherit context from parent
 
 **API Convention:**
 
-When calling Memory syscall, the `memory:///` prefix is ALWAYS omitted:
+VFS provides unified API for all `os:///` operations:
 ```typescript
-// ✅ Correct API usage
-await Memory.Set("vault/token", "pwenc:v1:...");
-await Memory.Get("proc/cmdline");
+// ✅ Correct API usage (VFS unified interface)
+await VFS.read("os:///memory/vault/token");        // Memory driver
+await VFS.write("os:///memory/vault/token", "pwenc:v1:...");
+await VFS.read("os:///proc/cmdline");               // Proc driver
+await VFS.write("os:///sys/config/mode", "debug");  // Sys driver
+await VFS.ingest("os:///agents/shell.md");          // Code driver
 
-// ❌ Incorrect - don't include memory:/// in API calls
-await Memory.Set("memory:///vault/token", "pwenc:v1:...");
+// Legacy Memory API (may be deprecated in future)
+await Memory.Get("vault/token");  // Equivalent to VFS.read("os:///memory/vault/token")
+await Memory.Set("vault/token", "pwenc:v1:...");
 ```
 
-**Documentation Convention**: This document uses full URIs (`memory:///path`) in specifications for clarity, but API examples omit the prefix.
+**Documentation Convention**: This document uses full URIs (`os:///namespace/path`) in specifications for clarity.
 
 ### 4.3. Core Concepts: Code (Root) vs. State (Origin)
 
@@ -267,28 +274,35 @@ The Bootloader (a static Markdown file) injects the `KernelParameters` (Root, In
 ### 5.2. The Init Sequence
 PID 0 MUST immediately execute the following sequence to bring the system to a usable state:
 
-1.  **Initialize Memory Subsystem**:
-    *   Initialize the Memory syscall backend (Deno KV or equivalent)
-    *   Memory subsystem is now ready for operations
+1.  **Initialize Memory Driver**:
+    *   Initialize the Memory driver backend (Deno KV or equivalent)
+    *   Memory driver is now ready for VFS operations on `os:///memory/*`
 
-2.  **Persist Kernel Parameters**:
-    *   Make boot parameters accessible at `os:///proc/cmdline`
-    *   Implementation-defined: may store in Memory (`os/kernel/boot-params`), file, or in-memory
+2.  **Initialize VFS Core and Register Drivers** (v0.6):
+    *   Initialize VFS Core orchestration layer (see **RFC 0013 v0.6**)
+    *   Parse `params.mounts` from boot configuration
+    *   Register drivers in order:
+      1. **Memory Driver** (RFC 0018 v0.6): handles `os:///memory/*`
+      2. **Sys Driver** (RFC 0027): handles `os:///sys/*`
+      3. **Proc Driver** (RFC 0028): handles `os:///proc/*`
+      4. **Code Driver** (RFC 0029): catch-all for remaining paths (agents, skills, etc.)
+    *   VFS Core is now ready to route operations to drivers
+
+3.  **Persist Kernel Parameters**:
+    *   Store boot parameters for Proc driver to expose
+    *   Implementation: Store in Memory driver: `VFS.write("os:///memory/os/kernel/boot-params", JSON.stringify(params))`
+    *   Proc driver exposes as read-only view at `os:///proc/cmdline`
     *   Requirement: `VFS.read("os:///proc/cmdline")` MUST return parameters
-
-3.  **Initialize VFS**:
-    *   Read mount table from `VFS.read("os:///proc/cmdline")`
-    *   Parse `params.mounts` and initialize VFS resolution
-    *   VFS is now ready for `pwosIngest()` and `sys/*`/`proc/*` operations
 
 4.  **Launch Init Agent**:
     *   Execute `pwosIngest(params.init)`
+    *   Code driver resolves path via mount table
     *   Goal: Fetch and adopt the user-space persona (PID 1)
 
 5.  **System Ready**:
     *   Report successful boot
 
-**Note**: Steps 1-3 occur during **kernel initialization**, not boot. Boot is the handoff from bootloader to kernel. Initialization is when kernel sets up subsystems.
+**Note**: Steps 1-4 occur during **kernel initialization**, not boot. Boot is the handoff from bootloader to kernel. Initialization is when kernel sets up subsystems and drivers.
 
 ### 5.3. Kernel Parameter Schema
 
@@ -397,27 +411,47 @@ This "Fail-Secure" mechanism ensures that even if the LLM drifts, the Kernel for
 
 This section provides pointers to detailed examples in subsystem RFCs.
 
-### VFS and Code Ingestion Examples
+### VFS Architecture (v0.6)
 
-For comprehensive examples of VFS path resolution, mount configuration, and pwosIngest usage, see:
+For comprehensive VFS architecture documentation, see:
 
-* **RFC 0013 Section 5**: VFS Examples
-  - Kernel initialization with VFS
-  - VFS path resolution (os:// → HTTPS/file://)
-  - Development with local files
-  - Multi-repository setup
-  - Relative path resolution
-  - Incorrect VFS usage (anti-patterns)
+* **RFC 0026 (VFS Driver Interface)**: Driver contract specification
+  - VFSDriver interface definition
+  - Capability declarations (readable, writable, executable)
+  - Path normalization conventions
+  - Validation hook pattern
 
-### Memory and State Management Examples
+* **RFC 0013 v0.6 (VFS Core Specification)**: Thin orchestration layer
+  - Driver routing algorithm
+  - Capability enforcement
+  - Unified API surface (read/write/ingest/list/delete)
+  - Migration guide from v0.5
 
-For comprehensive examples of Memory operations, namespace usage, and vault enforcement, see:
+### VFS Driver Examples
 
-* **RFC 0018 Examples Section**: Memory Examples
-  - Memory path operations (vault, sys, proc, user namespaces)
-  - Incorrect Memory usage (anti-patterns)
-  - Kernel initialization with Memory
-  - Multi-namespace usage patterns
+For comprehensive examples of individual VFS drivers:
+
+* **RFC 0029 (Code VFS Driver)**: Code ingestion and mount resolution
+  - Mount table initialization
+  - Longest-prefix path matching
+  - Read vs Ingest operations
+  - Version pinning recommendations
+
+* **RFC 0018 v0.6 (Memory VFS Driver)**: Persistent KV storage
+  - Vault ciphertext enforcement (`pwenc:v1:*`)
+  - Memory operations (read/write/list/delete)
+  - Kernel parameter storage
+  - Migration guide from Memory API to VFS API
+
+* **RFC 0027 (Sys VFS Driver)**: Control plane operations
+  - Single-value enforcement (no newlines)
+  - Writable control attributes
+  - System configuration examples
+
+* **RFC 0028 (Proc VFS Driver)**: System introspection
+  - Dynamic generation pattern
+  - Read-only belief surface
+  - Kernel cmdline exposure
 
 ### Kernel Initialization Example (Summary)
 
@@ -434,26 +468,37 @@ const bootParams: KernelParameters = {
   }
 };
 
-// Kernel Initialization Stage
-// 1. Initialize Memory subsystem
-await Memory.initialize();
+// Kernel Initialization Stage (v0.6)
+// 1. Initialize Memory driver backend
+const memoryDriver = new MemoryDriver();
+await memoryDriver.initialize();  // Initialize Deno KV backend
 
-// 2. Make cmdline accessible
-await Memory.Set("os/kernel/boot-params", JSON.stringify(bootParams));
-VFS.registerProc("cmdline", async () => {
-  return await Memory.Get("os/kernel/boot-params");
-});
+// 2. Initialize VFS Core and register drivers
+const vfs = new VFS();
 
-// 3. Initialize VFS from cmdline
-const cmdline = await VFS.read("os:///proc/cmdline");
+// Register drivers in order (see RFC 0013 v0.6)
+vfs.registerDriver("memory/", memoryDriver);        // RFC 0018 v0.6
+vfs.registerDriver("sys/", new SysDriver());        // RFC 0027
+vfs.registerDriver("proc/", new ProcDriver());      // RFC 0028
+vfs.registerDriver("", new CodeDriver(             // RFC 0029 (catch-all)
+  bootParams.root,
+  bootParams.mounts
+));
+
+// 3. Persist kernel parameters
+await vfs.write("os:///memory/os/kernel/boot-params", JSON.stringify(bootParams));
+// Proc driver dynamically generates cmdline view from memory
+
+// 4. Verify VFS routing
+const cmdline = await vfs.read("os:///proc/cmdline");  // Routed to Proc driver
 const params = JSON.parse(cmdline);
-VFS.initialize(params.mounts);
 
-// 4. Ingest init agent
-await pwosIngest(params.init); // os:///promptware/agents/shell.md
+// 5. Ingest init agent
+await pwosIngest(params.init);  // os:///promptware/agents/shell.md
+                                // Routed to Code driver → mount resolution → fetch
 ```
 
-**For detailed examples, see RFC 0013 (VFS) and RFC 0018 (Memory).**
+**For detailed examples, see RFC 0013 v0.6 (VFS Core), RFC 0026 (VFS Driver Interface), and individual driver RFCs (0018, 0027, 0028, 0029).**
 
 ---
 *End of RFC 0015*
