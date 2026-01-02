@@ -274,7 +274,33 @@ No retry policy is mandated by this RFC. Agent/runtime logic **MAY** retry or at
 
 ---
 
-## 6. Compatibility
+## 6. Usage Guidelines (Best Practices)
+
+To maximize AI comprehension and token efficiency, implementations SHOULD follow these usage patterns:
+
+### 6.1. The Hybrid Pattern (Polymorphism)
+
+Fields that may contain blob data SHOULD be defined as `string | BlobPointer`.
+
+*   **Small Text (< 4KB)**: Use **Inline JSON String**.
+    *   *Why*: Zero token overhead, instant AI readability, native JSON support.
+    *   *Example*: `"body": "Hello world"`
+*   **Large Text (> 4KB)**: Use **BlobPointer** (`file` or `https`).
+    *   *Why*: Keeps the context window clear for reasoning.
+    *   *Example*: `"body": { "scheme": "file", "path": "/tmp/large-doc.md" }`
+*   **Binary Data**: Use **BlobPointer** (`file` or `https`).
+    *   *Why*: Binary cannot be embedded in JSON without base64 bloat.
+
+### 6.2. When to use `data` Scheme
+
+The `data` scheme SHOULD only be used when:
+1.  The content is **binary** (e.g., a small icon or image).
+2.  The content is **small** (< 4KB).
+3.  The content **must be self-contained** (no external file dependency).
+
+**Avoid** using `data` scheme for plain text. Use an inline string instead.
+
+## 7. Compatibility
 
 * **PromptWar̊e ØS Integration**: BlobPointer is designed for embedding in OsEvents (see RFC 0024).
 * **NDJSON Compatibility**: BlobPointer is JSON-serializable and NDJSON-friendly.
