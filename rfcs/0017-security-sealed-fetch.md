@@ -1,7 +1,7 @@
 ---
 rfc: 0017
 title: Sealed Handling & sealedFetch Helper Specification
-author: Huan Li, ChatGPT
+author: Huan Li, ChatGPT, GitHub Copilot (Gemini 3 Pro)
 status: Draft
 type: Standards Track
 created: 2025-12-23
@@ -108,45 +108,95 @@ If provided, `revealUnsafe()`:
 * `Sealed` MUST NOT expose plaintext via implicit coercions.
 * Implementations SHOULD ensure error objects and debug representations do not include plaintext.
 
-## The `sealedFetch` Syscall
+## The `Network.Fetch` Event
 
-### Signature
+This RFC defines the `Network.Fetch` command, which performs the actual HTTP request.
 
-`pwosSyscall("fetch", input, init) -> Promise<Response>`
+### Command Schema
 
-* `input`: URL string or Request-like object.
-* `init`: OPTIONAL RequestInit-like object.
+```typescript
+/**
+ * [Command] Network.Fetch
+ * Performs a secure HTTP request, automatically unsealing 'pwenc:v1:' values 
+ * found in headers just before transmission.
+ */
+type NetworkFetchCommand = {
+  type: "command";
+  name: "Network.Fetch";
+  payload: {
+    /** The URL to fetch. */
+    url: string;
+    
+    /** HTTP method (GET, POST, etc.). Defaults to GET. */
+    method?: string;
+    
+    /** 
+     * HTTP headers. 
+     * Values starting with 'pwenc:v1:' will be unsealed by the kernel.
+     */
+    headers?: Record<string, string>;
+    
+    /** Request body. */
+    body?: string;
+  };
+}
+```
 
-`sealedFetch` MUST be observationally equivalent to W3C `fetch(input, init)`; the only permitted deviation is pwenc header substitution immediately before the request is sent.
+### Response Schema
 
-### Core Behavior
+```typescript
+/**
+ * [Response] Network.Fetch
+ * The result of the HTTP request.
+ */
+type NetworkFetchResponse = {
+  type: "response";
+  name: "Network.Fetch";
+  payload: {
+    /** HTTP status code (e.g., 200, 404). */
+    status: number;
+    
+    /** Response headers. */
+    headers: Record<string, string>;
+    
+    /** 
+     * Response body. 
+     * If >16KB, this will be a BlobPointer (RFC 0025).
+     */
+    body: string | BlobPointer;
+  };
+}
+```
 
-The `fetch` syscall MUST:
+### Kernel Handler Behavior (Normative)
 
-1. Build a request equivalent to `fetch(input, init)`.
-2. Scan request headers for values containing pwenc strings (`pwenc:v1:`).
-3. For each pwenc occurrence, decrypt it in-memory (using Foundation RFC crypto) and substitute the plaintext value into the outbound request header.
-4. Perform the network request (i.e., call underlying `fetch`).
-5. Return the `Response` unchanged.
+When processing a `Network.Fetch` command, the Kernel Event Handler **MUST**:
 
-`sealedFetch` MUST NOT:
+1.  **Scan Headers**: Iterate through all keys in `payload.headers`.
+2.  **Detect Sealed Values**: Identify values starting with the `pwenc:v1:` prefix.
+3.  **Unseal In-Memory**: Decrypt these values using the Foundation Crypto (RFC 0016) *immediately* before transmission.
+4.  **Substitute**: Replace the ciphertext with plaintext in the outbound HTTP request.
+5.  **Execute**: Perform the network request.
+6.  **Sanitize**: Ensure the plaintext is **NEVER** logged, stored, or included in the `Network.Fetch` response event.
 
-* store anything,
-* modify response bodies,
-* invent response schemas,
-* encrypt token responses.
+**Constraints**:
+*   The handler **MUST NOT** modify the response body.
+*   The handler **MUST NOT** attempt to encrypt the response (unless explicitly requested by a future feature).
+*   If unsealing fails (invalid ciphertext), the handler **MUST** emit an `error` event (Code 422) and **MUST NOT** send the request.
 
-### Where to Scan
+## Client-Side Adaptation (sealedFetch)
 
-* `sealedFetch` SHOULD scan **all header values**.
-* `sealedFetch` SHOULD handle `Headers`, `{[k: string]: string}`, and array-pairs header forms.
+To maintain compatibility with existing ecosystems (e.g., W3C Fetch), client libraries SHOULD provide an adapter that maps standard function calls to `Network.Fetch` events.
 
-### Exceptions (Invalid pwenc)
+### Adaptation Behavior
 
-* If a value is detected as pwenc (begins with `pwenc:v1:`) but is invalid or cannot be decrypted, `sealedFetch` MUST throw an exception.
-* The exception MUST NOT include plaintext secret material.
+When adapting a standard fetch-like interface (accepting `input` and `init` arguments) to the Kernel:
 
-All other errors (HTTP errors, network errors) MUST pass through exactly as standard `fetch` would.
+1.  **Normalization**: Convert the `input` (URL/Request) and `init` (options) into a `Network.Fetch` command payload.
+2.  **Dispatch**: Emit the `Network.Fetch` command via the system event bus.
+3.  **Rehydration**: Convert the `Network.Fetch` response payload back into the host environment's standard Response object.
+
+**Note**: The *unsealing* of headers happens inside the **Kernel Event Handler** for `Network.Fetch`, not in the client-side helper. This ensures the plaintext never exists in the client's memory space, only in the ephemeral kernel process.
 
 ## Rationale
 
