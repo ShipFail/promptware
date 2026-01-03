@@ -1,6 +1,6 @@
 ---
 rfc: 0027
-title: VFS Driver: Sysfs
+title: "VFS Driver: Sysfs"
 author: Huan Li, Claude, GitHub Copilot
 status: Draft
 type: Standards Track

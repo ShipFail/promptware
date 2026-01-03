@@ -1,6 +1,6 @@
 ---
 rfc: 0028
-title: VFS Driver: Procfs
+title: "VFS Driver: Procfs"
 author: Huan Li, Claude, GitHub Copilot
 status: Draft
 type: Standards Track

@@ -1,6 +1,6 @@
 ---
 rfc: 0029
-title: VFS Driver: HTTP
+title: "VFS Driver: HTTP"
 author: Huan Li, Claude, GitHub Copilot
 status: Draft
 type: Standards Track
