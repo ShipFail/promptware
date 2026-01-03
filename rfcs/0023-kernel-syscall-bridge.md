@@ -14,15 +14,13 @@ tags: [kernel, syscall, ipc, daemon, unix-socket, inline, origin]
 
 ## 1. Summary
 
-This RFC defines a **syscall singularity interface** for PromptWare OS: a single Deno TypeScript entrypoint that can operate as:
+This RFC defines a **syscall singularity interface** for PromptWare OS: a single Deno TypeScript entrypoint that implements the **W3C Web Worker** messaging protocol over a Unix domain socket.
 
-* a **Client CLI** (Main Thread Proxy), streaming `OsEvent` frames to a daemon over a Unix domain socket, and
-* a **Daemon** (Worker Host), accepting connections and dispatching `OsEvent` frames to registered syscall handlers.
-* an **Inline** mode (no daemon), executing the dispatch pipeline in-process for testing and deterministic execution.
+*   **Prompt Kernel (Main Thread)**: The CLI client that spawns and controls the worker.
+*   **Software Kernel (Worker Thread)**: The daemon that executes syscalls in the background.
+*   **Syscall Bridge (MessagePort)**: The bidirectional NDJSON transport layer.
 
 The bridge uses **NDJSON** as its wire format and a common `OsEvent` envelope to unify CQRS-style commands, queries, responses, and errors. A **mandatory first-message prologue** (`Syscall.Authenticate`) is exchanged on every connection to support optional SSH public-key signature authentication (or open mode).
-
-This bridge implements the **Main Thread / Worker** messaging protocol. It serves as the transport layer connecting the **PromptWare Kernel** (Main Thread) to the **Software Kernel** (Worker).
 
 ---
 
@@ -30,12 +28,10 @@ This bridge implements the **Main Thread / Worker** messaging protocol. It serve
 
 PromptWare OS aims to maximize the Linux analogy while operating in an LLM-native environment. The architecture needs a syscall layer that:
 
-* implements the **W3C Actor Model** (`postMessage`/`onmessage`) over a robust transport.
-* is **uniform** (one protocol, one entrypoint, one "singularity" interface)
-* is **stream-native** (pipes in/out; easy composition)
-* is **operationally frictionless** (no external service manager required for MVP)
-* is **explicit about unsupported syscalls** (clear errors guide implementation/registration)
-* can evolve toward richer capabilities (inline mode, persistence, bidirectional request initiation)
+*   **Aligns with W3C Standards**: Uses `postMessage` and `onmessage` semantics familiar to all JS/TS developers and AI models.
+*   **Is Stream-Native**: Pipes in/out, easy composition.
+*   **Is Operationally Frictionless**: No external service manager required; self-bootstrapping.
+*   **Is Explicit**: Clear separation between the "Intent" (Prompt Kernel) and the "Execution" (Software Kernel).
 
 This RFC specifies the minimal robust bridge framework, excluding domain/business logic.
 
@@ -47,34 +43,24 @@ This RFC specifies the minimal robust bridge framework, excluding domain/busines
 
 The bridge MUST:
 
-1. Provide a **single entrypoint** with multiple modes:
-   * **Client mode** (default)
-   * **Daemon mode** (`--mode=daemon`)
-   * **Inline mode** (`--mode=inline` or `--no-daemon`) (no daemonizing)
-2. Use **Unix domain sockets** on macOS and Linux (daemon mode).
-3. Use **NDJSON** framing and validate every message using `OsEventSchema`.
-4. Implement **streaming dispatch** (line-by-line): read → validate → dispatch → write → flush → repeat.
-5. Treat **missing handlers** as a first-class error (emit `error` and continue).
-6. Enforce a **mandatory connection prologue**:
-   * daemon sends `Syscall.Authenticate` first on every connection
-   * client MUST respond before any subsequent frames are processed
-   * authentication MAY be required by configuration
-7. Support **transparent bootstrap** in client mode:
-   * client attempts to connect
-   * if not reachable, client spawns daemon (detached) and retries
-8. Prefer zero external configuration:
-   * deterministic socket path
-   * URL/file invocation support
+1.  Implement the **W3C Worker Interface** semantics:
+    *   **Main Thread**: `worker.postMessage()` / `worker.onmessage`
+    *   **Worker Thread**: `self.postMessage()` / `self.onmessage`
+2.  Provide a **single entrypoint** with multiple modes:
+    *   **Client mode** (Main Thread Proxy)
+    *   **Daemon mode** (Worker Host)
+    *   **Inline mode** (In-process Worker)
+3.  Use **Unix domain sockets** for the transport layer (MessagePort).
+4.  Use **NDJSON** framing and validate every message using `OsEventSchema`.
+5.  Enforce a **mandatory connection prologue** (`Syscall.Authenticate`).
 
 ### Non-Goals
 
 This RFC does NOT specify:
 
-* domain/business syscalls (job models, scheduling, providers, etc.)
-* durable state storage (KV/SQLite/files)
-* subscription/pubsub semantics
-* cross-platform support beyond macOS and Linux
-* protocol version negotiation/handshake (beyond `Syscall.Authenticate` prologue)
+*   Domain/business syscalls (job models, scheduling).
+*   Durable state storage (KV/SQLite).
+*   Cross-platform support beyond macOS and Linux.
 
 ---
 
@@ -84,35 +70,51 @@ This RFC does NOT specify:
 
 The key words **MUST**, **MUST NOT**, **SHOULD**, **SHOULD NOT**, and **MAY** are to be interpreted as described in BCP 14.
 
-### 4.2 Terminology
+### 4.2 Terminology & Architecture
 
-* **Bridge:** the overall framework and protocol.
-* **Main Thread (Client):** The Proxy for the PromptWare Kernel (CLI).
-* **Worker (Daemon):** The Host for the Software Kernel (Unix socket listener).
-* **Inline:** non-daemon execution mode; dispatch happens in-process.
-* **Handler:** a registered syscall implementation.
-* **NDJSON:** newline-delimited JSON (one object per line).
-* **EOF:** end-of-input on a connection (client half-closes write).
+We adopt the **W3C Web Worker** terminology to describe the system components, creating a "Rosetta Stone" mapping between Linux concepts and Web concepts.
 
-### 4.3 The Bridge Interface (Logical Layer)
+| PromptWare Concept | Web Standard (W3C) | Linux Implementation |
+| :--- | :--- | :--- |
+| **Prompt Kernel** | **Main Thread** | CLI Client (`client.ts`) |
+| **Software Kernel** | **Worker Thread** | Daemon Process (`daemon.ts`) |
+| **Syscall Transport** | **MessageChannel** | Unix Domain Socket |
 
-While the transport is NDJSON over Unix Sockets, the logical interface follows the **W3C MessagePort** contract.
+*   **Main Thread (Prompt Kernel)**: The Client/CLI. It represents the "User" or "Orchestrator".
+*   **Worker Thread (Software Kernel)**: The Daemon. It represents the "Service" or "Execution Context".
+*   **MessageChannel (Transport)**: The Unix Socket connection carrying NDJSON frames.
 
-#### 4.3.1 From the Main Thread (PromptWare Kernel)
-The Main Thread (CLI) holds a reference to the Worker (Daemon).
+### 4.3 The Bridge Interface
 
-*   **`sys.postMessage(msg)`**: Serializes `msg` to NDJSON and writes to the socket.
-    *   *Direction*: Main Thread $\to$ Worker.
-*   **`sys.onmessage(handler)`**: Deserializes NDJSON from the socket and invokes `handler`.
-    *   *Direction*: Worker $\to$ Main Thread.
+The interface is defined from two distinct perspectives: the **Host** (Main Thread) and the **Guest** (Worker Thread).
 
-#### 4.3.2 From the Worker (Software Kernel)
-The Worker (Daemon) holds a reference to the Main Thread (Client).
+#### 4.3.1 Host Interface (Prompt Kernel Perspective)
+*Context: The CLI Client (`client.ts`)*
 
-*   **`worker.postMessage(msg)`**: Serializes `msg` to NDJSON and writes to the socket.
-    *   *Direction*: Worker $\to$ Main Thread.
-*   **`worker.onmessage(handler)`**: Deserializes NDJSON from the socket and invokes `handler`.
-    *   *Direction*: Main Thread $\to$ Worker.
+The Host holds a reference to the Worker (the `worker` object).
+
+*   **`worker.postMessage(msg, transfer)`**:
+    *   **Action**: Serializes `msg` to NDJSON and writes to the socket.
+    *   **Direction**: Main Thread $\to$ Worker Thread.
+    *   **Semantics**: "I am sending a command to the kernel."
+*   **`worker.onmessage(handler)`**:
+    *   **Action**: Reads NDJSON from the socket, deserializes, and invokes `handler`.
+    *   **Direction**: Worker Thread $\to$ Main Thread.
+    *   **Semantics**: "The kernel sent me a response."
+
+#### 4.3.2 Guest Interface (Software Kernel Perspective)
+*Context: The Daemon (`daemon.ts`)*
+
+The Guest runs inside the Worker Global Scope (`self`).
+
+*   **`self.onmessage(handler)`**:
+    *   **Action**: Reads NDJSON from the socket, deserializes, and invokes `handler` (The Dispatcher).
+    *   **Direction**: Main Thread $\to$ Worker Thread.
+    *   **Semantics**: "I received a command from the user."
+*   **`self.postMessage(msg)`**:
+    *   **Action**: Serializes `msg` to NDJSON and writes to the socket.
+    *   **Direction**: Worker Thread $\to$ Main Thread.
+    *   **Semantics**: "I am sending a result back to the user."
 
 ### 4.4 Data Model: `OsEvent`
 
