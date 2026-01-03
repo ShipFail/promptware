@@ -16,13 +16,13 @@ tags: [kernel, syscall, ipc, daemon, unix-socket, inline, origin]
 
 This RFC defines a **syscall singularity interface** for PromptWare OS: a single Deno TypeScript entrypoint that can operate as:
 
-* a **Client CLI** (default), streaming `OsEvent` frames to a daemon over a Unix domain socket, and
-* a **Daemon** (server), accepting connections and dispatching `OsEvent` frames to registered syscall handlers.
+* a **Client CLI** (Main Thread Proxy), streaming `OsEvent` frames to a daemon over a Unix domain socket, and
+* a **Daemon** (Worker Host), accepting connections and dispatching `OsEvent` frames to registered syscall handlers.
 * an **Inline** mode (no daemon), executing the dispatch pipeline in-process for testing and deterministic execution.
 
 The bridge uses **NDJSON** as its wire format and a common `OsEvent` envelope to unify CQRS-style commands, queries, responses, and errors. A **mandatory first-message prologue** (`Syscall.Authenticate`) is exchanged on every connection to support optional SSH public-key signature authentication (or open mode).
 
-This bridge is intended to be the **default syscall transport** between the Prompt Kernel (Ring 0) and the Software Kernel (Ring 1).
+This bridge implements the **Main Thread / Worker** messaging protocol. It serves as the transport layer connecting the **PromptWare Kernel** (Main Thread) to the **Software Kernel** (Worker).
 
 ---
 
@@ -30,6 +30,7 @@ This bridge is intended to be the **default syscall transport** between the Prom
 
 PromptWare OS aims to maximize the Linux analogy while operating in an LLM-native environment. The architecture needs a syscall layer that:
 
+* implements the **W3C Actor Model** (`postMessage`/`onmessage`) over a robust transport.
 * is **uniform** (one protocol, one entrypoint, one "singularity" interface)
 * is **stream-native** (pipes in/out; easy composition)
 * is **operationally frictionless** (no external service manager required for MVP)
@@ -86,14 +87,34 @@ The key words **MUST**, **MUST NOT**, **SHOULD**, **SHOULD NOT**, and **MAY** ar
 ### 4.2 Terminology
 
 * **Bridge:** the overall framework and protocol.
-* **Client:** default CLI role.
-* **Daemon:** server role (Unix socket listener).
+* **Main Thread (Client):** The Proxy for the PromptWare Kernel (CLI).
+* **Worker (Daemon):** The Host for the Software Kernel (Unix socket listener).
 * **Inline:** non-daemon execution mode; dispatch happens in-process.
 * **Handler:** a registered syscall implementation.
 * **NDJSON:** newline-delimited JSON (one object per line).
 * **EOF:** end-of-input on a connection (client half-closes write).
 
-### 4.3 Data Model: `OsEvent`
+### 4.3 The Bridge Interface (Logical Layer)
+
+While the transport is NDJSON over Unix Sockets, the logical interface follows the **W3C MessagePort** contract.
+
+#### 4.3.1 From the Main Thread (PromptWare Kernel)
+The Main Thread (CLI) holds a reference to the Worker (Daemon).
+
+*   **`sys.postMessage(msg)`**: Serializes `msg` to NDJSON and writes to the socket.
+    *   *Direction*: Main Thread $\to$ Worker.
+*   **`sys.onmessage(handler)`**: Deserializes NDJSON from the socket and invokes `handler`.
+    *   *Direction*: Worker $\to$ Main Thread.
+
+#### 4.3.2 From the Worker (Software Kernel)
+The Worker (Daemon) holds a reference to the Main Thread (Client).
+
+*   **`worker.postMessage(msg)`**: Serializes `msg` to NDJSON and writes to the socket.
+    *   *Direction*: Worker $\to$ Main Thread.
+*   **`worker.onmessage(handler)`**: Deserializes NDJSON from the socket and invokes `handler`.
+    *   *Direction*: Main Thread $\to$ Worker.
+
+### 4.4 Data Model: `OsEvent`
 
 All frames MUST parse into the following schema (Zod representation):
 
@@ -209,11 +230,11 @@ Manual daemon shutdown.
 2.  Flushes pending outputs.
 3.  Closes active connections and exits.
 
-### 4.4 Architecture
+### 4.5 Architecture
 
-#### 4.4.1 Process Roles
+#### 4.5.1 Process Roles
 
-**Client (default)**
+**Main Thread Proxy (Client Mode)**
 
 The client is responsible for:
 
@@ -225,7 +246,7 @@ The client is responsible for:
 * Streaming daemon output to the client stdout.
 * Exiting only when the daemon closes the connection.
 
-**Daemon (`--mode=daemon`)**
+**Worker Host (Daemon Mode)** (`--mode=daemon`)
 
 The daemon is responsible for:
 
@@ -236,7 +257,7 @@ The daemon is responsible for:
 * Emitting errors for invalid or unsupported events.
 * Running indefinitely until killed or `Syscall.Shutdown` is received.
 
-**Inline (`--mode=inline` / `--no-daemon`)**
+**Inline Mode** (`--mode=inline` / `--no-daemon`)
 
 Inline mode runs the bridge without daemonizing.
 
@@ -252,7 +273,7 @@ Inline mode is intended for:
 * environments where background daemons are undesirable
 * debugging handler behavior without IPC
 
-#### 4.4.2 Stream-First Data Plane
+#### 4.5.2 Stream-First Data Plane
 
 All IO SHOULD be modeled as pipes:
 
@@ -266,7 +287,7 @@ Handlers MUST be expressed as:
 TransformStream<OsEvent, OsEvent>
 ```
 
-#### 4.4.3 Dispatch Registry
+#### 4.5.3 Dispatch Registry
 
 The daemon maintains a registry of handlers.
 
@@ -277,9 +298,9 @@ The daemon maintains a registry of handlers.
 
 * If an input `OsEvent` is valid but no handler is registered for it, the daemon MUST emit an `error` OsEvent indicating the request is unsupported, then continue processing subsequent input events.
 
-### 4.5 Lifecycle Algorithms
+### 4.6 Lifecycle Algorithms
 
-#### 4.5.1 Socket Path Computation
+#### 4.6.1 Socket Path Computation
 
 The socket path MUST be deterministic and require no user configuration.
 
@@ -291,7 +312,7 @@ Recommended order:
 
 The bridge MUST create a private directory (mode `0700`) under the chosen base directory, and place the socket file inside it.
 
-### 4.6 URL vs Local Invocation Policy
+### 4.7 URL vs Local Invocation Policy
 
 The bridge may be invoked from a local file path or a URL.
 
@@ -302,9 +323,9 @@ The exact mechanism for locating the entrypoint for self-spawn is implementation
 
 ---
 
-### 4.7 Lifecycle Algorithms
+### 4.8 Lifecycle Algorithms
 
-#### 4.7.1 Client Bootstrap (Connect → Spawn → Retry)
+#### 4.8.1 Client Bootstrap (Connect → Spawn → Retry)
 
 Client MUST:
 
@@ -319,7 +340,7 @@ Client MUST:
 
 If the client cannot connect within the timeout window, it MUST exit with an error.
 
-#### 4.7.2 Daemon Single-Instance & Stale Socket Cleanup
+#### 4.8.2 Daemon Single-Instance & Stale Socket Cleanup
 
 Daemon startup MUST:
 
@@ -331,7 +352,7 @@ Daemon startup MUST:
    * Otherwise, treat as stale: remove the socket file and continue.
 3. Bind and listen on the socket.
 
-#### 4.7.3 Per-Connection Processing Loop
+#### 4.8.3 Per-Connection Processing Loop
 
 For each connection, the daemon MUST:
 
@@ -355,19 +376,19 @@ repeat
 close connection when EOF reached and pending outputs flushed
 ```
 
-#### 4.7.4 Client Exit Semantics
+#### 4.8.4 Client Exit Semantics
 
 * Client MUST half-close write end after sending all input frames.
 * Client MUST continue reading until daemon closes the connection.
 
-### 4.8 Error Handling
+### 4.9 Error Handling
 
-#### 4.8.1 Invalid Frames
+#### 4.9.1 Invalid Frames
 
 * If a line cannot be parsed as JSON, daemon MUST emit an `error` event and continue.
 * If JSON parses but fails `OsEventSchema`, daemon MUST emit an `error` event and continue.
 
-#### 4.8.2 Unsupported Events
+#### 4.9.2 Unsupported Events
 
 If an `OsEvent` is valid but unsupported (no handler), daemon MUST emit an `error` indicating:
 
@@ -376,7 +397,7 @@ If an `OsEvent` is valid but unsupported (no handler), daemon MUST emit an `erro
 
 Daemon MUST continue processing subsequent frames.
 
-#### 4.8.3 Client Exit Code
+#### 4.9.3 Client Exit Code
 
 Client SHOULD exit non-zero if any `error` frames were observed on stdout.
 
@@ -651,7 +672,7 @@ init: /agents/shell.md
 ---
 ```
 
-The Promptware Kernel (Ring 0) reads this configuration and passes the normalized origin to the Software Kernel via `--location`.
+The PromptWare Kernel (Main Thread) reads this configuration and passes the normalized origin to the Software Kernel via `--location`.
 
 #### B.5.2. No User Override
 
