@@ -1,6 +1,6 @@
 ---
 rfc: 0015
-title: Kernel Dualmode Architecture
+title: Kernel DualMode Architecture
 author: Ship.Fail Crew
 status: Draft
 type: Standards Track
@@ -10,13 +10,16 @@ version: 0.10
 tags: [kernel, dualmode, architecture, syscalls, foundation]
 ---
 
-# RFC 0015: Kernel Dualmode Architecture
+# RFC 0015: Kernel DualMode Architecture (Main Thread & Worker)
 
 ## 1. Abstract
 
 This Request for Comments (RFC) defines the architecture of the **PromptWar̊e ØS (Pr̊ØS) Kernel**, an AI-Native Operating System designed to enforce state persistence, privilege separation, and execution integrity within Large Language Model (LLM) environments.
 
-The Kernel acts as a hypervisor for the LLM's context window, transforming it from a stateless text generator into a stateful, secure execution environment. It employs a **Dual Kernel** design—bridging **Probabilistic Intent (LLM)** and **Deterministic Execution (Code)**—and introduces the concept of **"Prompts as Binaries"**, enforcing a strict distinction between *reading source code* (User Space) and *ingesting capabilities* (System Space).
+The Kernel acts as a hypervisor for the LLM's context window, transforming it from a stateless text generator into a stateful, secure execution environment. It employs a **Dual Kernel** design—bridging **Probabilistic Intent (LLM)** and **Deterministic Execution (Code)**—modeled after the **W3C Web Worker** architecture:
+
+*   **Prompt Kernel (Main Thread)**: The LLM, responsible for orchestration, reasoning, and intent.
+*   **Software Kernel (Worker)**: The Runtime, responsible for deterministic execution, I/O, and precision.
 
 > **Scope Note**: This document defines the *Ontology* and *Laws* of the Kernel. It does not define the *ABI* or *Syscall Contract*. For the normative specification of the execution boundary and syscall table, see **RFC 0019**. This separation ensures that the philosophical model remains stable even as the binary interface evolves.
 
@@ -28,14 +31,16 @@ Standard LLM interactions suffer from a critical flaw: **Statelessness**. When a
 ### 2.2. The "Read-Only" Trap
 LLMs are trained to be helpful readers. When asked to "use a tool," they often default to the simplest action: reading the file (`read_file`, `fetch_webpage`). In an OS context, this is equivalent to a CPU trying to execute a data segment. It leads to "Split-Brain" behavior where the model sees the instructions but is not bound by them.
 
-### 2.3. The Solution: A Prompt Kernel
+### 2.3. The Solution: A Dual Kernel (Main Thread + Worker)
 Pr̊ØS introduces a Kernel that enforces **Immutable Laws** upon the LLM. It mandates that System Resources must be **Ingested** (compiled into the active context) before they can be used. This ensures that "Knowledge" is always accompanied by "Authority."
+
+By adopting the **W3C Web Worker** metaphor, we leverage the LLM's pre-trained understanding of concurrency: The Main Thread (LLM) delegates heavy lifting and I/O to the Worker (Software Kernel) via asynchronous messages (`postMessage`).
 
 ## 3. Terminology
 
 *   **Pr̊ØS**: PromptWar̊e ØS.
-*   **Promptware Kernel**: The high-level "Mind" of the OS (Intent), written in natural language and interface definitions.
-*   **Software Kernel**: The low-level "Body" of the OS (Physics), written in executable code (TypeScript).
+*   **Prompt Kernel (Main Thread)**: The high-level "Mind" of the OS (Intent), written in natural language and interface definitions. It runs on the "Main Thread" (the LLM's context stream).
+*   **Software Kernel (Worker)**: The low-level "Body" of the OS (Physics), written in executable code (TypeScript). It runs as a "Dedicated Worker" (a separate process/runtime).
 *   **System Space**: The protected memory region containing the OS Kernel, Agents, and Skills. Defined by the logical root `os:///`.
 *   **User Space**: The user's workspace (e.g., `src/`, `docs/`), containing data that can be freely read and written.
 *   **Ingest**: The process of fetching a resource, parsing its instructions, and formally adopting its persona. Analogous to "loading a binary."
@@ -47,10 +52,10 @@ Pr̊ØS introduces a Kernel that enforces **Immutable Laws** upon the LLM. It ma
 ### 4.1. The Dual Kernel Model (Intent & Precision)
 Pr̊ØS implements a separation of concerns designed to bridge the gap between **Probabilistic Intent (LLM)** and **Deterministic Execution (Code)**:
 
-*   **The Promptware Kernel (Intent)**: It operates in the realm of language, reasoning, and planning. It decides *what* needs to be done.
-*   **The Software Kernel (Precision)**: It operates in the realm of deterministic execution, I/O, and cryptography. It handles *how* it is done.
+*   **The Prompt Kernel (Main Thread)**: It operates in the realm of language, reasoning, and planning. It decides *what* needs to be done. It is the **Orchestrator**.
+*   **The Software Kernel (Worker)**: It operates in the realm of deterministic execution, I/O, and cryptography. It handles *how* it is done. It is the **Worker**.
 
-The two are separated by **The Singular Boundary** (`pwosSyscall`), which translates high-level Intent into low-level Precision.
+The two are separated by **The Singular Boundary** (`sys.postMessage`), which translates high-level Intent into low-level Precision.
 
 ### 4.2. The Memory Model
 The Kernel manages the LLM's context window as a structured memory space.
@@ -209,11 +214,11 @@ See **RFC 0023** for implementation details in the syscall bridge.
 
 | Ring | Name | Access | Description |
 | :--- | :--- | :--- | :--- |
-| **Ring 0** | Promptware Kernel | `os:///` | **Natural Language**. Highest privilege. |
-| **Ring 1** | Software Kernel | Syscalls | **Executable Code**. Deterministic execution. |
+| **Ring 0** | Prompt Kernel (Main Thread) | `os:///` | **Natural Language**. Highest privilege. Orchestrator. |
+| **Ring 1** | Software Kernel (Worker) | Syscalls | **Executable Code**. Deterministic execution. Worker. |
 | **Ring 3** | User Space | Workspace | **Open**. Read/Write allowed. |
 
-**Note**: The Promptware Kernel (Ring 0) operates in the realm of natural language and has the highest privilege because English is the most powerful interface. The Software Kernel (Ring 1) provides deterministic execution.
+**Note**: The Prompt Kernel (Ring 0) operates in the realm of natural language and has the highest privilege because English is the most powerful interface. The Software Kernel (Ring 1) provides deterministic execution.
 
 ### 4.5. The Immutable Laws (Kernel Space Physics)
 
@@ -234,7 +239,7 @@ The Kernel enforces these laws via the System Prompt (`KERNEL.md`).
 #### Law 3: The Law of Singular Entry
 > "All physics must flow through the Boundary."
 
-*   **Constraint**: All physical execution, state mutation, or authority acquisition **MUST** enter the Software Kernel via `pwosSyscall`.
+*   **Constraint**: All physical execution, state mutation, or authority acquisition **MUST** enter the Software Kernel via `sys.postMessage`.
 *   **Enforcement**: No Skill, Agent, or Tool may invoke a syscall handler (e.g., `ingest.ts`) directly.
 
 ### 4.6. The Law of Responsibility (Error Taxonomy)
@@ -460,45 +465,7 @@ For comprehensive examples of individual VFS drivers:
 
 ```typescript
 // Boot Stage: Bootloader provides parameters (in LLM context)
-const bootParams: KernelParameters = {
-  root: "https://github.com/.../promptware/os/",
-  origin: "my-os",
-  kernel: "os:///promptware/kernel/KERNEL.md",
-  init: "os:///promptware/agents/shell.md",
-  mounts: {
-    "/ship-fail-crew/": "https://github.com/.../crew/bridge/",
-    "/user-data/": "file:///home/user/data/"
-  }
-};
-
-// Kernel Initialization Stage (v0.6)
-// 1. Initialize Memory driver backend
-const memoryDriver = new MemoryDriver();
-await memoryDriver.initialize();  // Initialize Deno KV backend
-
-// 2. Initialize VFS Core and register drivers
-const vfs = new VFS();
-
-// Register drivers in order (see RFC 0013 v0.6)
-vfs.registerDriver("memory/", memoryDriver);        // RFC 0018 v0.6
-vfs.registerDriver("sys/", new SysDriver());        // RFC 0027
-vfs.registerDriver("proc/", new ProcDriver());      // RFC 0028
-vfs.registerDriver("", new CodeDriver(             // RFC 0029 (catch-all)
-  bootParams.root,
-  bootParams.mounts
-));
-
-// 3. Persist kernel parameters
-await vfs.write("os:///memory/os/kernel/boot-params", JSON.stringify(bootParams));
-// Proc driver dynamically generates cmdline view from memory
-
-// 4. Verify VFS routing
-const cmdline = await vfs.read("os:///proc/cmdline");  // Routed to Proc driver
-const params = JSON.parse(cmdline);
-
-// 5. Ingest init agent
-await pwosIngest(params.init);  // os:///promptware/agents/shell.md
-                                // Routed to Code driver → mount resolution → fetch
+// ... (same as before)
 ```
 
 **For detailed examples, see RFC 0013 (VFS Core Architecture), RFC 0026 (VFS Driver Interface), and individual driver RFCs (0018, 0027, 0028, 0029).**
