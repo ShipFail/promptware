@@ -3,15 +3,15 @@
  *
  * RFC-23 Stage 4: Syscall.Shutdown
  *
- * Reserved syscall for graceful daemon shutdown.
+ * Reserved syscall for graceful worker shutdown.
  * In inline mode: No-op (process exits naturally)
- * In daemon mode: Closes listener, removes socket, exits
+ * In worker mode: Closes listener, removes socket, exits
  */
 
 import { z } from "jsr:@zod/zod";
 import { SyscallModule } from "../../handler/contract.ts";
-import { OsEvent } from "../../lib/os-event.ts";
-import { requestDaemonShutdown } from "../runtime/daemon.ts";
+import { OsMessage } from "../../lib/os-event.ts";
+import { requestWorkerShutdown } from "../runtime/worker.ts";
 
 // Input Schema
 const ShutdownInput = z.object({
@@ -31,9 +31,9 @@ const syscallShutdownModule: SyscallModule<
   InputSchema: ShutdownInput,
   OutputSchema: ShutdownOutput,
 
-  handler: async (_input: z.infer<typeof ShutdownInput>, _event: OsEvent): Promise<z.infer<typeof ShutdownOutput>> => {
-    // Trigger graceful shutdown (only affects daemon mode)
-    requestDaemonShutdown();
+  handler: async (_input: z.infer<typeof ShutdownInput>, _message: OsMessage): Promise<z.infer<typeof ShutdownOutput>> => {
+    // Trigger graceful shutdown (only affects worker mode)
+    requestWorkerShutdown();
 
     return {
       message: "Shutdown acknowledged",

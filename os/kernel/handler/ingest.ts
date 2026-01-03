@@ -1,6 +1,6 @@
 import { z } from "jsr:@zod/zod";
 import { SyscallModule } from "./contract.ts";
-import { OsEvent } from "../lib/os-event.ts";
+import { OsMessage } from "../lib/os-event.ts";
 import { parseArgs } from "jsr:@std/cli/parse-args";
 import { parse, stringify } from "jsr:@std/yaml";
 import { join, dirname } from "jsr:@std/path";
@@ -218,7 +218,7 @@ export const OutputSchema = z.object({
   content: z.string().describe("The ingested and hydrated content with resolved metadata"),
 }).describe("Output from the ingest syscall.");
 
-export const handler = async (input: z.infer<typeof InputSchema>, _event: OsEvent): Promise<z.infer<typeof OutputSchema>> => {
+export const handler = async (input: z.infer<typeof InputSchema>, _event: OsMessage): Promise<z.infer<typeof OutputSchema>> => {
   const content = await ingest(input.uri);
   return { content };
 };

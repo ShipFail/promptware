@@ -1,6 +1,6 @@
 import { z } from "jsr:@zod/zod";
 import { SyscallModule } from "./contract.ts";
-import { OsEvent } from "../lib/os-event.ts";
+import { OsMessage } from "../lib/os-event.ts";
 import { parseArgs } from "jsr:@std/cli/parse-args";
 import { encodeBase64Url, decodeBase64Url } from "jsr:@std/encoding/base64url";
 
@@ -226,7 +226,7 @@ const SealOutputSchema = z.object({
   ciphertext: z.string().describe("The encrypted secret (pwenc:v1:...)"),
 }).describe("Output from crypto/seal syscall.");
 
-const sealHandler = async (input: z.infer<typeof SealInputSchema>, _event: OsEvent): Promise<z.infer<typeof SealOutputSchema>> => {
+const sealHandler = async (input: z.infer<typeof SealInputSchema>, _event: OsMessage): Promise<z.infer<typeof SealOutputSchema>> => {
   const ciphertext = await seal(input.plaintext);
   return { ciphertext };
 };
@@ -254,7 +254,7 @@ const OpenOutputSchema = z.object({
   plaintext: z.string().describe("The decrypted plaintext"),
 }).describe("Output from crypto/open syscall.");
 
-const openHandler = async (input: z.infer<typeof OpenInputSchema>, _event: OsEvent): Promise<z.infer<typeof OpenOutputSchema>> => {
+const openHandler = async (input: z.infer<typeof OpenInputSchema>, _event: OsMessage): Promise<z.infer<typeof OpenOutputSchema>> => {
   const plaintext = await open(input.ciphertext);
   return { plaintext };
 };
@@ -280,7 +280,7 @@ const DeriveOutputSchema = z.object({
   kid: z.string().describe("The derived Key ID (SSH key fingerprint)"),
 }).describe("Output from crypto/derive syscall.");
 
-const deriveHandler = async (_input: z.infer<typeof DeriveInputSchema>, _event: OsEvent): Promise<z.infer<typeof DeriveOutputSchema>> => {
+const deriveHandler = async (_input: z.infer<typeof DeriveInputSchema>, _event: OsMessage): Promise<z.infer<typeof DeriveOutputSchema>> => {
   const { kid } = await deriveKey();
   return { kid };
 };

@@ -14,14 +14,14 @@ import {
   cryptoOpenModule,
   cryptoDeriveModule,
 } from "./handler/crypto.ts";
-import syscallAuthModule from "./bridge/handler/authenticate.ts";
-import syscallShutdownModule from "./bridge/handler/shutdown.ts";
+import syscallAuthModule from "./transport/handler/authenticate.ts";
+import syscallShutdownModule from "./transport/handler/shutdown.ts";
 
 /**
  * Central Syscall Registry
  *
  * Uses EventStoreDB-style dot notation for semantic clarity.
- * The router dispatches events based on event.name matching these keys.
+ * The router dispatches messages based on message.type matching these keys.
  */
 export const registry: Record<string, SyscallModule<any, any>> = {
   // Reserved syscalls (RFC-23 Stage 2)

@@ -1,6 +1,6 @@
 import { z } from "jsr:@zod/zod";
 import { SyscallModule } from "./contract.ts";
-import { OsEvent } from "../lib/os-event.ts";
+import { OsMessage } from "../lib/os-event.ts";
 import { open } from "./crypto.ts";
 
 const PWENC_PREFIX = "pwenc:v1:";
@@ -41,7 +41,7 @@ export const OutputSchema = z.object({
   url: z.string().describe("The final URL after redirects."),
 }).describe("Output from the fetch syscall.");
 
-export const handler = async (input: z.infer<typeof InputSchema>, _event: OsEvent): Promise<z.infer<typeof OutputSchema>> => {
+export const handler = async (input: z.infer<typeof InputSchema>, _event: OsMessage): Promise<z.infer<typeof OutputSchema>> => {
   const req = new Request(input.url, input.init);
   await unsealHeaders(req.headers);
   const res = await fetch(req);

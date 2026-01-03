@@ -1,29 +1,29 @@
 /**
- * os/kernel/runtime/daemon.ts
+ * os/kernel/transport/runtime/worker.ts
  *
- * RFC-23 Stage 4: Daemon Runtime
+ * RFC-23 Stage 4: Worker Runtime
  *
- * Long-running Unix socket server that accepts client connections.
+ * Long-running Unix socket server that accepts main thread connections.
  * Implements single-instance check, connection prologue, and graceful shutdown.
  */
 
 import { TextLineStream } from "jsr:@std/streams";
 import { KernelRuntime } from "./interface.ts";
-import { OsEvent, createError } from "../../lib/os-event.ts";
+import { OsMessage, createError } from "../../lib/os-event.ts";
 import { getSocketPath } from "./socket-path.ts";
 import { NDJSONDecodeStream, NDJSONEncodeStream } from "../protocol/ndjson.ts";
 import { routerStream } from "../stream/router.ts";
-import { DaemonLogger, SyslogDaemonLogger } from "./daemon-logger.ts";
+import { WorkerLogger, SyslogWorkerLogger } from "./worker-logger.ts";
 
-// Global daemon state for graceful shutdown
-let daemonListener: Deno.Listener | null = null;
+// Global worker state for graceful shutdown
+let workerListener: Deno.Listener | null = null;
 let shutdownRequested = false;
 
-export class DaemonRuntime implements KernelRuntime {
-  private logger: DaemonLogger;
+export class WorkerRuntime implements KernelRuntime {
+  private logger: WorkerLogger;
 
-  constructor(logger?: DaemonLogger) {
-    this.logger = logger || new SyslogDaemonLogger();
+  constructor(logger?: WorkerLogger) {
+    this.logger = logger || new SyslogWorkerLogger();
   }
 
   async run(): Promise<number> {
@@ -34,8 +34,8 @@ export class DaemonRuntime implements KernelRuntime {
 
     // 2. Bind Unix socket
     try {
-      daemonListener = Deno.listen({ transport: "unix", path: sockPath });
-      this.logger.info("Daemon started", { socketPath: sockPath });
+      workerListener = Deno.listen({ transport: "unix", path: sockPath });
+      this.logger.info("Worker started", { socketPath: sockPath });
     } catch (e: unknown) {
       const errorMessage = e instanceof Error ? e.message : String(e);
       this.logger.error("Failed to bind socket", {
@@ -47,7 +47,7 @@ export class DaemonRuntime implements KernelRuntime {
 
     // 3. Accept connections loop
     try {
-      for await (const conn of daemonListener) {
+      for await (const conn of workerListener) {
         // Check shutdown flag before accepting new connections
         if (shutdownRequested) {
           this.logger.info("Shutdown requested, rejecting new connection");
@@ -63,10 +63,10 @@ export class DaemonRuntime implements KernelRuntime {
       }
     } finally {
       // 4. Cleanup on exit
-      this.logger.info("Daemon shutting down");
+      this.logger.info("Worker shutting down");
 
       try {
-        daemonListener.close();
+        workerListener.close();
       } catch {
         // Ignore if already closed
       }
@@ -82,16 +82,16 @@ export class DaemonRuntime implements KernelRuntime {
   }
 
   /**
-   * Handles a single client connection.
-   * Protocol: NDJSON stream of OsEvents
-   * RFC-23 Section 4.6: First event MUST be Syscall.Authenticate
+   * Handles a single main thread connection.
+   * Protocol: NDJSON stream of OsMessages
+   * RFC-23 Section 4.6: First message MUST be Syscall.Authenticate
    */
   private async handleConnection(conn: Deno.UnixConn): Promise<void> {
-    this.logger.info("Client connected");
+    this.logger.info("Main thread connected");
 
     try {
       // Build bidirectional pipeline with auth validation:
-      // Client → Decode NDJSON → Auth Check → Router → Encode NDJSON → Client
+      // Main → Decode NDJSON → Auth Check → Router → Encode NDJSON → Main
       const inputStream = conn.readable
         .pipeThrough(new TextDecoderStream())
         .pipeThrough(new TextLineStream())
@@ -103,13 +103,13 @@ export class DaemonRuntime implements KernelRuntime {
         .pipeThrough(new NDJSONEncodeStream())
         .pipeThrough(new TextEncoderStream());
 
-      // Pipe output back to client
+      // Pipe output back to main thread
       await outputStream.pipeTo(conn.writable);
 
-      this.logger.info("Client disconnected");
+      this.logger.info("Main thread disconnected");
     } catch (e: unknown) {
       const errorMessage = e instanceof Error ? e.message : String(e);
-      this.logger.warn("Client connection error", { error: errorMessage });
+      this.logger.warn("Main thread connection error", { error: errorMessage });
     } finally {
       try {
         conn.close();
@@ -121,22 +121,22 @@ export class DaemonRuntime implements KernelRuntime {
 
   /**
    * Creates a transform stream that validates authentication.
-   * RFC-23 Section 4.6: First event MUST be Syscall.Authenticate
+   * RFC-23 Section 4.6: First message MUST be Syscall.Authenticate
    */
-  private createAuthValidationStream(): TransformStream<OsEvent, OsEvent> {
-    let isFirstEvent = true;
+  private createAuthValidationStream(): TransformStream<OsMessage, OsMessage> {
+    let isFirstMessage = true;
 
-    return new TransformStream<OsEvent, OsEvent>({
-      transform(event, controller) {
-        if (isFirstEvent) {
-          isFirstEvent = false;
+    return new TransformStream<OsMessage, OsMessage>({
+      transform(message, controller) {
+        if (isFirstMessage) {
+          isFirstMessage = false;
 
-          // First event MUST be Syscall.Authenticate
-          if (event.name !== "Syscall.Authenticate") {
+          // First message MUST be Syscall.Authenticate
+          if (message.type !== "Syscall.Authenticate") {
             controller.enqueue(
               createError(
-                event,
-                "Authentication required: First event must be Syscall.Authenticate"
+                message,
+                "Authentication required: First message must be Syscall.Authenticate"
               )
             );
             controller.terminate();
@@ -144,14 +144,14 @@ export class DaemonRuntime implements KernelRuntime {
           }
         }
 
-        // Pass through all events (including the auth event itself)
-        controller.enqueue(event);
+        // Pass through all messages (including the auth message itself)
+        controller.enqueue(message);
       },
     });
   }
 
   /**
-   * Ensures only one daemon instance is running.
+   * Ensures only one worker instance is running.
    * RFC-23 Section 4.7.2: Stale socket cleanup
    */
   private async ensureSingleInstance(sockPath: string): Promise<void> {
@@ -166,14 +166,14 @@ export class DaemonRuntime implements KernelRuntime {
       throw e;
     }
 
-    // Socket exists - try connecting to see if daemon is alive
+    // Socket exists - try connecting to see if worker is alive
     try {
       const testConn = await Deno.connect({ transport: "unix", path: sockPath });
       testConn.close();
 
-      // Connection succeeded → daemon is running
+      // Connection succeeded → worker is running
       throw new Error(
-        `Daemon already running on ${sockPath}. Use --mode=client to connect.`
+        `Worker already running on ${sockPath}. Use --mode=main to connect.`
       );
     } catch (e: unknown) {
       // Connection failed → stale socket, safe to remove
@@ -194,12 +194,12 @@ export class DaemonRuntime implements KernelRuntime {
 }
 
 /**
- * Requests graceful daemon shutdown.
+ * Requests graceful worker shutdown.
  * Called by Syscall.Shutdown handler.
  */
-export function requestDaemonShutdown(): void {
+export function requestWorkerShutdown(): void {
   shutdownRequested = true;
-  if (daemonListener) {
-    daemonListener.close();
+  if (workerListener) {
+    workerListener.close();
   }
 }

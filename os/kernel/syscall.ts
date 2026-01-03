@@ -1,22 +1,22 @@
 /**
  * PromptWare ØS Kernel Entry Point (syscall.ts)
  *
- * RFC-23: Dual-Mode Syscall Bridge
+ * RFC-23: Dual-Mode Syscall Transport
  *
  * Supports multiple execution modes:
  * - inline: In-process execution (default, v1.0 behavior) [Stage 1]
- * - client: Unix socket client [Stage 3]
- * - daemon: Unix socket server [Stage 4]
+ * - main: Unix socket client (Main Thread) [Stage 3]
+ * - worker: Unix socket server (Worker Thread) [Stage 4]
  */
 
 import { parseArgs } from "jsr:@std/cli/parse-args";
 
-import { KernelRuntime } from "./bridge/runtime/interface.ts";
-import { InlineRuntime } from "./bridge/runtime/inline.ts";
-import { ClientRuntime } from "./bridge/runtime/client.ts";
-import { DaemonRuntime } from "./bridge/runtime/daemon.ts";
-import { ensureSupportedPlatform } from "./bridge/runtime/platform.ts";
-import { createEvent } from "./lib/os-event.ts";
+import { KernelRuntime } from "./transport/runtime/interface.ts";
+import { InlineRuntime } from "./transport/runtime/inline.ts";
+import { MainRuntime } from "./transport/runtime/main.ts";
+import { WorkerRuntime } from "./transport/runtime/worker.ts";
+import { ensureSupportedPlatform } from "./transport/runtime/platform.ts";
+import { createMessage } from "./lib/os-event.ts";
 import { registry } from "./registry.ts";
 
 /**
@@ -39,12 +39,12 @@ if (import.meta.main) {
 
   // Smart default mode selection:
   // - If args provided (CLI mode): use inline
-  // - If pipe mode (no args): use client (daemon)
+  // - If pipe mode (no args): use main (worker)
   // - Explicit --mode flag overrides
   let defaultMode = "inline";
   if (!args.mode) {
     const hasArgs = args._.length > 0;
-    defaultMode = hasArgs ? "inline" : "client";
+    defaultMode = hasArgs ? "inline" : "main";
   }
 
   const mode = args.mode || defaultMode;
@@ -54,17 +54,19 @@ if (import.meta.main) {
     case "inline":
       runtime = new InlineRuntime();
       break;
-    case "client":
+    case "main":
+    case "client": // Deprecated alias
       ensureSupportedPlatform(); // Check not Windows
-      runtime = new ClientRuntime();
+      runtime = new MainRuntime();
       break;
-    case "daemon":
+    case "worker":
+    case "daemon": // Deprecated alias
       ensureSupportedPlatform(); // Check not Windows
-      runtime = new DaemonRuntime();
+      runtime = new WorkerRuntime();
       break;
     default:
       console.error(`Error: Unknown mode: ${mode}`);
-      console.error('Valid modes: "inline", "client", "daemon"');
+      console.error('Valid modes: "inline", "main", "worker"');
       Deno.exit(1);
   }
 
@@ -94,7 +96,7 @@ export async function syscall(name: string, ...args: any[]) {
   }
 
   const parsedInput = await module.InputSchema.parseAsync(input);
-  const output = await module.handler(parsedInput, createEvent("command", name, parsedInput));
+  const output = await module.handler(parsedInput, createMessage("command", name, parsedInput));
   return module.OutputSchema.parse(output);
 }
 

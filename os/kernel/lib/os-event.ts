@@ -2,7 +2,7 @@
  * os/kernel/lib/os-event.ts
  *
  * The Atomic Unit of the PromptWare OS Kernel.
- * Defines the OsEvent schema, factory functions, and metadata helpers.
+ * Defines the OsMessage schema, factory functions, and metadata helpers.
  *
  * Adheres to:
  * 1. CQRS (Command/Query Responsibility Segregation)
@@ -15,61 +15,61 @@ import { z } from "jsr:@zod/zod";
 import { id8 } from "./id8.ts";
 
 /**
- * Zod Schema for OsEvent (Single Source of Truth).
+ * Zod Schema for OsMessage (Single Source of Truth).
  *
- * Behavioral envelope types:
+ * Behavioral envelope kinds:
  * - command: "Do this" (State Mutation)
  * - query: "Get this" (State Retrieval / Read-Only)
  * - event: "This happened" (Domain Event / Notification)
- * - response: "Here is the outcome" (Success Response)
+ * - reply: "Here is the outcome" (Success Response)
  * - error: "This failed" (Error Response)
  *
  * Aligns with CloudEvents, EventStoreDB, and JSON:API standards.
  */
-export const OsEventSchema = z.object({
+export const OsMessageSchema = z.object({
+  kind: z
+    .enum(["command", "query", "event", "reply", "error"])
+    .describe("Behavioral envelope kind"),
   type: z
-    .enum(["command", "query", "event", "response", "error"])
-    .describe("Behavioral envelope type"),
-  name: z
     .string()
-    .describe("Domain event name in dot notation (e.g. Memory.Set, Crypto.Seal)"),
-  payload: z
+    .describe("Domain message type in dot notation (e.g. Memory.Set, Crypto.Seal)"),
+  data: z
     .unknown()
     .describe("Data payload or error object"),
   metadata: z
     .object({
-      id: z.string().describe("Unique event ID"),
+      id: z.string().describe("Unique message ID"),
       timestamp: z.number().describe("Unix epoch ms"),
       correlation: z.string().optional().describe("Workflow/session correlation ID"),
-      causation: z.string().optional().describe("Direct parent event ID"),
+      causation: z.string().optional().describe("Direct parent message ID"),
     })
     .optional()
-    .describe("Event metadata for routing, tracing, and lineage"),
+    .describe("Message metadata for routing, tracing, and lineage"),
 });
 
 /**
  * TypeScript type derived from Zod schema.
  * Ensures type and runtime validation are always in sync.
  */
-export type OsEvent<T = unknown> = Omit<z.infer<typeof OsEventSchema>, "payload"> & {
-  payload: T;
+export type OsMessage<T = unknown> = Omit<z.infer<typeof OsMessageSchema>, "data"> & {
+  data: T;
 };
 
 /**
- * Helper to create a standard event.
+ * Helper to create a standard message.
  */
-export function createEvent<T>(
-  type: OsEvent<T>["type"],
-  name: string,
-  payload: T,
+export function createMessage<T>(
+  kind: OsMessage<T>["kind"],
+  type: string,
+  data: T,
   id?: string,
   correlation?: string,
   causation?: string
-): OsEvent<T> {
+): OsMessage<T> {
   return {
+    kind,
     type,
-    name,
-    payload,
+    data,
     metadata: {
       id: id || id8(),
       timestamp: Date.now(),
@@ -80,16 +80,16 @@ export function createEvent<T>(
 }
 
 /**
- * Helper to create an error event from an existing event.
+ * Helper to create an error message from an existing message.
  */
 export function createError(
-  original: OsEvent,
+  original: OsMessage,
   error: Error | string
-): OsEvent<Error | { message: string }> {
+): OsMessage<Error | { message: string }> {
   return {
-    type: "error",
-    name: original.name,
-    payload: error instanceof Error ? error : { message: error },
+    kind: "error",
+    type: original.type,
+    data: error instanceof Error ? error : { message: error },
     metadata: {
       id: id8(),
       timestamp: Date.now(),

@@ -1,6 +1,6 @@
 import { z } from "jsr:@zod/zod";
 import { SyscallModule } from "./contract.ts";
-import { OsEvent } from "../lib/os-event.ts";
+import { OsMessage } from "../lib/os-event.ts";
 import { parseArgs } from "jsr:@std/cli/parse-args";
 import { join, dirname } from "jsr:@std/path";
 
@@ -86,7 +86,7 @@ export const OutputSchema = z.object({
   resolved: z.string().url().describe("The fully resolved URL"),
 }).describe("Output from the resolve syscall.");
 
-export const handler = async (input: z.infer<typeof InputSchema>, _event: OsEvent): Promise<z.infer<typeof OutputSchema>> => {
+export const handler = async (input: z.infer<typeof InputSchema>, _event: OsMessage): Promise<z.infer<typeof OutputSchema>> => {
   const resolved = await resolve(input.uri, input.base);
   return { resolved };
 };

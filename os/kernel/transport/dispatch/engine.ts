@@ -1,41 +1,41 @@
 /**
- * os/kernel/bridge/dispatch/engine.ts
+ * os/kernel/transport/dispatch/engine.ts
  *
  * Core Dispatch Engine (RFC-23 Stage 1)
  *
- * Pure function that routes OsEvents to registered syscall handlers.
+ * Pure function that routes OsMessages to registered syscall handlers.
  * Extracted from router.ts to enable reuse across runtime modes.
  */
 
-import { OsEvent, createEvent, createError } from "../../lib/os-event.ts";
+import { OsMessage, createMessage, createError } from "../../lib/os-event.ts";
 import { SyscallModule } from "../../handler/contract.ts";
 
 export type Registry = Record<string, SyscallModule<any, any>>;
 
 /**
- * Dispatch a single OsEvent to the appropriate handler.
+ * Dispatch a single OsMessage to the appropriate handler.
  *
- * Returns a response or error event.
+ * Returns a reply or error message.
  */
 export async function dispatch(
-  event: OsEvent,
+  message: OsMessage,
   registry: Registry
-): Promise<OsEvent> {
+): Promise<OsMessage> {
   try {
     // 1. Filter: Only process commands and queries
-    if (event.type !== "command" && event.type !== "query") {
-      // Pass through events, responses, and errors unchanged
-      return event;
+    if (message.kind !== "command" && message.kind !== "query") {
+      // Pass through events, replies, and errors unchanged
+      return message;
     }
 
     // 2. Route: Look up handler
-    const module = registry[event.name];
+    const module = registry[message.type];
     let result: unknown;
     let handled = false;
 
     if (module) {
       // Native handler found
-      let inputData = event.payload;
+      let inputData = message.data;
 
       // Check for CLI/Shell adapter requirement
       if (Array.isArray(inputData) && module.cliAdapter) {
@@ -47,7 +47,7 @@ export async function dispatch(
       const input = await module.InputSchema.parseAsync(inputData);
 
       // B. Execute handler
-      const output = await module.handler(input, event);
+      const output = await module.handler(input, message);
 
       // C. Validate output
       result = module.OutputSchema.parse(output);
@@ -57,20 +57,20 @@ export async function dispatch(
       // If no native handler, try to execute as a shell command.
 
       let args: string[] = [];
-      if (Array.isArray(event.payload)) {
-        args = event.payload.map(String);
-      } else if (typeof event.payload === "string") {
-        args = [event.payload];
+      if (Array.isArray(message.data)) {
+        args = message.data.map(String);
+      } else if (typeof message.data === "string") {
+        args = [message.data];
       } else if (
-        typeof event.payload === "object" &&
-        event.payload !== null &&
-        "args" in event.payload
+        typeof message.data === "object" &&
+        message.data !== null &&
+        "args" in message.data
       ) {
         // @ts-ignore
-        args = (event.payload.args as any[]).map(String);
+        args = (message.data.args as any[]).map(String);
       }
 
-      const cmd = new Deno.Command(event.name, {
+      const cmd = new Deno.Command(message.type, {
         args,
         stdout: "piped",
         stderr: "piped",
@@ -83,7 +83,7 @@ export async function dispatch(
 
       if (!output.success) {
         throw new Error(
-          `Shell command '${event.name}' failed (exit code ${output.code}): ${stderr}`
+          `Shell command '${message.type}' failed (exit code ${output.code}): ${stderr}`
         );
       }
 
@@ -95,23 +95,23 @@ export async function dispatch(
       handled = true;
     }
 
-    // 3. Response: Wrap result in a new event
+    // 3. Response: Wrap result in a new message
     if (handled) {
-      return createEvent(
-        "response",
-        event.name,
+      return createMessage(
+        "reply",
+        message.type,
         result,
         undefined, // New ID
-        event.metadata?.correlation, // Preserve workflow correlation
-        event.metadata?.id // This event caused the result
+        message.metadata?.correlation, // Preserve workflow correlation
+        message.metadata?.id // This message caused the result
       );
     }
 
     // Should never reach here
-    throw new Error("Event was not handled");
+    throw new Error("Message was not handled");
   } catch (err: any) {
-    // 4. Error handling: Return error event instead of throwing
+    // 4. Error handling: Return error message instead of throwing
     console.error(err); // Print stack trace to stderr
-    return createError(event, err.message || String(err));
+    return createError(message, err.message || String(err));
   }
 }

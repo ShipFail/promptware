@@ -8,7 +8,7 @@
  */
 
 /**
- * Computes the Unix socket path for daemon communication.
+ * Computes the Unix socket path for worker communication.
  *
  * RFC-23 Section 4.5.1: Deterministic path computation
  * - Follows XDG Base Directory spec

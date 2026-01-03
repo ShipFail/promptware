@@ -1,6 +1,6 @@
 import { z } from "jsr:@zod/zod";
 import { SyscallModule } from "./contract.ts";
-import { OsEvent } from "../lib/os-event.ts";
+import { OsMessage } from "../lib/os-event.ts";
 
 /**
  * PromptWare ØS Memory Syscalls
@@ -52,7 +52,7 @@ const GetInputSchema = z.object({
 
 const GetOutputSchema = z.any().describe("The stored value, or null if not found.");
 
-const getHandler = async (input: z.infer<typeof GetInputSchema>, _event: OsEvent): Promise<z.infer<typeof GetOutputSchema>> => {
+const getHandler = async (input: z.infer<typeof GetInputSchema>, _event: OsMessage): Promise<z.infer<typeof GetOutputSchema>> => {
   return withKv(async (kv) => {
     const res = await kv.get(parseKey(input.key));
     return res.value;
@@ -80,7 +80,7 @@ const ListInputSchema = z.object({
 
 const ListOutputSchema = z.record(z.string(), z.any()).describe("Object mapping paths to values.");
 
-const listHandler = async (input: z.infer<typeof ListInputSchema>, _event: OsEvent): Promise<z.infer<typeof ListOutputSchema>> => {
+const listHandler = async (input: z.infer<typeof ListInputSchema>, _event: OsMessage): Promise<z.infer<typeof ListOutputSchema>> => {
   return withKv(async (kv) => {
     const prefix = input.prefix ? parseKey(input.prefix) : [];
     const result: Record<string, any> = {};
@@ -115,7 +115,7 @@ const SetOutputSchema = z.object({
   message: z.string(),
 }).describe("Confirmation of the set operation.");
 
-const setHandler = async (input: z.infer<typeof SetInputSchema>, _event: OsEvent): Promise<z.infer<typeof SetOutputSchema>> => {
+const setHandler = async (input: z.infer<typeof SetInputSchema>, _event: OsMessage): Promise<z.infer<typeof SetOutputSchema>> => {
   // RFC 0018: Vault Enforcement
   if (input.key.startsWith("/vault/")) {
     const valStr = typeof input.value === 'string' ? input.value : JSON.stringify(input.value);
@@ -154,7 +154,7 @@ const DeleteOutputSchema = z.object({
   message: z.string(),
 }).describe("Confirmation of the delete operation.");
 
-const deleteHandler = async (input: z.infer<typeof DeleteInputSchema>, _event: OsEvent): Promise<z.infer<typeof DeleteOutputSchema>> => {
+const deleteHandler = async (input: z.infer<typeof DeleteInputSchema>, _event: OsMessage): Promise<z.infer<typeof DeleteOutputSchema>> => {
   return withKv(async (kv) => {
     await kv.delete(parseKey(input.key));
     return { success: true, message: `Deleted ${input.key}` };

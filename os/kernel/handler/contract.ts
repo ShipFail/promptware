@@ -1,5 +1,5 @@
 import { z } from "jsr:@zod/zod";
-import { OsEvent } from "../lib/os-event.ts";
+import { OsMessage } from "../lib/os-event.ts";
 
 /**
  * A SyscallModule defines the strict contract for a kernel capability.
@@ -38,10 +38,10 @@ export interface SyscallModule<I extends z.ZodTypeAny, O extends z.ZodTypeAny> {
   /**
    * The implementation of the syscall.
    * @param input The validated input data.
-   * @param event The original OsEvent (for context/tracing).
+   * @param event The original OsMessage (for context/tracing).
    * @returns A promise resolving to the validated output data.
    */
-  handler: (input: z.infer<I>, event: OsEvent) => Promise<z.infer<O>>;
+  handler: (input: z.infer<I>, event: OsMessage) => Promise<z.infer<O>>;
 
   /**
    * Optional adapter to convert CLI arguments (string array) to the InputSchema.

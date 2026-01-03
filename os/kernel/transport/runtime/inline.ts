@@ -4,13 +4,13 @@
  * Inline Runtime (RFC-23 Stage 1)
  *
  * In-process kernel execution - the current v1.0 behavior.
- * Processes events through the reactive pipeline without daemonizing.
+ * Processes events through the reactive pipeline without spawning a worker.
  */
 
 import { TextLineStream } from "jsr:@std/streams";
 import { parseArgs } from "jsr:@std/cli/parse-args";
 
-import { OsEvent, createEvent } from "../../lib/os-event.ts";
+import { OsMessage, createMessage } from "../../lib/os-event.ts";
 import { routerStream } from "../stream/router.ts";
 import { loggerStream } from "../stream/logger.ts";
 import { KernelRuntime } from "./interface.ts";
@@ -30,7 +30,7 @@ export class InlineRuntime implements KernelRuntime {
     const hasArgs = args._.length > 0;
     const isCliMode = hasArgs; // If args provided, it's CLI mode
 
-    let inputStream: ReadableStream<OsEvent>;
+    let inputStream: ReadableStream<OsMessage>;
 
     if (isCliMode) {
       // A. Interactive/CLI Mode (Args -> Single Event)
@@ -43,7 +43,7 @@ export class InlineRuntime implements KernelRuntime {
         return 1;
       }
 
-      const event = createEvent("command", name, payload);
+      const event = createMessage("command", name, payload);
       inputStream = new ReadableStream({
         start(controller) {
           controller.enqueue(event);
@@ -63,7 +63,7 @@ export class InlineRuntime implements KernelRuntime {
     const outputStream = inputStream
       .pipeThrough(loggerStream)
       .pipeThrough(routerStream)
-      .pipeThrough(new NDJSONEncodeStream()) // Converts OsEvent to NDJSON strings
+      .pipeThrough(new NDJSONEncodeStream()) // Converts OsMessage to NDJSON strings
       .pipeThrough(new TextEncoderStream()); // Converts strings to bytes
 
     if (isCliMode) {

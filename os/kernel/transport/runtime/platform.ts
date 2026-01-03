@@ -9,7 +9,7 @@
 
 export function ensureSupportedPlatform(): void {
   if (Deno.build.os === "windows") {
-    console.error("Error: Daemon/client modes are not supported on Windows.");
+    console.error("Error: Worker/main modes are not supported on Windows.");
     console.error("Please use inline mode: --mode=inline");
     console.error("Or run without --mode flag (defaults to inline).");
     Deno.exit(1);

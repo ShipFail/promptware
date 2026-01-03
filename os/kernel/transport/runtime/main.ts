@@ -1,48 +1,48 @@
 /**
- * os/kernel/runtime/client.ts
+ * os/kernel/transport/runtime/main.ts
  *
- * RFC-23 Stage 3: Client Runtime
+ * RFC-23 Stage 3: Main Runtime
  *
- * Unix socket client that connects to daemon (or spawns it if not running).
+ * Unix socket client that connects to worker (or spawns it if not running).
  * Implements the "connect-or-spawn" pattern with exponential backoff retry.
  */
 
 import { TextLineStream } from "jsr:@std/streams";
 import { KernelRuntime } from "./interface.ts";
-import { OsEvent, createEvent } from "../../lib/os-event.ts";
+import { OsMessage, createMessage } from "../../lib/os-event.ts";
 import { getSocketPath } from "./socket-path.ts";
 import { getEntrypointCommand } from "./entrypoint.ts";
 import { NDJSONDecodeStream, NDJSONEncodeStream } from "../protocol/ndjson.ts";
 
-export class ClientRuntime implements KernelRuntime {
+export class MainRuntime implements KernelRuntime {
   async run(): Promise<number> {
     const sockPath = getSocketPath();
 
-    // 1. Try connect to existing daemon
+    // 1. Try connect to existing worker
     let conn: Deno.UnixConn;
     try {
       conn = await Deno.connect({ transport: "unix", path: sockPath }) as Deno.UnixConn;
-      console.error("[Client] Connected to existing daemon");
+      console.error("[Main] Connected to existing worker");
     } catch (_e) {
-      // 2. Connection failed → spawn daemon and retry
-      console.error("[Client] Daemon not running, spawning...");
-      await this.spawnDaemon();
+      // 2. Connection failed → spawn worker and retry
+      console.error("[Main] Worker not running, spawning...");
+      await this.spawnWorker();
 
       // 3. Retry connection with exponential backoff
       try {
         conn = await this.retryConnect(sockPath);
-        console.error("[Client] Connected to newly spawned daemon");
+        console.error("[Main] Connected to newly spawned worker");
       } catch (e: unknown) {
         const errorMessage = e instanceof Error ? e.message : String(e);
-        console.error(`[Client] Failed to connect after spawn: ${errorMessage}`);
+        console.error(`[Main] Failed to connect after spawn: ${errorMessage}`);
         return 1;
       }
     }
 
     try {
       // 4. Create stdin with auth prologue prepended
-      const authEvent = createEvent("command", "Syscall.Authenticate", {});
-      const authMessage = JSON.stringify(authEvent) + "\n";
+      const authMessage = createMessage("command", "Syscall.Authenticate", {});
+      const authPayload = JSON.stringify(authMessage) + "\n";
       const encoder = new TextEncoder();
 
       let authSent = false;
@@ -50,10 +50,10 @@ export class ClientRuntime implements KernelRuntime {
 
       const stdinWithAuth = new ReadableStream({
         async pull(controller) {
-          // First pull: send auth event
+          // First pull: send auth message
           if (!authSent) {
             authSent = true;
-            controller.enqueue(encoder.encode(authMessage));
+            controller.enqueue(encoder.encode(authPayload));
             return;
           }
 
@@ -74,12 +74,12 @@ export class ClientRuntime implements KernelRuntime {
         },
       });
 
-      // 5. Pipe stdin (with auth) → daemon (write half)
+      // 5. Pipe stdin (with auth) → worker (write half)
       const stdinPipe = stdinWithAuth.pipeTo(conn.writable, {
         preventClose: true, // Allow half-close
       });
 
-      // 6. Pipe daemon → stdout (read half)
+      // 6. Pipe worker → stdout (read half)
       const stdoutPipe = conn.readable.pipeTo(Deno.stdout.writable);
 
       // 7. Wait for both pipes to complete
@@ -88,7 +88,7 @@ export class ClientRuntime implements KernelRuntime {
       return 0;
     } catch (e: unknown) {
       const errorMessage = e instanceof Error ? e.message : String(e);
-      console.error(`[Client] Connection error: ${errorMessage}`);
+      console.error(`[Main] Connection error: ${errorMessage}`);
       return 1;
     } finally {
       try {
@@ -100,23 +100,23 @@ export class ClientRuntime implements KernelRuntime {
   }
 
   /**
-   * Spawns a detached daemon process.
+   * Spawns a detached worker process.
    * Supports both local file and URL-based invocation.
    */
-  private async spawnDaemon(): Promise<void> {
+  private async spawnWorker(): Promise<void> {
     const { cmd, args } = getEntrypointCommand();
 
-    const daemonCmd = new Deno.Command(cmd, {
-      args: [...args, "--mode=daemon"],
+    const workerCmd = new Deno.Command(cmd, {
+      args: [...args, "--mode=worker"],
       stdin: "null",
       stdout: "null",
-      stderr: "inherit", // Show daemon logs in client's stderr
+      stderr: "inherit", // Show worker logs in main's stderr
     });
 
-    // Spawn detached (don't wait for daemon to exit)
-    daemonCmd.spawn();
+    // Spawn detached (don't wait for worker to exit)
+    workerCmd.spawn();
 
-    // Give daemon time to start listening
+    // Give worker time to start listening
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
 
@@ -138,6 +138,6 @@ export class ClientRuntime implements KernelRuntime {
     }
 
     // All retries failed
-    throw new Error(`Failed to connect to daemon after ${delays.length} retries`);
+    throw new Error(`Failed to connect to worker after ${delays.length} retries`);
   }
 }

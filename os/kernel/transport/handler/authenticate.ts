@@ -3,14 +3,14 @@
  *
  * RFC-23 Stage 2: Syscall.Authenticate
  *
- * Reserved syscall for client-daemon connection prologue.
+ * Reserved syscall for main-worker connection prologue.
  * In inline mode: No-op (authentication not required)
- * In daemon mode: Validates client credentials (Stage 4)
+ * In worker mode: Validates main credentials (Stage 4)
  */
 
 import { z } from "jsr:@zod/zod";
 import { SyscallModule } from "../../handler/contract.ts";
-import { OsEvent } from "../../lib/os-event.ts";
+import { OsMessage } from "../../lib/os-event.ts";
 
 // Input Schema
 const AuthenticateInput = z.object({
@@ -32,9 +32,9 @@ const syscallAuthModule: SyscallModule<
   InputSchema: AuthenticateInput,
   OutputSchema: AuthenticateOutput,
 
-  handler: async (_input: z.infer<typeof AuthenticateInput>, _event: OsEvent): Promise<z.infer<typeof AuthenticateOutput>> => {
+  handler: async (_input: z.infer<typeof AuthenticateInput>, _event: OsMessage): Promise<z.infer<typeof AuthenticateOutput>> => {
     // Inline mode: No-op (always succeeds)
-    // Daemon mode (Stage 4): Will check credentials
+    // Worker mode (Stage 4): Will check credentials
     return {
       authenticated: true,
       message: "Authentication successful (inline mode: no-op)",

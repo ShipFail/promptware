@@ -1,6 +1,6 @@
 import { z } from "jsr:@zod/zod";
 import { SyscallModule } from "./contract.ts";
-import { OsEvent } from "../lib/os-event.ts";
+import { OsMessage } from "../lib/os-event.ts";
 
 export const InputSchema = z.object({
   message: z.string().describe("The message to echo back."),
@@ -10,7 +10,7 @@ export const OutputSchema = z.object({
   echo: z.string().describe("The echoed message."),
 }).describe("Output from the echo syscall.");
 
-export const handler = async (input: z.infer<typeof InputSchema>, _event: OsEvent): Promise<z.infer<typeof OutputSchema>> => {
+export const handler = async (input: z.infer<typeof InputSchema>, _event: OsMessage): Promise<z.infer<typeof OutputSchema>> => {
   return { echo: input.message };
 };
 
