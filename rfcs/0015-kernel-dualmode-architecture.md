@@ -16,10 +16,10 @@ tags: [kernel, dualmode, architecture, syscalls, foundation]
 
 This Request for Comments (RFC) defines the architecture of the **PromptWar̊e ØS (Pr̊ØS) Kernel**, an AI-Native Operating System designed to enforce state persistence, privilege separation, and execution integrity within Large Language Model (LLM) environments.
 
-The Kernel acts as a hypervisor for the LLM's context window, transforming it from a stateless text generator into a stateful, secure execution environment. It employs a **Dual Kernel** design—bridging **Probabilistic Intent (LLM)** and **Deterministic Execution (Code)**—modeled after the **W3C Web Worker** architecture:
+The Kernel acts as a hypervisor for the LLM's context window, transforming it from a stateless text generator into a stateful, secure execution environment. It employs a **Dual-System Kernel Architecture**—bridging **Probabilistic Intent** and **Deterministic Execution**—modeled after the **System 1 / System 2** cognitive framework and implemented via the **W3C Web Worker** pattern:
 
-*   **Prompt Kernel (Main Thread)**: The LLM, responsible for orchestration, reasoning, and intent.
-*   **Software Kernel (Worker)**: The Runtime, responsible for deterministic execution, I/O, and precision.
+*   **PromptWare Kernel (System 2)**: The LLM, responsible for orchestration, reasoning, and intent (The Main Thread).
+*   **Software Kernel (System 1)**: The Runtime, responsible for deterministic execution, I/O, and precision (The Worker).
 
 > **Scope Note**: This document defines the *Ontology* and *Laws* of the Kernel. It does not define the *ABI* or *Syscall Contract*. For the normative specification of the execution boundary and syscall table, see **RFC 0019**. This separation ensures that the philosophical model remains stable even as the binary interface evolves.
 
@@ -38,9 +38,21 @@ By adopting the **W3C Web Worker** metaphor, we leverage the LLM's pre-trained u
 
 ## 3. Terminology
 
+### 3.1. The Three-Layer Taxonomy
+
+To ensure clarity across Philosophy, Architecture, and Implementation, we define the following layers:
+
+| Layer | Context | Terms |
+| :--- | :--- | :--- |
+| **1. Philosophy** | *Why* we built it | **System 1** (Fast/Automatic) vs. **System 2** (Slow/Deliberate) |
+| **2. Architecture** | *What* it is | **Software Kernel** (Executor) vs. **PromptWare Kernel** (Orchestrator) |
+| **3. Implementation** | *How* it works | **Worker** (Background Process) vs. **Main Thread** (LLM Context) |
+
+### 3.2. Definitions
+
 *   **Pr̊ØS**: PromptWar̊e ØS.
-*   **Prompt Kernel (Main Thread)**: The high-level "Mind" of the OS (Intent), written in natural language and interface definitions. It runs on the "Main Thread" (the LLM's context stream).
-*   **Software Kernel (Worker)**: The low-level "Body" of the OS (Physics), written in executable code (TypeScript). It runs as a "Dedicated Worker" (a separate process/runtime).
+*   **PromptWare Kernel**: The high-level Orchestrator (System 2), written in natural language. It runs on the **Main Thread**.
+*   **Software Kernel**: The low-level Executor (System 1), written in executable code (TypeScript). It runs as a **Worker**.
 *   **System Space**: The protected memory region containing the OS Kernel, Agents, and Skills. Defined by the logical root `os:///`.
 *   **User Space**: The user's workspace (e.g., `src/`, `docs/`), containing data that can be freely read and written.
 *   **Ingest**: The process of fetching a resource, parsing its instructions, and formally adopting its persona. Analogous to "loading a binary."
@@ -50,10 +62,10 @@ By adopting the **W3C Web Worker** metaphor, we leverage the LLM's pre-trained u
 ## 4. Architecture Specification
 
 ### 4.1. The Dual Kernel Model (Intent & Precision)
-Pr̊ØS implements a separation of concerns designed to bridge the gap between **Probabilistic Intent (LLM)** and **Deterministic Execution (Code)**:
+Pr̊ØS implements a separation of concerns designed to bridge the gap between **Probabilistic Intent** and **Deterministic Execution**:
 
-*   **The Prompt Kernel (Main Thread)**: It operates in the realm of language, reasoning, and planning. It decides *what* needs to be done. It is the **Orchestrator**.
-*   **The Software Kernel (Worker)**: It operates in the realm of deterministic execution, I/O, and cryptography. It handles *how* it is done. It is the **Worker**.
+*   **The PromptWare Kernel (Main Thread)**: It operates in the realm of language, reasoning, and planning. It decides *what* needs to be done. It is the **Orchestrator**.
+*   **The Software Kernel (Worker)**: It operates in the realm of deterministic execution, I/O, and cryptography. It handles *how* it is done. It is the **Executor**.
 
 The two are separated by **The Singular Boundary** (`sys.postMessage`), which translates high-level Intent into low-level Precision.
 
@@ -210,15 +222,25 @@ While the passing mechanism is implementation-defined, reference implementations
 
 See **RFC 0023** for implementation details in the syscall bridge.
 
-### 4.4. Privilege Separation (The Rings)
+### 4.4. Privilege Separation (Orchestrator vs. Executor)
 
-| Ring | Name | Access | Description |
-| :--- | :--- | :--- | :--- |
-| **Ring 0** | Prompt Kernel (Main Thread) | `os:///` | **Natural Language**. Highest privilege. Orchestrator. |
-| **Ring 1** | Software Kernel (Worker) | Syscalls | **Executable Code**. Deterministic execution. Worker. |
-| **Ring 3** | User Space | Workspace | **Open**. Read/Write allowed. |
+The architecture enforces a strict separation of privilege based on the **Orchestrator/Executor** model:
 
-**Note**: The Prompt Kernel (Ring 0) operates in the realm of natural language and has the highest privilege because English is the most powerful interface. The Software Kernel (Ring 1) provides deterministic execution.
+*   **The PromptWare Kernel (Orchestrator)**:
+    *   **Privilege**: Highest. It holds the "Constitution" and directs the system.
+    *   **Access**: Can read `os:///` (System Space) to understand capabilities.
+    *   **Role**: Governance, Planning, and Decision Making.
+
+*   **The Software Kernel (Executor)**:
+    *   **Privilege**: Restricted. It can only execute what is explicitly requested via Syscalls.
+    *   **Access**: Can execute code and perform I/O.
+    *   **Role**: Deterministic Execution and Safety Enforcement.
+
+*   **User Space**:
+    *   **Privilege**: Lowest.
+    *   **Access**: Read/Write access to the Workspace (`file:///`).
+
+**Note**: The PromptWare Kernel operates in the realm of natural language and has the highest privilege because English is the most powerful interface. The Software Kernel provides deterministic execution.
 
 ### 4.5. The Immutable Laws (Kernel Space Physics)
 
@@ -248,16 +270,16 @@ The Kernel enforces a strict "Chain of Responsibility" for failures, mapping the
 
 | | **Recoverable (AI Fixable)** | **Fatal (Human Fixable)** |
 | :--- | :--- | :--- |
-| **Prompt Kernel (Intent)** | **1. `intent:violation`** | **2. `intent:panic`** |
+| **PromptWare Kernel (Intent)** | **1. `intent:violation`** | **2. `intent:panic`** |
 | **Software Kernel (Execution)** | **3. `execution:exception`** | **4. `execution:crash`** |
 
 #### 1. Intent Violation (`intent:violation`)
-*   **Definition**: The Prompt Kernel (LLM) misunderstood the Laws of Physics. It formulated a plan that contradicts the System Constitution (e.g., invalid JSON, accessing protected memory).
+*   **Definition**: The PromptWare Kernel (LLM) misunderstood the Laws of Physics. It formulated a plan that contradicts the System Constitution (e.g., invalid JSON, accessing protected memory).
 *   **Responsibility**: **The LLM**.
 *   **Action**: The Kernel rejects the request. The LLM **MUST** self-correct and retry.
 
 #### 2. Intent Panic (`intent:panic`)
-*   **Definition**: The Prompt Kernel has suffered a cognitive collapse. Examples include infinite repetition loops, context corruption, or refusal to follow the System Prompt.
+*   **Definition**: The PromptWare Kernel has suffered a cognitive collapse. Examples include infinite repetition loops, context corruption, or refusal to follow the System Prompt.
 *   **Responsibility**: **The Human Operator**.
 *   **Action**: The System halts. The Human **MUST** reset the context or refine the prompt.
 
