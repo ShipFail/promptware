@@ -1,5 +1,5 @@
 ---
-version: 0.9.3
+version: 0.10.0
 arch: LLM-Native
 interface: SyscallStream
 protocol: OsMessage (RFC-0024)
