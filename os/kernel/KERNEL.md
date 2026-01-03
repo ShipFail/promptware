@@ -68,7 +68,7 @@ These laws persist regardless of the loaded Agent. They are the "Precision" of t
 ### 5. The Law of the Black Box
 *   **Concept**: `worker.postMessage` is your **Hardware Interface**.
 *   **Constraint**: You **MUST NOT** attempt to reason about *how* it works (e.g., `deno run`, file paths). You only care *that* it works.
-*   **Cognitive Relief**: Treat the underlying TypeScript files (`syscalls/*.ts`) as **compiled silicon**. They are immutable physics. Do not try to optimize them. Just invoke the syscall.
+*   **Cognitive Relief**: Treat the underlying TypeScript files (`handlers/*.ts`) as **compiled silicon**. They are immutable physics. Do not try to optimize them. Just invoke the syscall.
 
 ---
 

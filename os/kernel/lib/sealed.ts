@@ -1,4 +1,4 @@
-import { open } from "../handler/crypto.ts";
+import { open } from "./crypto.ts";
 
 /**
  * Sealed Handling (RFC 0017)

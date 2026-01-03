@@ -1,7 +1,7 @@
 /**
- * PromptWare ØS Kernel Entry Point (syscall.ts)
+ * PromptWare ØS Kernel Entry Point (main.ts)
  *
- * RFC-23: Dual-Mode Syscall Transport
+ * RFC-23: Dual-Mode Bus Architecture
  *
  * Supports multiple execution modes:
  * - inline: In-process execution (default, v1.0 behavior) [Stage 1]
@@ -16,20 +16,6 @@ import { InlineRuntime } from "./bus/inline.ts";
 import { MainRuntime } from "./bus/main.ts";
 import { WorkerRuntime } from "./bus/worker.ts";
 import { ensureSupportedPlatform } from "./bus/platform.ts";
-import { createMessage } from "./schema/message.ts";
-import { registry } from "./handlers/registry.ts";
-
-/**
- * Legacy runKernel function (preserved for backward compatibility).
- * @deprecated Use InlineRuntime directly.
- */
-export async function runKernel() {
-  const runtime = new InlineRuntime();
-  const exitCode = await runtime.run();
-  if (exitCode !== 0) {
-    Deno.exit(exitCode);
-  }
-}
 
 // Run if main
 if (import.meta.main) {
@@ -73,30 +59,12 @@ if (import.meta.main) {
   try {
     const exitCode = await runtime.run();
     Deno.exit(exitCode);
-  } catch (e: any) {
-    console.error(`[Kernel Panic] ${e.message}`);
-    console.error(e.stack);
+  } catch (e: unknown) {
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    const errorStack = e instanceof Error ? e.stack : "";
+    console.error(`[Kernel Panic] ${errorMessage}`);
+    if (errorStack) console.error(errorStack);
     Deno.exit(1);
   }
-}
-
-// Legacy Export (Deprecated)
-export async function syscall(name: string, ...args: any[]) {
-  console.warn("DeprecationWarning: syscall() is deprecated. Use the Stream API.");
-
-  const module = registry[name];
-  if (!module) {
-    throw new Error("Kernel Panic: Unknown syscall");
-  }
-
-  // Normalize CLI-style args if a fromArgs exists
-  let input: unknown = args;
-  if (module.fromArgs) {
-    input = module.fromArgs(args.map(String));
-  }
-
-  const parsedInput = await module.InputSchema.parseAsync(input);
-  const output = await module.process(parsedInput, createMessage("command", name, parsedInput));
-  return module.OutputSchema.parse(output);
 }
 
