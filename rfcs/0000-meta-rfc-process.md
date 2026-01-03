@@ -228,7 +228,7 @@ RFCs **MAY**:
 ### 9.1 Project Naming Convention
 *   **Official Name**: Always use the stylized name **PromptWar̊e ØS** or the abbreviation **Pr̊ØS**.
 *   **Prohibition**: Do **NOT** use the ASCII "PromptWare OS" unless strictly required by technical limitations (e.g., filenames, URLs, code variables).
-*   **Rationale**: Preserves the unique brand identity and "Ring 0" philosophy.
+*   **Rationale**: Preserves the unique brand identity and "PromptWare Kernel" philosophy.
 
 ### 9.2 Reference Style
 To maintain clarity between internal laws and external standards, the **References** section **MUST** be split into two subsections:

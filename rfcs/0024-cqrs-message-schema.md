@@ -138,7 +138,7 @@ Under the co-founder privilege model:
 **Benefits**:
 - ✅ **Self-extension** - OS writes and registers its own syscalls without limitations
 - ✅ **Zero deployment** - New features go live instantly (no rebuild, no restart)
-- ✅ **Application-level handlers** - Ring 3 apps can define custom message handlers
+- ✅ **Application-level handlers** - User Space apps can define custom message handlers
 - ✅ **Unique capability** - No traditional OS allows runtime syscall registration
 
 **This is unique to PromptWarẽ ØS** - traditional OS can't do this because:

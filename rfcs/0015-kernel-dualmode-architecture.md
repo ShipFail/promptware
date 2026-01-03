@@ -116,12 +116,12 @@ PromptWar̊e ØS uses a **unified VFS architecture** under the `os:///` scheme w
 
 **Separation of Concerns (v0.6):**
 
-* `os:///` is the **unified VFS namespace** for all system resources (Ring 0)
+* `os:///` is the **unified VFS namespace** for all system resources (System Space)
   * `os:///agents/*`, `os:///skills/*` → Code Driver (immutable code)
   * `os:///memory/*` → Memory Driver (mutable persistent state)
   * `os:///sys/*` → Sys Driver (control plane, writable)
   * `os:///proc/*` → Proc Driver (introspection, read-only)
-* `file://` paths are for **user data** (Ring 3 development artifacts)
+* `file://` paths are for **user data** (User Space development artifacts)
 * Relative paths inherit context from parent
 
 **API Convention:**
@@ -434,7 +434,7 @@ This "Fail-Secure" mechanism ensures that even if the LLM drifts, the Kernel for
 ## 8. Future Work
 
 *   **Multi-Process Support**: Enabling "Background Agents" with independent Context Registers.
-*   **Kernel Debugger**: A specialized "Ring -1" mode for inspecting System Space without triggering security violations (for OS developers only).
+*   **Kernel Debugger**: A specialized "Debug Mode" for inspecting System Space without triggering security violations (for OS developers only).
 *   **Signed Binaries**: Cryptographic verification of Skills before Ingestion.
 
 ## 9. Appendix: Examples and Cross-References

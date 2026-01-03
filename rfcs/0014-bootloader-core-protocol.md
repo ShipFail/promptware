@@ -171,7 +171,7 @@ The Bootloader MUST NOT allow any persistence of state (writing files, saving me
 ## 9. References
 
 *   [RFC 2119](https://www.ietf.org/rfc/rfc2119.txt): Key words for use in RFCs to Indicate Requirement Levels.
-*   PromptWareOS Kernel Specification (RFC 001).
+*   PromptWareOS Kernel Specification (RFC 0015).
 *   PromptWareOS Agent Constitution (AGENTS.md).
 
 ---

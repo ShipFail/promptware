@@ -14,7 +14,7 @@ tags: [promptwareos, sealed, pwenc, fetch, sealedfetch, ergonomics]
 
 ## Abstract
 
-PromptWar̊e ØS is prompt-first. The prompt kernel (pRing 0) is non-confidential; therefore plaintext secrets MUST be avoided in prompts, tool outputs, and logs.
+PromptWar̊e ØS is prompt-first. The PromptWare Kernel (Main Thread) is non-confidential; therefore plaintext secrets MUST be avoided in prompts, tool outputs, and logs.
 
 This RFC defines the **developer ergonomics layer** for working with sealed secrets:
 
@@ -202,7 +202,7 @@ When adapting a standard fetch-like interface (accepting `input` and `init` argu
 
 ### Why `sealedFetch` instead of a Proxy?
 
-Early designs (RFC 0017 v0.1) proposed a "Ring -1" proxy that enforced allowlists and automatically encrypted response tokens. This proved too rigid:
+Early designs (RFC 0017 v0.1) proposed a "Kernel Space" proxy that enforced allowlists and automatically encrypted response tokens. This proved too rigid:
 1.  **SDK Friction**: Developers use SDKs (e.g., OpenAI, AWS), which manage their own networking. A proxy requires rewriting SDK internals. `sealedFetch` is just a function that can be passed as a custom `fetch` implementation.
 2.  **Magic is Harmful**: Automatic response encryption creates "magic" behavior that reduces trust and compatibility. Explicit `Sealed` handling is predictable.
 

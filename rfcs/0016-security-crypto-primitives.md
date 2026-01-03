@@ -14,7 +14,7 @@ tags: [security, cryptography, pwenc, sign-to-derive, aead]
 
 ## Abstract
 
-PromptWar̊e ØS runs a prompt kernel in an LLM context window (pRing 0), which must be treated as non-confidential. This RFC defines a minimal set of cryptographic primitives used by PromptWar̊e ØS to store sensitive values as **ciphertext strings safe to copy/paste** and safe to place into prompts/logs.
+PromptWar̊e ØS runs a PromptWare Kernel in an LLM context window (Main Thread), which must be treated as non-confidential. This RFC defines a minimal set of cryptographic primitives used by PromptWar̊e ØS to store sensitive values as **ciphertext strings safe to copy/paste** and safe to place into prompts/logs.
 
 The core primitive is `pwenc:v1:<payload>`, a string wrapper for AEAD-encrypted secrets. The encryption key is derived via **Sign-to-Derive**, using a **local non-extractable signing capability** (e.g., ssh-agent / OS keychain-backed signing / hardware-backed key). Private key material MUST never be accessed.
 
@@ -54,7 +54,7 @@ The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHALL NOT**, **
 
 A1. The local signing capability is trusted and does not expose private key material.
 
-A2. Attackers may read pRing 0 content; therefore plaintext secrets MUST NOT be placed in the LLM context by default.
+A2. Attackers may read PromptWare Kernel content; therefore plaintext secrets MUST NOT be placed in the LLM context by default.
 
 A3. The caller environment may be hostile; ciphertext may be copied, logged, or stored.
 

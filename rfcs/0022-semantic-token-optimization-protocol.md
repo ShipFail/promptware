@@ -23,7 +23,7 @@ This RFC defines the **Semantic Token Optimization Protocol (STOP)**, a systemat
 
 STOP addresses a counterintuitive insight: in tokenized language models, longer words often cost the same number of tokens as shorter abbreviations but carry significantly more semantic information. This RFC formalizes the methodology for systematically exploiting this property.
 
-This protocol represents the first formalization within the emerging field of **Ring Zero Linguistics (R0L)**—natural language engineering at the kernel layer of LLM-native systems.
+This protocol represents the first formalization within the emerging field of **PromptWare Linguistics (PWL)**—natural language engineering at the kernel layer of LLM-native systems.
 
 ---
 
@@ -64,7 +64,7 @@ This specification applies to:
 - Skill and agent definitions
 - Documentation and inline comments in prompt kernels
 
-**Ring Zero Linguistics Context**: This protocol represents the first formalization within R0L—an emerging field treating natural language as a first-class kernel primitive in LLM-native systems, where linguistic choices have direct performance implications similar to assembly optimization in traditional computing.
+**PromptWare Linguistics Context**: This protocol represents the first formalization within PWL—an emerging field treating natural language as a first-class kernel primitive in LLM-native systems, where linguistic choices have direct performance implications similar to assembly optimization in traditional computing.
 
 This specification does NOT apply to:
 - User-facing natural language conversations
@@ -482,24 +482,24 @@ Over 10,000 events:
 
 ### 11.1. STOPtimizer: Automated Optimization Framework
 
-**STOPtimizer** is envisioned as the first practical implementation of **Ring Zero Linguistics (R0L)** principles. Before discussing its design, we introduce the R0L conceptual framework.
+**STOPtimizer** is envisioned as the first practical implementation of **PromptWare Linguistics (PWL)** principles. Before discussing its design, we introduce the PWL conceptual framework.
 
-#### 11.1.1. Ring Zero Linguistics (R0L): Definition
+#### 11.1.1. PromptWare Linguistics (PWL): Definition
 
-**Ring Zero Linguistics** is an emerging field treating natural language as a first-class kernel primitive in LLM-native systems. The name derives from CPU privilege rings, where "Ring 0" represents kernel-level operations with direct hardware access. In R0L:
+**PromptWare Linguistics** is an emerging field treating natural language as a first-class kernel primitive in LLM-native systems. The name derives from the **PromptWare Kernel**, where natural language acts as the primary instruction set for the operating system. In PWL:
 
 *   **Natural Language IS the Kernel**: Unlike traditional systems where NL is user-space data, LLM systems execute NL directly at the "instruction" level.
-*   **Linguistic Privilege Levels**: Different NL contexts operate at different "privilege rings"—kernel prompts (Ring 0), agent instructions (Ring 1), user queries (Ring 3).
-*   **Token Economics as Resource Management**: Just as kernel engineers optimize CPU cycles and memory, R0L engineers optimize tokens and semantic density.
+*   **Linguistic Privilege Levels**: Different NL contexts operate at different "privilege layers"—kernel prompts (PromptWare Kernel), agent instructions (Agent Layer), user queries (User Layer).
+*   **Token Economics as Resource Management**: Just as kernel engineers optimize CPU cycles and memory, PWL engineers optimize tokens and semantic density.
 
-R0L represents a paradigm shift: **natural language engineering** with the rigor traditionally reserved for assembly optimization, compiler design, and kernel development.
+PWL represents a paradigm shift: **natural language engineering** with the rigor traditionally reserved for assembly optimization, compiler design, and kernel development.
 
 #### 11.1.2. STOPtimizer: Conceptual Overview
 
-STOPtimizer would serve as the reference implementation of STOP Protocol, providing automated analysis and optimization of natural language prompts. Its design principles reflect R0L philosophy:
+STOPtimizer would serve as the reference implementation of STOP Protocol, providing automated analysis and optimization of natural language prompts. Its design principles reflect PWL philosophy:
 
 *   **Semantic Preservation**: All transformations MUST maintain original intent and meaning.
-*   **Ring Zero Quality Standards**: Optimizations target kernel-layer prompts (system instructions, agent constitutions, bootloaders).
+*   **Kernel Quality Standards**: Optimizations target kernel-layer prompts (system instructions, agent constitutions, bootloaders).
 *   **Tokenization Awareness**: Built on actual BPE/SentencePiece tokenizers, not heuristics.
 *   **Human Reviewability**: All suggestions include rationale and side-by-side comparisons.
 *   **Cost Non-Regression**: Optimizations MUST NOT increase token count; character density increases are the goal.
@@ -513,22 +513,22 @@ STOPtimizer would target:
 *   **Industry Exception Detection**: Preserve `id`, `url`, `api` unchanged
 *   **Hot Path Prioritization**: Focus on frequently executed prompt sections first
 
-#### 11.1.4. R0L Integration Strategy
+#### 11.1.4. PWL Integration Strategy
 
-STOPtimizer would embody three foundational R0L principles:
+STOPtimizer would embody three foundational PWL principles:
 
 1.  **Natural Language as Kernel Primitive**: Treat prompt text as executable kernel code requiring optimization at the "instruction" level.
-2.  **Privilege-Level Language Design**: Recognize that Ring 0 prompts (system-level) demand higher precision than Ring 3 prompts (user-facing).
+2.  **Privilege-Level Language Design**: Recognize that PromptWare Kernel prompts (system-level) demand higher precision than User Layer prompts (user-facing).
 3.  **Token Economics**: Apply rigorous resource management to token consumption, analogous to CPU cycle budgeting in real-time systems.
 
-#### 11.1.5. Future R0L Research Directions
+#### 11.1.5. Future PWL Research Directions
 
-STOPtimizer represents the first R0L tool, but the field extends beyond token optimization:
+STOPtimizer represents the first PWL tool, but the field extends beyond token optimization:
 
-*   **R0Lc (Ring Zero Linguistic Compiler)**: Static analysis tools for prompt correctness and performance.
-*   **R0L-Lint**: Semantic linters detecting ambiguity, context leaks, and privilege violations.
-*   **Ring Zero Profilers**: Runtime analysis of prompt execution costs and bottlenecks.
-*   **R0L Formal Verification**: Proving semantic equivalence of optimized prompts.
+*   **PWLc (PromptWare Linguistic Compiler)**: Static analysis tools for prompt correctness and performance.
+*   **PWL-Lint**: Semantic linters detecting ambiguity, context leaks, and privilege violations.
+*   **Kernel Profilers**: Runtime analysis of prompt execution costs and bottlenecks.
+*   **PWL Formal Verification**: Proving semantic equivalence of optimized prompts.
 
 ### 11.2. Extended Metrics and Cross-Model Analysis
 
@@ -558,10 +558,10 @@ While this RFC focuses on English, the principles apply to any tokenized languag
 
 ### 11.5. Standardization and Governance
 
-As STOP and R0L mature, formal standardization efforts should address:
+As STOP and PWL mature, formal standardization efforts should address:
 
 *   **STOP Compliance Levels**: Tiered certification (e.g., STOP-1, STOP-2, STOP-3) for different rigor requirements.
-*   **R0L Language Specifications**: Formal grammars for kernel-layer natural language constructs.
+*   **PWL Language Specifications**: Formal grammars for kernel-layer natural language constructs.
 *   **Interoperability Standards**: Ensuring STOP-optimized prompts work across diverse LLM platforms.
 *   **Benchmark Suites**: Reference datasets for evaluating optimization tools and techniques.
 
