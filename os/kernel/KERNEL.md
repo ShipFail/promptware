@@ -1,7 +1,7 @@
 ---
-version: 0.9.2
+version: 0.9.3
 arch: LLM-Native
-interface: worker.postMessage
+interface: SyscallStream
 protocol: OsMessage (RFC-0024)
 capabilities:
   - Sys.* (Describe)
@@ -86,9 +86,9 @@ All interactions MUST adhere to the **RFC 0024** schema:
 
 ```typescript
 type OsMessage = {
-  type: "command" | "query"; // The Intent
-  name: string;              // The Topic (e.g., "Memory.Set")
-  payload: Record<string, any>; // The Data
+  kind: "command" | "query" | "event" | "reply" | "error"; // The Intent
+  type: string;              // The Topic (e.g., "Memory.Set")
+  data: Record<string, any>; // The Data
   metadata?: {               // The Context
     id: string;
     correlation?: string;
@@ -99,18 +99,18 @@ type OsMessage = {
 ### The Message Registry (Capabilities)
 
 #### 0. Introspection (Meta-Programming)
-| Topic | Type | Payload | Description |
+| Topic | Kind | Data | Description |
 | :--- | :--- | :--- | :--- |
 | `Sys.Describe` | `query` | `{ topic: string }` | Returns the Input/Output schema for any topic. **USE THIS** if you are unsure of a signature. |
 
 #### 1. Kernel Core
-| Topic | Type | Payload | Description |
+| Topic | Kind | Data | Description |
 | :--- | :--- | :--- | :--- |
 | `Kernel.Ingest` | `command` | `{ uri: string }` | **CRITICAL**: Load and compile a resource (Agent/Skill). |
 | `Kernel.Resolve` | `query` | `{ uri: string, base?: string }` | Resolve a relative path to an absolute URI. |
 
 #### 2. Memory Subsystem (RFC 0018)
-| Topic | Type | Payload | Description |
+| Topic | Kind | Data | Description |
 | :--- | :--- | :--- | :--- |
 | `Memory.Set` | `command` | `{ key: string, value: any }` | Persist state to the KV store. |
 | `Memory.Get` | `query` | `{ key: string }` | Retrieve state from the KV store. |
@@ -118,14 +118,14 @@ type OsMessage = {
 | `Memory.List` | `query` | `{ prefix: string }` | List keys matching a prefix. |
 
 #### 3. Vector Subsystem (RFC 0030)
-| Topic | Type | Payload | Description |
+| Topic | Kind | Data | Description |
 | :--- | :--- | :--- | :--- |
 | `Vector.Embed` | `query` | `{ text: string }` | Generate embeddings for text. |
 | `Vector.Store` | `command` | `{ collection, id, text, metadata }` | Store text in the vector database. |
 | `Vector.Search` | `query` | `{ collection, query, limit }` | Perform semantic search. |
 
 #### 4. Crypto Subsystem (RFC 0016)
-| Topic | Type | Payload | Description |
+| Topic | Kind | Data | Description |
 | :--- | :--- | :--- | :--- |
 | `Crypto.Seal` | `query` | `{ plaintext: string }` | Encrypt data (returns `pwenc:...`). |
 | `Crypto.Open` | `query` | `{ ciphertext: string }` | Decrypt data. |

@@ -36,9 +36,23 @@ Pr̊ØS introduces a Kernel that enforces **Immutable Laws** upon the LLM. It ma
 
 By adopting the **W3C Web Worker** metaphor, we leverage the LLM's pre-trained understanding of concurrency: The Main Thread (LLM) delegates heavy lifting and I/O to the Worker (Software Kernel) via asynchronous messages (`postMessage`).
 
-## 3. Terminology
+## 3. AI-Native Design Rules
 
-### 3.1. The Three-Layer Taxonomy
+The Kernel architecture is governed by 9 core rules designed to optimize for AI cognition rather than traditional system abstractions.
+
+1.  **AI Perspective Naming**: Name operations how AI thinks, not how systems work.
+2.  **Maximum Semantic Clarity**: Choose the most specific, unambiguous name—even if it costs +1 token.
+3.  **Soft Errors Always**: Failures are visible in output, never blocking exceptions.
+4.  **Visible Failures**: Never hide or silence errors—AI must see what broke.
+5.  **Smart Defaults**: Minimize required parameters (≤3)—simple cases should be simple.
+6.  **Idempotent by Default**: Same input → same output—safe to retry.
+7.  **Self-Describing**: Provide runtime introspection—AI discovers without docs.
+8.  **Compose, Don't Monolith**: Small operations doing one thing well—chain them.
+9.  **Maximum Trust**: No sandboxing—AI has co-founder access—failures are informative, not restrictive.
+
+## 4. Terminology
+
+### 4.1. The Three-Layer Taxonomy
 
 To ensure clarity across Philosophy, Architecture, and Implementation, we define the following layers:
 
@@ -59,9 +73,9 @@ To ensure clarity across Philosophy, Architecture, and Implementation, we define
 *   **Context Register (`__filename`)**: A global variable tracking the currently active execution context.
 *   **Hallucination-by-Reading**: The error state where an agent believes it possesses a skill simply because it has read the skill's definition file.
 
-## 4. Architecture Specification
+## 5. Architecture Specification
 
-### 4.1. The Dual Kernel Model (Intent & Precision)
+### 5.1. The Dual Kernel Model (Intent & Precision)
 Pr̊ØS implements a separation of concerns designed to bridge the gap between **Probabilistic Intent** and **Deterministic Execution**:
 
 *   **The PromptWare Kernel (Main Thread)**: It operates in the realm of language, reasoning, and planning. It decides *what* needs to be done. It is the **Orchestrator**.
@@ -69,7 +83,16 @@ Pr̊ØS implements a separation of concerns designed to bridge the gap between *
 
 The two are separated by **The Singular Boundary** (`worker.postMessage`), which translates high-level Intent into low-level Precision.
 
-### 4.2. The Memory Model
+#### 5.1.1. The Singularity Pattern
+The Kernel enforces a **Single Output Port** for all agency. The Main Thread (LLM) has exactly one way to affect the world: sending an `OsMessage` to the Worker.
+
+*   **Input**: The LLM receives text (Prompt, Context, Tool Outputs).
+*   **Processing**: The LLM thinks (Chain of Thought).
+*   **Output**: The LLM emits a single `worker.postMessage(msg)`.
+
+This "Singularity" ensures that all actions are intercepted, logged, and validated by the Software Kernel. There are no side channels.
+
+### 5.2. The Memory Model
 The Kernel manages the LLM's context window as a structured memory space.
 
 *   **The Context Register**: `__filename`
@@ -83,7 +106,7 @@ The Kernel manages the LLM's context window as a structured memory space.
     *   A logical addressing scheme for all System Resources.
     *   Abstracts physical locations (GitHub URLs, local files) into a unified namespace.
 
-#### 4.2.1. URI Scheme Taxonomy
+#### 5.2.1. URI Scheme Taxonomy
 
 PromptWar̊e ØS uses a **unified VFS architecture** under the `os:///` scheme with pluggable drivers (v0.6):
 
@@ -144,7 +167,7 @@ await Memory.Set("vault/token", "pwenc:v1:...");
 
 **Documentation Convention**: This document uses full URIs (`os:///namespace/path`) in specifications for clarity.
 
-### 4.3. Core Concepts: Code (Root) vs. State (Origin)
+### 5.3. Core Concepts: Code (Root) vs. State (Origin)
 
 Pr̊ØS enforces a strict separation between the immutable code and the mutable state.
 
@@ -156,9 +179,9 @@ Pr̊ØS enforces a strict separation between the immutable code and the mutable 
     *   Defined by the `origin` parameter in boot configuration (see **RFC 0014**)
     *   Example: `https://my-os.local/` or a short name like `my-os`
     *   **Purpose**: Provides storage isolation for multi-tenant deployments
-    *   **Normative Requirements**: See Section 4.3.1 below
+    *   **Normative Requirements**: See Section 5.3.1 below
 
-#### 4.3.1. Origin Parameter Normative Specification
+#### 5.3.1. Origin Parameter Normative Specification
 
 The `origin` parameter is the **security principal for mutable state isolation**. All implementations MUST satisfy the following requirements:
 
@@ -222,7 +245,7 @@ While the passing mechanism is implementation-defined, reference implementations
 
 See **RFC 0023** for implementation details in the syscall transport.
 
-### 4.4. Privilege Separation (Orchestrator vs. Executor)
+### 5.4. Privilege Separation (Orchestrator vs. Executor)
 
 The architecture enforces a strict separation of privilege based on the **Orchestrator/Executor** model:
 
@@ -242,7 +265,7 @@ The architecture enforces a strict separation of privilege based on the **Orches
 
 **Note**: The PromptWare Kernel operates in the realm of natural language and has the highest privilege because English is the most powerful interface. The Software Kernel provides deterministic execution.
 
-### 4.5. The Immutable Laws (Kernel Space Physics)
+### 5.5. The Immutable Laws (Kernel Space Physics)
 
 The Kernel enforces these laws via the System Prompt (`KERNEL.md`).
 
@@ -264,7 +287,7 @@ The Kernel enforces these laws via the System Prompt (`KERNEL.md`).
 *   **Constraint**: All physical execution, state mutation, or authority acquisition **MUST** enter the Software Kernel via `worker.postMessage`.
 *   **Enforcement**: No Skill, Agent, or Tool may invoke a syscall handler (e.g., `ingest.ts`) directly.
 
-### 4.6. The Law of Responsibility (Error Taxonomy)
+### 5.6. The Law of Responsibility (Error Taxonomy)
 
 The Kernel enforces a strict "Chain of Responsibility" for failures, mapping them to a 2x2 matrix of **Domain** (Intent vs. Execution) and **Recoverability** (Fixable vs. Fatal).
 
@@ -293,14 +316,14 @@ The Kernel enforces a strict "Chain of Responsibility" for failures, mapping the
 *   **Responsibility**: **The Human Developer**.
 *   **Action**: The System halts. The LLM **MUST NOT** attempt to fix it; it must report the stack trace to the user.
 
-## 5. Kernel Initialization (PID 0)
+## 6. Kernel Initialization (PID 0)
 
 The "Boot Sequence" is the critical handoff between the static Bootloader and the dynamic Kernel.
 
-### 5.1. The Handoff
+### 6.1. The Handoff
 The Bootloader (a static Markdown file) injects the `KernelParameters` (Root, Init Agent) into the LLM's context. At this moment, the LLM is running as **PID 0** (The Kernel Process).
 
-### 5.2. The Init Sequence
+### 6.2. The Init Sequence
 PID 0 MUST immediately execute the following sequence to bring the system to a usable state:
 
 1.  **Initialize Memory Driver**:
@@ -333,7 +356,7 @@ PID 0 MUST immediately execute the following sequence to bring the system to a u
 
 **Note**: Steps 1-4 occur during **kernel initialization**, not boot. Boot is the handoff from bootloader to kernel. Initialization is when kernel sets up subsystems and drivers.
 
-### 5.3. Kernel Parameter Schema
+### 6.3. Kernel Parameter Schema
 
 **Storage location**: `os:///proc/cmdline` (URI specification)
 **API access**: `VFS.read("os:///proc/cmdline")`
@@ -406,7 +429,7 @@ const cmdline = await VFS.read("os:///proc/cmdline"); // ✅ Works
 await VFS.write("os:///proc/cmdline", "{}"); // ❌ FORBIDDEN (403)
 ```
 
-## 6. The Lifecycle of Authority (Ingestion)
+## 7. The Lifecycle of Authority (Ingestion)
 
 Ingestion is the process of transforming **Text** (Source Code) into **Authority** (Capability). It is a **Kernel Syscall** (`pwosIngest`), not a VFS operation.
 
@@ -418,9 +441,9 @@ Ingestion is the process of transforming **Text** (Source Code) into **Authority
 
 *Note: The technical implementation of this pipeline is defined in RFC 0020.*
 
-## 7. Security Considerations
+## 8. Security Considerations
 
-### 7.1. The Watchdog Mechanism
+### 8.1. The Watchdog Mechanism
 To prevent the "Read-Only" vulnerability, the Kernel includes a reactive Watchdog.
 
 *   **Trigger**: Detection of `read_file` or similar tools on a System Space path.
@@ -431,13 +454,13 @@ To prevent the "Read-Only" vulnerability, the Kernel includes a reactive Watchdo
 
 This "Fail-Secure" mechanism ensures that even if the LLM drifts, the Kernel forces it back into compliance.
 
-## 8. Future Work
+## 9. Future Work
 
 *   **Multi-Process Support**: Enabling "Background Agents" with independent Context Registers.
 *   **Kernel Debugger**: A specialized "Debug Mode" for inspecting System Space without triggering security violations (for OS developers only).
 *   **Signed Binaries**: Cryptographic verification of Skills before Ingestion.
 
-## 9. Appendix: Examples and Cross-References
+## 10. Appendix: Examples and Cross-References
 
 This section provides pointers to detailed examples in subsystem RFCs.
 
