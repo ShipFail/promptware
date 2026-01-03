@@ -14,7 +14,7 @@ tags: [kernel, messages, cqrs, architecture, protocol]
 
 ## 1. Summary
 
-This RFC defines the message schema and NDJSON protocol for PromptWarẽ ØS reactive kernel. It establishes **OsMessage** as the universal interface between LLM intent (natural language) and deterministic execution (kernel syscalls), enabling a single data model to span both the Prompt Kernel (Ring 0) and Software Kernel (Ring 1).
+This RFC defines the message schema and NDJSON protocol for PromptWarẽ ØS reactive kernel. It establishes **OsMessage** as the universal interface between LLM intent (natural language) and deterministic execution (kernel syscalls), enabling a single data model to span both the PromptWare Kernel (Main Thread) and Software Kernel (Worker).
 
 The design adopts CQRS (Command Query Responsibility Segregation) and Message-Driven Architecture principles. It distinguishes between the **envelope** (Message) and the **meaning** (Command, Query, Event, Reply). It uses industry standards (CloudEvents, JSON:API) to create a universal plain-text protocol that enables unprecedented runtime extensibility and LLM-as-microservice architecture.
 
@@ -61,20 +61,20 @@ Traditional OS:                    PromptWarẽ ØS:
 - **System output** (typed data) → Formatter → Natural language
 - **Impedance mismatch**: Two fundamentally different interfaces
 
-**The Solution**: Prompt Kernel and Software Kernel speak the same message language.
+**The Solution**: PromptWare Kernel and Software Kernel speak the same message language.
 
 ```
-Prompt Kernel (Ring 0):
+PromptWare Kernel (Main Thread):
   LLM generates: {"kind":"command", "type":"Memory.Set", "data":{...}}
          ↓
     Zero translation layer
          ↓
-Software Kernel (Ring 1):
+Software Kernel (Worker):
   Executes handler, returns: {"kind":"reply", "type":"Memory.Set", "data":{...}}
          ↓
     Zero translation layer
          ↓
-Prompt Kernel:
+PromptWare Kernel:
   LLM processes reply message directly
 ```
 
@@ -110,7 +110,7 @@ const handler = (input: {key: string, value: string}) => {
 
 **The Self-Modifying OS Pattern**:
 
-**Scenario 1: Prompt Kernel Creates New Syscall**
+**Scenario 1: PromptWare Kernel Creates New Syscall**
 ```
 1. LLM: "I need a Stripe.Charge syscall"
 2. LLM drafts TypeScript handler code
@@ -119,7 +119,7 @@ const handler = (input: {key: string, value: string}) => {
 5. LLM immediately uses: {"kind":"command", "type":"Stripe.Charge", "data":{...}}
 ```
 
-**Scenario 2: Ring 3 Application Agent Extension**
+**Scenario 2: User Space Application Agent Extension**
 ```
 1. User app needs custom logic: "Analytics.TrackEvent"
 2. App agent generates handler code
@@ -1030,7 +1030,7 @@ When breaking changes are needed, define:
 
 **Use Cases**:
 - LLM creates domain-specific operations (`Stripe.Charge`, `Slack.PostMessage`)
-- Ring 3 applications define custom message handlers
+- User Space applications define custom message handlers
 - Rapid prototyping without kernel rebuild
 
 **Value**:
