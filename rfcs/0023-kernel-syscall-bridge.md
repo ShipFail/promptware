@@ -1,16 +1,16 @@
 ---
 rfc: 0023
-title: Dual-Mode Syscall Bridge (OsEvent Singularity)
+title: Dual-Mode Syscall Transport (OsEvent Singularity)
 author: PromptWare OS Project
 status: Draft
 type: Standards Track
 created: 2025-12-28
 updated: 2025-12-29
-version: 1.1
-tags: [kernel, syscall, ipc, daemon, unix-socket, inline, origin]
+version: 1.2
+tags: [kernel, syscall, ipc, worker, unix-socket, inline, origin]
 ---
 
-# RFC 0023: Dual-Mode Syscall Bridge (OsEvent Singularity)
+# RFC 0023: Dual-Mode Syscall Transport (OsMessage Singularity)
 
 ## 1. Summary
 
@@ -18,9 +18,9 @@ This RFC defines a **syscall singularity interface** for PromptWare OS: a single
 
 *   **Prompt Kernel (Main Thread)**: The CLI client that spawns and controls the worker.
 *   **Software Kernel (Worker Thread)**: The daemon that executes syscalls in the background.
-*   **Syscall Bridge (MessagePort)**: The bidirectional NDJSON transport layer.
+*   **Syscall Transport (MessagePort)**: The bidirectional NDJSON transport layer.
 
-The bridge uses **NDJSON** as its wire format and a common `OsEvent` envelope to unify CQRS-style commands, queries, responses, and errors. A **mandatory first-message prologue** (`Syscall.Authenticate`) is exchanged on every connection to support optional SSH public-key signature authentication (or open mode).
+The bridge uses **NDJSON** as its wire format and a common `OsMessage` envelope to unify CQRS-style commands, queries, replies, and errors. A **mandatory first-message prologue** (`Syscall.Authenticate`) is exchanged on every connection to support optional SSH public-key signature authentication (or open mode).
 
 ---
 
@@ -51,7 +51,7 @@ The bridge MUST:
     *   **Daemon mode** (Worker Host)
     *   **Inline mode** (In-process Worker)
 3.  Use **Unix domain sockets** for the transport layer (MessagePort).
-4.  Use **NDJSON** framing and validate every message using `OsEventSchema`.
+4.  Use **NDJSON** framing and validate every message using `OsMessageSchema`.
 5.  Enforce a **mandatory connection prologue** (`Syscall.Authenticate`).
 
 ### Non-Goals
@@ -116,26 +116,26 @@ The Guest runs inside the Worker Global Scope (`self`).
     *   **Direction**: Worker Thread $\to$ Main Thread.
     *   **Semantics**: "I am sending a result back to the user."
 
-### 4.4 Data Model: `OsEvent`
+### 4.4 Data Model: `OsMessage`
 
 All frames MUST parse into the following schema (Zod representation):
 
 ```typescript
-export const OsEventSchema = z.object({
-  type: z
-    .enum(["command", "query", "event", "response", "error"])
-    .describe("Behavioral envelope type"),
-  name: z.string().describe("Domain event name (e.g. Memory.Set)"),
-  payload: z.unknown().describe("Data payload or error object"),
+export const OsMessageSchema = z.object({
+  kind: z
+    .enum(["command", "query", "event", "reply", "error"])
+    .describe("Behavioral envelope kind"),
+  type: z.string().describe("Domain message type (e.g. Memory.Set)"),
+  data: z.unknown().describe("Data payload or error object"),
   metadata: z
     .object({
-      id: z.string().describe("Unique event ID"),
+      id: z.string().describe("Unique message ID"),
       timestamp: z.number().describe("Unix epoch ms"),
       correlation: z.string().optional().describe("Workflow/session ID"),
-      causation: z.string().optional().describe("Direct parent event ID"),
+      causation: z.string().optional().describe("Direct parent message ID"),
     })
     .optional()
-    .describe("Event metadata for routing and lineage"),
+    .describe("Message metadata for routing and lineage"),
 });
 ```
 
@@ -169,10 +169,10 @@ For each client connection:
 
 On every new client connection, the daemon MUST send the first frame to the client:
 
-* `type: "command"`
-* `name: "Syscall.Authenticate"`
+* `kind: "command"`
+* `type: "Syscall.Authenticate"`
 
-The client MUST read this first frame and MUST send a corresponding `response` before the daemon will accept and process subsequent frames.
+The client MUST read this first frame and MUST send a corresponding `reply` before the daemon will accept and process subsequent frames.
 
 The daemon MAY be configured with an SSH public key (loading location is implementation-defined). If an SSH public key is configured, the daemon MUST require signature verification. If no SSH public key is configured, the daemon MUST operate in **open mode**.
 
@@ -182,16 +182,16 @@ Signature mode is signaled by an authentication payload with `scheme: "signature
 
 If signature verification fails, the daemon MUST close the connection immediately.
 
-### 4.6 Reserved Syscall Events
+### 4.6 Reserved Syscall Messages
 
-The following events are reserved by the bridge framework.
+The following messages are reserved by the bridge framework.
 
 #### 4.6.1 Syscall.Authenticate (Mandatory Prologue)
 
 Mandatory connection prologue; optional authentication by configuration.
 
 *   **Topic**: `Syscall.Authenticate`
-*   **Type**: `command` (Sent by Daemon to Client)
+*   **Kind**: `command` (Sent by Daemon to Client)
 *   **Data Schema (Daemon Request)**:
     ```json
     {
@@ -199,17 +199,17 @@ Mandatory connection prologue; optional authentication by configuration.
       "challenge": "string (Optional base64 challenge for signature scheme)"
     }
     ```
-*   **Success Event**: `type: "response"` (Sent by Client to Daemon)
+*   **Success Reply**: `kind: "reply"` (Sent by Client to Daemon)
     ```json
     {
       "signature": "string (Optional base64 signature if scheme='signature')"
     }
     ```
-*   **Error Event**: `type: "error"` (Connection closed immediately)
+*   **Error**: `kind: "error"` (Connection closed immediately)
 
 **Behavior**:
 1.  Daemon sends `Syscall.Authenticate` as the first frame.
-2.  Client MUST respond with a valid `response` event.
+2.  Client MUST respond with a valid `reply` message.
 3.  If verification fails, Daemon closes connection.
 
 #### 4.6.2 Syscall.Shutdown
@@ -217,15 +217,15 @@ Mandatory connection prologue; optional authentication by configuration.
 Manual daemon shutdown.
 
 *   **Topic**: `Syscall.Shutdown`
-*   **Type**: `command`
+*   **Kind**: `command`
 *   **Data Schema**: `{}` (Empty)
-*   **Success Event**: `type: "response"`
+*   **Success Reply**: `kind: "reply"`
     ```json
     {
       "success": true
     }
     ```
-*   **Error Event**: `type: "error"`
+*   **Error**: `kind: "error"`
 
 **Behavior**:
 1.  Daemon stops accepting new connections.
@@ -279,26 +279,26 @@ Inline mode is intended for:
 
 All IO SHOULD be modeled as pipes:
 
-* Client: `ReadableStream<OsEvent>` → `TransformStream<OsEvent, bytes>` → socket write
-* Client: socket read → `TransformStream<bytes, OsEvent>` → stdout (NDJSON)
+* Client: `ReadableStream<OsMessage>` → `TransformStream<OsMessage, bytes>` → socket write
+* Client: socket read → `TransformStream<bytes, OsMessage>` → stdout (NDJSON)
 * Daemon: socket read → decode → validate → dispatch → encode → socket write
 
 Handlers MUST be expressed as:
 
 ```typescript
-TransformStream<OsEvent, OsEvent>
+TransformStream<OsMessage, OsMessage>
 ```
 
 #### 4.5.3 Dispatch Registry
 
 The daemon maintains a registry of handlers.
 
-* Keys SHOULD be based on `OsEvent.name`.
-* Implementations MAY also key on `type` if needed.
+* Keys SHOULD be based on `OsMessage.type`.
+* Implementations MAY also key on `kind` if needed.
 
 **Unsupported request rule:**
 
-* If an input `OsEvent` is valid but no handler is registered for it, the daemon MUST emit an `error` OsEvent indicating the request is unsupported, then continue processing subsequent input events.
+* If an input `OsMessage` is valid but no handler is registered for it, the daemon MUST emit an `error` OsMessage indicating the request is unsupported, then continue processing subsequent input messages.
 
 ### 4.6 Lifecycle Algorithms
 
@@ -350,7 +350,7 @@ Daemon startup MUST:
 2. If socket path exists:
    * Attempt to connect.
    * Attempt to read the first server→client frame within a short timeout window.
-   * If a valid `OsEvent` is received and its `name` is `Syscall.Authenticate`, another daemon is running; the new daemon MUST exit.
+   * If a valid `OsMessage` is received and its `type` is `Syscall.Authenticate`, another daemon is running; the new daemon MUST exit.
    * Otherwise, treat as stale: remove the socket file and continue.
 3. Bind and listen on the socket.
 
@@ -359,21 +359,21 @@ Daemon startup MUST:
 For each connection, the daemon MUST:
 
 1. **Send prologue:** write one NDJSON frame `Syscall.Authenticate`, then flush.
-2. **Read auth response:** read client frames until it receives a valid `response` for `Syscall.Authenticate` or until EOF.
+2. **Read auth response:** read client frames until it receives a valid `reply` for `Syscall.Authenticate` or until EOF.
    * Invalid frames during this phase MUST result in `error` output and continued reading.
-   * If EOF occurs before a valid authentication response, the daemon MUST close the connection.
+   * If EOF occurs before a valid authentication reply, the daemon MUST close the connection.
    * If signature verification is required and fails, the daemon MUST close the connection immediately.
 3. **Process batch:** after successful authentication (or open-mode response), process the remaining frames in a streaming loop until EOF:
 
 ```
 while not EOF:
   read one NDJSON line
-  parse JSON; validate with OsEventSchema
+  parse JSON; validate with OsMessageSchema
   invalid -> emit error; continue
   missing handler -> emit error; continue
-  dispatch valid event immediately (streaming)
-  get response event(s) from handler stream
-  write event(s), flush
+  dispatch valid message immediately (streaming)
+  get reply message(s) from handler stream
+  write message(s), flush
 repeat
 close connection when EOF reached and pending outputs flushed
 ```
@@ -387,12 +387,12 @@ close connection when EOF reached and pending outputs flushed
 
 #### 4.9.1 Invalid Frames
 
-* If a line cannot be parsed as JSON, daemon MUST emit an `error` event and continue.
-* If JSON parses but fails `OsEventSchema`, daemon MUST emit an `error` event and continue.
+* If a line cannot be parsed as JSON, daemon MUST emit an `error` message and continue.
+* If JSON parses but fails `OsMessageSchema`, daemon MUST emit an `error` message and continue.
 
-#### 4.9.2 Unsupported Events
+#### 4.9.2 Unsupported Messages
 
-If an `OsEvent` is valid but unsupported (no handler), daemon MUST emit an `error` indicating:
+If an `OsMessage` is valid but unsupported (no handler), daemon MUST emit an `error` indicating:
 
 * the request is unsupported
 * the caller should register/implement the handler and retry
@@ -409,10 +409,10 @@ Client SHOULD exit non-zero if any `error` frames were observed on stdout.
 
 This RFC aligns with:
 
-* **RFC 0022 (STOP Protocol)**: Uses semantic field names in OsEvent schema
-* **Kernel Events Architecture**: Uses the standardized OsEvent envelope from `os/kernel/events.ts`
+* **RFC 0022 (STOP Protocol)**: Uses semantic field names in OsMessage schema
+* **RFC 0024 (CQRS Message Schema)**: Uses the standardized OsMessage envelope
 
-This RFC introduces a new transport layer (Unix socket + daemon) but maintains full compatibility with the existing event schema and CQRS semantics.
+This RFC introduces a new transport layer (Unix socket + daemon) but maintains full compatibility with the existing message schema and CQRS semantics.
 
 **Migration Path**: Existing direct CLI invocations will continue to work. The daemon mode is opt-in via the transparent bootstrap mechanism.
 
@@ -420,7 +420,7 @@ This RFC introduces a new transport layer (Unix socket + daemon) but maintains f
 
 ## 6. Rationale
 
-* **NDJSON + OsEvent**: a small, debuggable, stream-composable syscall format.
+* **NDJSON + OsMessage**: a small, debuggable, stream-composable syscall format.
 * **Mandatory prologue**: provides a universal connection state gate (open or authenticated).
 * **Streaming dispatch**: aligns with Deno streams and CLI pipeline ergonomics.
 * **Explicit unsupported errors**: accelerates syscall implementation and registration.
@@ -459,7 +459,7 @@ This RFC introduces a new transport layer (Unix socket + daemon) but maintains f
 - [ ] Implement client mode with socket connection logic
 - [ ] Implement daemon mode with Unix socket listener
 - [ ] Implement NDJSON framing (encode/decode streams)
-- [ ] Implement OsEvent validation
+- [ ] Implement OsMessage validation
 - [ ] Implement transparent daemon spawn on client startup
 
 ### Phase 2: Protocol
@@ -530,7 +530,7 @@ For deferred responses, implementations SHOULD use `metadata.causation` to refer
 
 ## Appendix B: Origin Parameter Implementation (Non-Normative)
 
-This appendix describes how the origin parameter (defined normatively in **RFC 0015 Section 4.3.1**) is passed through the syscall bridge in the reference implementation.
+This appendix describes how the origin parameter (defined normatively in **RFC 0015 Section 4.3.1**) is passed through the syscall transport in the reference implementation.
 
 ### B.1. Overview
 

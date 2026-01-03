@@ -16,11 +16,11 @@ tags: [kernel, abi, syscall]
 
 This RFC defines the Application Binary Interface (ABI) for the PromptWare OS Kernel syscalls. It specifies the **observable behavior contract** that all syscall implementations MUST satisfy, focusing on naming conventions, deterministic semantics, and forward compatibility guarantees.
 
-> **Scope Note**: This document defines the *syscall interface contract* - the observable, testable behavior that any implementation MUST provide. It does NOT specify implementation mechanisms (wire protocols, dispatch mechanisms, or execution modes), which are covered in **RFC 0023 (Syscall Bridge)**. This contract is the "Constitution of Execution" and is intended to be forward-compatible across different runtime implementations.
+> **Scope Note**: This document defines the *syscall interface contract* - the observable, testable behavior that any implementation MUST provide. It does NOT specify implementation mechanisms (wire protocols, dispatch mechanisms, or execution modes), which are covered in **RFC 0023 (Syscall Transport)**. This contract is the "Constitution of Execution" and is intended to be forward-compatible across different runtime implementations.
 
 > **Relationship to Other RFCs**:
 > - **RFC 0015 (Kernel Dualmode Architecture)**: Defines the ontology and origin parameter semantics
-> - **RFC 0023 (Syscall Bridge)**: Specifies implementation mechanisms (NDJSON protocol, execution modes, dispatch)
+> - **RFC 0023 (Syscall Transport)**: Specifies implementation mechanisms (NDJSON protocol, execution modes, dispatch)
 > - **RFC 0018 (Kernel Memory Subsystem)**: Example syscall consumer using this ABI
 
 ## 2. Conformance Language
@@ -301,7 +301,7 @@ Error messages SHOULD:
 - **[RFC 0016]** - Security & Cryptographic Primitives
   - Defines cryptographic validation mechanisms
 
-- **[RFC 0023]** - Dual-Mode Syscall Bridge
+- **[RFC 0023]** - Dual-Mode Syscall Transport
   - Specifies implementation mechanisms (NDJSON protocol, execution modes, dispatch)
 
 ### 8.2. Informative References

@@ -262,7 +262,7 @@ The `kind` field determines the **semantic intent** of the message and imposes b
 - **MUST** be immutable: Once emitted, the message's data and metadata MUST NOT change.
 - Implementations MAY ignore events (they are notifications, not commands).
 
-**Examples**: `Job.Completed`, `Memory.Synchronized`, `Daemon.Started`
+**Examples**: `Job.Completed`, `Memory.Synchronized`, `Worker.Started`
 
 #### 4.2.4 Reply (`kind: "reply"`)
 
@@ -660,7 +660,7 @@ This RFC is compatible with and builds upon:
 - **RFC 0022 (STOP Protocol)**: Semantic field names (`correlation` vs `corr_id`) optimize token clarity without cost increase.
 - **RFC 0016 (Crypto Primitives)**: `Crypto.Seal`, `Crypto.Open`, `Crypto.Derive` use message data for inputs/outputs.
 - **RFC 0018 (Kernel Memory)**: `Memory.Get/Set/Delete/List` use CQRS command/query separation.
-- **RFC 0023 (Syscall Bridge)**: Inline, client, and daemon modes all transmit messages via NDJSON protocol.
+- **RFC 0023 (Syscall Transport)**: Inline, Main Thread, and Worker modes all transmit messages via NDJSON protocol.
 - **RFC 0025 (BlobPointer Serialization)**: Large data (>16KB) use BlobPointer references in message data.
 
 ### 5.2 Industry Standards
@@ -1060,7 +1060,7 @@ None. All design decisions have been finalized and approved.
 - [RFC 0022: Semantic Token Optimization Protocol (STOP)](0022-semantic-token-optimization-protocol.md)
 - [RFC 0016: Security Crypto Primitives Specification](0016-security-crypto-primitives.md)
 - [RFC 0018: Kernel Memory Subsystem](0018-kernel-memory-subsystem.md)
-- [RFC 0023: Dual-Mode Syscall Bridge Specification](0023-kernel-syscall-bridge.md)
+- [RFC 0023: Dual-Mode Syscall Transport Specification](0023-kernel-syscall-bridge.md)
 - [RFC 0025: BlobPointer Serialization](0025-kernel-blob-pointer.md)
 
 ### External References

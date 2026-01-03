@@ -103,7 +103,7 @@ No additional members are defined by this RFC. Producers **MUST NOT** add additi
 
 ### 5.2 Transferable Semantics
 
-In the context of the **Syscall Bridge (RFC 0023)**, a `BlobPointer` acts as a **Transferable Object**.
+In the context of the **Syscall Transport (RFC 0023)**, a `BlobPointer` acts as a **Transferable Object**.
 
 When a `BlobPointer` is passed in a `postMessage` call (either in the payload or the transfer list):
 
@@ -491,7 +491,7 @@ A future RFC **MAY** promote the 4096-byte `data:` size limit from SHOULD to MUS
 ### PromptWar̊e ØS References
 
 * [RFC 0024: CQRS Message Schema](0024-cqrs-message-schema.md)
-* [RFC 0023: Dual-Mode Syscall Bridge](0023-kernel-syscall-bridge.md)
+* [RFC 0023: Dual-Mode Syscall Transport](0023-kernel-syscall-bridge.md)
 
 ### External References
 

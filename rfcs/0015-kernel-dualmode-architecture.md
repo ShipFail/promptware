@@ -67,7 +67,7 @@ Pr̊ØS implements a separation of concerns designed to bridge the gap between *
 *   **The PromptWare Kernel (Main Thread)**: It operates in the realm of language, reasoning, and planning. It decides *what* needs to be done. It is the **Orchestrator**.
 *   **The Software Kernel (Worker)**: It operates in the realm of deterministic execution, I/O, and cryptography. It handles *how* it is done. It is the **Executor**.
 
-The two are separated by **The Singular Boundary** (`sys.postMessage`), which translates high-level Intent into low-level Precision.
+The two are separated by **The Singular Boundary** (`worker.postMessage`), which translates high-level Intent into low-level Precision.
 
 ### 4.2. The Memory Model
 The Kernel manages the LLM's context window as a structured memory space.
@@ -220,7 +220,7 @@ While the passing mechanism is implementation-defined, reference implementations
 - Environment variables (e.g., `PWOS_ORIGIN`)
 - Process-level context objects
 
-See **RFC 0023** for implementation details in the syscall bridge.
+See **RFC 0023** for implementation details in the syscall transport.
 
 ### 4.4. Privilege Separation (Orchestrator vs. Executor)
 
@@ -261,7 +261,7 @@ The Kernel enforces these laws via the System Prompt (`KERNEL.md`).
 #### Law 3: The Law of Singular Entry
 > "All physics must flow through the Boundary."
 
-*   **Constraint**: All physical execution, state mutation, or authority acquisition **MUST** enter the Software Kernel via `sys.postMessage`.
+*   **Constraint**: All physical execution, state mutation, or authority acquisition **MUST** enter the Software Kernel via `worker.postMessage`.
 *   **Enforcement**: No Skill, Agent, or Tool may invoke a syscall handler (e.g., `ingest.ts`) directly.
 
 ### 4.6. The Law of Responsibility (Error Taxonomy)
