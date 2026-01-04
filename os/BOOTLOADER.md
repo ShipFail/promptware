@@ -2,7 +2,7 @@
 root: "https://raw.githubusercontent.com/ShipFail/promptware/refs/heads/main/os/"
 origin: "https://my-promptware-os.local"
 kernel: "/kernel/KERNEL.md"
-init: "/agents/powell.md"
+init: "/agents/odin.md"
 # Optional: Mount remote repositories into the virtual file system
 # mounts:
 #   /skills/community: "https://raw.githubusercontent.com/community/skills/main"

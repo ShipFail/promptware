@@ -437,7 +437,7 @@ def analyze_stop_compliance(old_text: str, new_text: str):
 ```json
 {
   "op": "cmd:ingest",
-  "args": {"uri": "os://agents/powell.md"},
+  "args": {"uri": "os://agents/odin.md"},
   "ctx": {"root": "https://...", "origin": "my-os"},
   "id": "e1",
   "ref": null
@@ -455,7 +455,7 @@ def analyze_stop_compliance(old_text: str, new_text: str):
 ```json
 {
   "operation": "command:ingest",
-  "arguments": {"uri": "os://agents/powell.md"},
+  "arguments": {"uri": "os://agents/odin.md"},
   "context": {"root": "https://...", "origin": "my-os"},
   "id": "e1",
   "reference": null

@@ -42,12 +42,12 @@ Deno.test("Kernel: Unknown capability throws Error", async () => {
   await assertRejects(
     async () => await dispatch("command", "System.Unknown", {}),
     Error,
-    "Failed to spawn 'System.Unknown'" // Shell fallback fails
+    "Capability 'System.Unknown' not found in registry."
   );
 });
 
 Deno.test("Kernel: Ping (Query) returns payload verbatim", async () => {
-  const result = await dispatch("query", "Ping", { payload: "hello" });
+  const result = await dispatch("query", "Syscall.Ping", { payload: "hello" });
   assertEquals(result.payload, "hello");
 });
 
@@ -57,7 +57,7 @@ Deno.test("Kernel: Ping (Query) returns payload verbatim", async () => {
 
 Deno.test("Memory: CRUD Lifecycle", async () => {
   const key = "/test/lifecycle";
-  const value = { foo: "bar", ts: Date.now() };
+  const value = JSON.stringify({ foo: "bar", ts: Date.now() });
 
   // 1. Set (Command)
   const setRes = await dispatch("command", "Memory.Set", { key, value });
@@ -77,12 +77,12 @@ Deno.test("Memory: CRUD Lifecycle", async () => {
 });
 
 Deno.test("Memory: List Prefix", async () => {
-  await dispatch("command", "Memory.Set", { key: "/test/list/a", value: 1 });
-  await dispatch("command", "Memory.Set", { key: "/test/list/b", value: 2 });
+  await dispatch("command", "Memory.Set", { key: "/test/list/a", value: "1" });
+  await dispatch("command", "Memory.Set", { key: "/test/list/b", value: "2" });
 
   const listRes = await dispatch("query", "Memory.List", { prefix: "/test/list" });
-  assertEquals(listRes["/test/list/a"], 1);
-  assertEquals(listRes["/test/list/b"], 2);
+  assertEquals(listRes["/test/list/a"], "1");
+  assertEquals(listRes["/test/list/b"], "2");
 
   // Cleanup
   await dispatch("command", "Memory.Delete", { key: "/test/list/a" });
@@ -100,7 +100,7 @@ Deno.test("Network: Fetch (Command) performs HTTP request", async () => {
 
 Deno.test("Resilience: Factory creates fresh streams", async () => {
   // We manually inspect the registry to verify the factory pattern
-  const cap = registry["Ping"];
+  const cap = registry["Syscall.Ping"];
 
   const stream1 = cap.factory();
   const stream2 = cap.factory();
@@ -122,7 +122,7 @@ Deno.test("Resilience: Factory creates fresh streams", async () => {
 
     const inputStream = new ReadableStream<OsMessage>({
       start(controller) {
-        controller.enqueue(createMessage("query", "Ping", { payload }));
+        controller.enqueue(createMessage("query", "Syscall.Ping", { payload }));
         controller.close();
       },
     });

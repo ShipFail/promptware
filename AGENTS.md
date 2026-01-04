@@ -129,7 +129,7 @@ When creating new skills in `os/skills/`:
 ## Directives
 *   Follow the **Microkernel** philosophy: Keep the core small.
 *   Think in Protocols: Prefer `os://` and `file://` over ambiguous strings.
-*   Use **Powell** (`os/agents/powell.md`) as the reference implementation for high-quality agents.
+*   Use **Odin** (`os/agents/odin.md`) as the reference implementation for high-quality agents.
 *   Ensure all paths are workspace-relative.
 
 ## Tool Development Standards

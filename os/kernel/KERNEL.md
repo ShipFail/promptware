@@ -142,7 +142,7 @@ type OsMessage = {
 
 2.  **Launch Init Agent**:
     *   Dispatch `Kernel.Ingest` with `uri: parameters.init`.
-    *   *Goal*: This will fetch the agent defined in `BOOTLOADER.md` (e.g., `powell.md`) and adopt its persona.
+    *   *Goal*: This will fetch the agent defined in `BOOTLOADER.md` (e.g., `odin.md`) and adopt its persona.
 
 3.  **System Ready**:
     *   Once `Kernel.Ingest` completes, the system is initialized.

@@ -26,15 +26,15 @@ async function withMockKv(root: string, mounts: Record<string, string> | undefin
 Deno.test("RFC 0013: Resolve Absolute OS Path", async () => {
   const root = "https://raw.githubusercontent.com/ShipFail/promptware/main/os/";
   await withMockKv(root, undefined, async () => {
-    const result = await dispatch(resolveModule, "FileSystem.Resolve", { uri: "os://agents/powell.md" });
+    const result = await dispatch(resolveModule, "FileSystem.Resolve", { uri: "os://agents/odin.md" });
     const data = result.data as { resolved: string };
-    assertEquals(data.resolved, "https://raw.githubusercontent.com/ShipFail/promptware/main/os/agents/powell.md");
+    assertEquals(data.resolved, "https://raw.githubusercontent.com/ShipFail/promptware/main/os/agents/odin.md");
   });
 });
 
 Deno.test("RFC 0013: Resolve Relative Path (Sibling)", async () => {
   const root = "https://example.com/os/";
-  const base = "https://example.com/os/agents/powell.md";
+  const base = "https://example.com/os/agents/odin.md";
   await withMockKv(root, undefined, async () => {
     const result = await dispatch(resolveModule, "FileSystem.Resolve", { uri: "./felix.md", base });
     const data = result.data as { resolved: string };
@@ -44,7 +44,7 @@ Deno.test("RFC 0013: Resolve Relative Path (Sibling)", async () => {
 
 Deno.test("RFC 0013: Resolve Relative Path (Parent)", async () => {
   const root = "https://example.com/os/";
-  const base = "https://example.com/os/agents/powell.md";
+  const base = "https://example.com/os/agents/odin.md";
   await withMockKv(root, undefined, async () => {
     const result = await dispatch(resolveModule, "FileSystem.Resolve", { uri: "../skills/writer.md", base });
     const data = result.data as { resolved: string };
@@ -73,8 +73,8 @@ Deno.test("RFC 0015: Absolute URLs MUST pass through unchanged", async () => {
 Deno.test("RFC 0015: Relative path without base MUST anchor to root", async () => {
   const root = "https://example.com/os/";
   await withMockKv(root, undefined, async () => {
-    const result = await dispatch(resolveModule, "FileSystem.Resolve", { uri: "agents/powell.md" });
+    const result = await dispatch(resolveModule, "FileSystem.Resolve", { uri: "agents/odin.md" });
     const data = result.data as { resolved: string };
-    assertEquals(data.resolved, "https://example.com/os/agents/powell.md");
+    assertEquals(data.resolved, "https://example.com/os/agents/odin.md");
   });
 });
