@@ -76,55 +76,19 @@ export async function route(
       return output;
 
     } else {
-      // Mode 3: Shell fallback
-      // If no native capability, try to execute as a shell command.
-      logger.info(`Shell fallback: ${message.type}`, { data: message.data });
-
-      let args: string[] = [];
-      if (Array.isArray(message.data)) {
-        args = message.data.map(String);
-      } else if (typeof message.data === "string") {
-        args = [message.data];
-      } else if (
-        typeof message.data === "object" &&
-        message.data !== null &&
-        "args" in message.data
-      ) {
-        // @ts-ignore
-        args = (message.data.args as any[]).map(String);
-      }
-
-      const cmd = new Deno.Command(message.type, {
-        args,
-        stdout: "piped",
-        stderr: "piped",
+      // Mode 3: Secure Fallback (RFC-23)
+      // If no native capability is found, return a 404 error.
+      // We NEVER execute arbitrary shell commands here.
+      
+      logger.warn(`Capability not found: ${message.type}`, { 
+        id: message.metadata?.id,
+        correlation: message.metadata?.correlation 
       });
 
-      const output = await cmd.output();
-      const decoder = new TextDecoder();
-      const stdout = decoder.decode(output.stdout);
-      const stderr = decoder.decode(output.stderr);
-
-      if (!output.success) {
-        const errorMsg = `Shell command '${message.type}' failed (exit code ${output.code}): ${stderr}`;
-        logger.warn(errorMsg, { stdout, stderr, code: output.code });
-        throw new Error(errorMsg);
-      }
-
-      const result = {
-        stdout,
-        stderr,
-        code: output.code,
-      };
-      
-      return createMessage(
-        "reply",
-        message.type,
-        result,
-        undefined, // New ID
-        message.metadata?.correlation, // Preserve workflow correlation
-        message.metadata?.id // This message caused the result
-      );
+      return createError(message, {
+        code: 404,
+        message: `Capability '${message.type}' not found in registry.`
+      });
     }
   } catch (err: any) {
     // 4. Error handling: Return error message instead of throwing

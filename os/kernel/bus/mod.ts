@@ -12,16 +12,16 @@
  */
 
 // Protocol Layer
-export { NDJSONDecodeStream, NDJSONEncodeStream } from "./protocol/ndjson.ts";
+export { NDJSONDecodeStream, NDJSONEncodeStream } from "../lib/ndjson.ts";
 
 // Routing Layer
 export { route } from "./engine.ts";
 export type { Registry } from "./engine.ts";
 
 // Stream Layer
-export { routerStream } from "./stream/router.ts";
-export { loggerStream } from "./stream/logger.ts";
-export type { BusStream } from "./stream/interface.ts";
+export { routerStream } from "./router.ts";
+export { loggerStream } from "./logger.ts";
+export type { BusStream } from "./interface.ts";
 
 // Runtime Layer
 export type { KernelRuntime } from "./interface.ts";
@@ -32,5 +32,5 @@ export { ensureSupportedPlatform } from "./platform.ts";
 export { getSocketPath } from "./socket-path.ts";
 
 // Bus Capabilities
-export { default as authenticateModule } from "./handler/authenticate.ts";
-export { default as shutdownModule } from "./handler/shutdown.ts";
+export { default as authenticateModule } from "../capabilities/authenticate.ts";
+export { default as shutdownModule } from "../capabilities/shutdown.ts";
