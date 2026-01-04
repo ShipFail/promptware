@@ -8,6 +8,7 @@ import cryptoModule from "./crypto.ts";
 import syscallAuthModule from "./authenticate.ts";
 import syscallShutdownModule from "./shutdown.ts";
 import sysDescribeModule from "./describe.ts";
+import vectorModule from "./vector.ts";
 
 /**
  * Central Capability Registry
@@ -34,3 +35,4 @@ register(cryptoModule);
 register(syscallAuthModule);
 register(syscallShutdownModule);
 register(sysDescribeModule);
+register(vectorModule);

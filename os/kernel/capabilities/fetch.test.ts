@@ -1,5 +1,6 @@
 import { assertEquals, assertRejects } from "jsr:@std/assert";
 import fetchModule from "./fetch.ts";
+import { dispatch } from "../test-utils.ts";
 
 // Mock globalThis.fetch
 const originalFetch = globalThis.fetch;
@@ -15,15 +16,6 @@ function restoreFetch() {
   globalThis.fetch = originalFetch;
 }
 
-// Mock crypto.ts open function
-// Since fetch.ts imports 'open' from './crypto.ts', and we can't easily mock that import,
-// we will rely on the fact that 'open' throws if the format is invalid.
-// To test the "unsealing" logic, we would need 'open' to actually return plaintext.
-// Since we can't mock 'open' easily, we will test the *attempt* to unseal.
-// If we pass a valid-looking pwenc string, fetch.ts will call open().
-// If open() fails (because we don't have the key), fetch.ts throws.
-// This confirms that fetch.ts IS attempting to unseal.
-
 Deno.test("RFC 0017: Fetch MUST attempt to unseal pwenc headers", async () => {
   const url = "https://example.com";
   const pwenc = "pwenc:v1:fake_ciphertext";
@@ -33,12 +25,12 @@ Deno.test("RFC 0017: Fetch MUST attempt to unseal pwenc headers", async () => {
   // This proves fetch.ts detected the header and called open().
 
   await assertRejects(
-    async () => await fetchModule.process({
+    async () => await dispatch(fetchModule, "Network.Fetch", {
       url,
       init: {
         headers: { "Authorization": `Bearer ${pwenc}` }
       }
-    }, {} as any),
+    }),
     Error,
     "Failed to unseal header 'authorization'"
   );
@@ -54,15 +46,16 @@ Deno.test("RFC 0017: Fetch MUST pass through standard requests", async () => {
   });
 
   try {
-    const result = await fetchModule.process({
+    const result = await dispatch(fetchModule, "Network.Fetch", {
       url,
       init: {
         headers: { "X-Custom": "value" }
       }
-    }, {} as any);
+    });
 
-    assertEquals(result.status, 200);
-    assertEquals(result.body, "ok");
+    const data = result.data as any;
+    assertEquals(data.status, 200);
+    assertEquals(data.body, "ok");
   } finally {
     restoreFetch();
   }
@@ -78,18 +71,19 @@ Deno.test("RFC 0017: Fetch MUST return serializable response object", async () =
   }));
 
   try {
-    const result = await fetchModule.process({ url }, {} as any);
+    const result = await dispatch(fetchModule, "Network.Fetch", { url });
+    const data = result.data as any;
 
     // Verify structure
-    assertEquals(typeof result, "object");
-    assertEquals(result.ok, true);
-    assertEquals(result.status, 201);
-    assertEquals(result.statusText, "Created");
-    assertEquals(result.body, "test data");
-    assertEquals(result.headers["content-type"], "text/plain");
+    assertEquals(typeof data, "object");
+    assertEquals(data.ok, true);
+    assertEquals(data.status, 201);
+    assertEquals(data.statusText, "Created");
+    assertEquals(data.body, "test data");
+    assertEquals(data.headers["content-type"], "text/plain");
 
     // Verify it's serializable
-    const json = JSON.stringify(result);
+    const json = JSON.stringify(data);
     assertEquals(typeof json, "string");
   } finally {
     restoreFetch();

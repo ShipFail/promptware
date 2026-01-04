@@ -1,17 +1,15 @@
 import { assertEquals, assertRejects } from "jsr:@std/assert";
-import { memoryGetModule, memorySetModule, memoryDeleteModule, memoryListModule } from "./memory.ts";
+import memoryModule from "./memory.ts";
+import { dispatch } from "../test-utils.ts";
 
 // RFC 0018: Memory Subsystem Specification
 // We use the real Deno KV but with an in-memory backend (if supported) or a temp file.
 // Since Deno.openKv(":memory:") is available in recent Deno versions, we rely on that
 // or the fact that we are running in a test environment where side effects are acceptable/isolated.
-// Note: memory.ts calls Deno.openKv() without args, which opens the default KV.
-// To test properly without polluting the real KV, we should ideally mock Deno.openKv.
-// However, for this environment, we will assume the test runner handles isolation or we accept the side effect.
 
 Deno.test("RFC 0018: Memory MUST enforce absolute paths on get", async () => {
   await assertRejects(
-    async () => await memoryGetModule.process({ key: "relative/path" }, {} as any),
+    async () => await dispatch(memoryModule, "Memory.Get", { key: "relative/path" }),
     Error,
     "Invalid path: 'relative/path'. Paths MUST be absolute (start with /)."
   );
@@ -19,7 +17,7 @@ Deno.test("RFC 0018: Memory MUST enforce absolute paths on get", async () => {
 
 Deno.test("RFC 0018: Memory MUST enforce absolute paths on set", async () => {
   await assertRejects(
-    async () => await memorySetModule.process({ key: "relative/path", value: "test" }, {} as any),
+    async () => await dispatch(memoryModule, "Memory.Set", { key: "relative/path", value: "test" }),
     Error,
     "Invalid path: 'relative/path'. Paths MUST be absolute (start with /)."
   );
@@ -27,11 +25,11 @@ Deno.test("RFC 0018: Memory MUST enforce absolute paths on set", async () => {
 
 Deno.test("RFC 0018: Memory MUST enforce Sealed-at-Rest for /vault/", async () => {
   // Valid pwenc
-  await memorySetModule.process({ key: "/vault/test", value: "pwenc:v1:valid" }, {} as any);
+  await dispatch(memoryModule, "Memory.Set", { key: "/vault/test", value: "pwenc:v1:valid" });
 
   // Invalid plaintext
   await assertRejects(
-    async () => await memorySetModule.process({ key: "/vault/bad", value: "plaintext_secret" }, {} as any),
+    async () => await dispatch(memoryModule, "Memory.Set", { key: "/vault/bad", value: "plaintext_secret" }),
     Error,
     "E_VAULT_REQUIRES_PWENC: /vault/ paths accept only ciphertext (pwenc:v1:...)."
   );
@@ -42,32 +40,34 @@ Deno.test("RFC 0018: Memory CRUD operations", async () => {
   const value = { theme: "dark" };
 
   // Set
-  await memorySetModule.process({ key, value: JSON.stringify(value) }, {} as any);
+  await dispatch(memoryModule, "Memory.Set", { key, value: JSON.stringify(value) });
 
   // Get
-  const retrieved = await memoryGetModule.process({ key }, {} as any);
+  const getResult = await dispatch(memoryModule, "Memory.Get", { key });
+  const retrieved = getResult.data;
   assertEquals(typeof retrieved, "string"); // KV stores the JSON string
 
   // List
-  const list = await memoryListModule.process({ prefix: "/users/test/" }, {} as any);
+  const listResult = await dispatch(memoryModule, "Memory.List", { prefix: "/users/test/" });
+  const list = listResult.data as Record<string, any>;
   assertEquals(list["/users/test/setting"], JSON.stringify(value));
 
   // Delete
-  await memoryDeleteModule.process({ key }, {} as any);
-  const deleted = await memoryGetModule.process({ key }, {} as any);
-  assertEquals(deleted, null);
+  await dispatch(memoryModule, "Memory.Delete", { key });
+  const deletedResult = await dispatch(memoryModule, "Memory.Get", { key });
+  assertEquals(deletedResult.data, null);
 });
 
 Deno.test("RFC 0018: Memory MUST store JSON values as strings", async () => {
   const key = "/config/settings";
   const jsonValue = JSON.stringify({ enabled: true, count: 42 });
 
-  await memorySetModule.process({ key, value: jsonValue }, {} as any);
-  const result = await memoryGetModule.process({ key }, {} as any);
+  await dispatch(memoryModule, "Memory.Set", { key, value: jsonValue });
+  const result = await dispatch(memoryModule, "Memory.Get", { key });
 
   // Should be stored as string (caller must parse if needed)
-  assertEquals(typeof result, "string");
-  const parsed = JSON.parse(result);
+  assertEquals(typeof result.data, "string");
+  const parsed = JSON.parse(result.data as string);
   assertEquals(parsed.enabled, true);
   assertEquals(parsed.count, 42);
 });
@@ -76,8 +76,8 @@ Deno.test("RFC 0018: Memory MUST store non-JSON values as strings", async () => 
   const key = "/simple/text";
   const plainValue = "just a string";
 
-  await memorySetModule.process({ key, value: plainValue }, {} as any);
-  const result = await memoryGetModule.process({ key }, {} as any);
+  await dispatch(memoryModule, "Memory.Set", { key, value: plainValue });
+  const result = await dispatch(memoryModule, "Memory.Get", { key });
 
-  assertEquals(result, plainValue);
+  assertEquals(result.data, plainValue);
 });

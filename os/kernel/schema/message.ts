@@ -32,6 +32,7 @@ export const OsMessageSchema = z.object({
     .describe("Behavioral envelope kind"),
   type: z
     .string()
+    .regex(/^[A-Z][a-zA-Z0-9]*\.[A-Z][a-zA-Z0-9]*$/, "Must match Domain.Action pattern (e.g. Memory.Set)")
     .describe("Domain message type in dot notation (e.g. Memory.Set, Crypto.Seal)"),
   data: z
     .unknown()
@@ -43,7 +44,6 @@ export const OsMessageSchema = z.object({
       correlation: z.string().optional().describe("Workflow/session correlation ID"),
       causation: z.string().optional().describe("Direct parent message ID"),
     })
-    .optional()
     .describe("Message metadata for routing, tracing, and lineage"),
 });
 
@@ -56,13 +56,22 @@ export type OsMessage<T = unknown> = Omit<z.infer<typeof OsMessageSchema>, "data
 };
 
 /**
+ * Error Data Schema (RFC 0024)
+ */
+export interface ErrorData {
+  code: number;           // HTTP status code
+  message: string;        // Human-readable error description
+  cause?: ErrorData;      // Optional error chaining
+}
+
+/**
  * Specialized types for CQRS semantics.
  */
 export type Command<T = unknown> = OsMessage<T> & { kind: "command" };
 export type Query<T = unknown> = OsMessage<T> & { kind: "query" };
 export type Event<T = unknown> = OsMessage<T> & { kind: "event" };
 export type Reply<T = unknown> = OsMessage<T> & { kind: "reply" };
-export type ErrorMessage = OsMessage<Error | { message: string }> & { kind: "error" };
+export type ErrorMessage = OsMessage<ErrorData> & { kind: "error" };
 
 /**
  * Helper to create a standard message.
@@ -119,12 +128,31 @@ export function createReply<T>(original: OsMessage, data: T): Reply<T> {
  */
 export function createError(
   original: OsMessage,
-  error: Error | string
-): OsMessage<Error | { message: string }> {
+  error: Error | string | Partial<ErrorData>
+): ErrorMessage {
+  let errorData: ErrorData;
+
+  if (typeof error === "string") {
+    errorData = { code: 500, message: error };
+  } else if (error instanceof Error) {
+    errorData = { code: 500, message: error.message };
+    // @ts-ignore - cause is standard in ES2022 but TS might not know
+    if (error.cause) {
+       // @ts-ignore
+      errorData.cause = { code: 500, message: String(error.cause) };
+    }
+  } else {
+    errorData = {
+      code: error.code || 500,
+      message: error.message || "Unknown error",
+      cause: error.cause
+    };
+  }
+
   return {
     kind: "error",
     type: original.type,
-    data: error instanceof Error ? error : { message: error },
+    data: errorData,
     metadata: {
       id: id8(),
       timestamp: Date.now(),

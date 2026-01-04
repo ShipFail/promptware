@@ -46,18 +46,18 @@ const PingOutput = z.object({
 
 const PingInbound = z.object({
   kind: z.literal("query"),
-  type: z.literal("Ping"),
+  type: z.literal("Syscall.Ping"),
   data: PingInput,
 });
 
 const PingOutbound = z.object({
   kind: z.literal("reply"),
-  type: z.literal("Ping"),
+  type: z.literal("Syscall.Ping"),
   data: PingOutput,
 });
 
 export default {
-  "Ping": (): Capability<typeof PingInbound, typeof PingOutbound> => ({
+  "Syscall.Ping": (): Capability<typeof PingInbound, typeof PingOutbound> => ({
     description:
       "ABI integrity test: returns payload verbatim (RFC-6455 PING/PONG semantics). " +
       "Proves framing correctness - no mutation, no truncation, correct correlation.",
@@ -76,7 +76,7 @@ export default {
           controller.enqueue(
             createMessage(
               "reply",
-              "Ping",
+              "Syscall.Ping",
               result,
               undefined, // New ID generated
               msg.metadata?.correlation, // Preserve workflow correlation

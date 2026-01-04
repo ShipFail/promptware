@@ -1,5 +1,6 @@
 import { assertEquals } from "jsr:@std/assert";
 import resolveModule from "./resolve.ts";
+import { dispatch } from "../test-utils.ts";
 
 // Mock Deno.openKv to provide test root
 async function withMockKv(root: string, mounts: Record<string, string> | undefined, fn: () => Promise<void>) {
@@ -25,8 +26,9 @@ async function withMockKv(root: string, mounts: Record<string, string> | undefin
 Deno.test("RFC 0013: Resolve Absolute OS Path", async () => {
   const root = "https://raw.githubusercontent.com/ShipFail/promptware/main/os/";
   await withMockKv(root, undefined, async () => {
-    const result = await resolveModule.process({ uri: "os://agents/powell.md" }, {} as any);
-    assertEquals(result.resolved, "https://raw.githubusercontent.com/ShipFail/promptware/main/os/agents/powell.md");
+    const result = await dispatch(resolveModule, "FileSystem.Resolve", { uri: "os://agents/powell.md" });
+    const data = result.data as { resolved: string };
+    assertEquals(data.resolved, "https://raw.githubusercontent.com/ShipFail/promptware/main/os/agents/powell.md");
   });
 });
 
@@ -34,8 +36,9 @@ Deno.test("RFC 0013: Resolve Relative Path (Sibling)", async () => {
   const root = "https://example.com/os/";
   const base = "https://example.com/os/agents/powell.md";
   await withMockKv(root, undefined, async () => {
-    const result = await resolveModule.process({ uri: "./felix.md", base }, {} as any);
-    assertEquals(result.resolved, "https://example.com/os/agents/felix.md");
+    const result = await dispatch(resolveModule, "FileSystem.Resolve", { uri: "./felix.md", base });
+    const data = result.data as { resolved: string };
+    assertEquals(data.resolved, "https://example.com/os/agents/felix.md");
   });
 });
 
@@ -43,37 +46,35 @@ Deno.test("RFC 0013: Resolve Relative Path (Parent)", async () => {
   const root = "https://example.com/os/";
   const base = "https://example.com/os/agents/powell.md";
   await withMockKv(root, undefined, async () => {
-    const result = await resolveModule.process({ uri: "../skills/writer.md", base }, {} as any);
-    assertEquals(result.resolved, "https://example.com/os/skills/writer.md");
+    const result = await dispatch(resolveModule, "FileSystem.Resolve", { uri: "../skills/writer.md", base });
+    const data = result.data as { resolved: string };
+    assertEquals(data.resolved, "https://example.com/os/skills/writer.md");
   });
 });
 
 Deno.test("RFC 0013: Default to file:// for local paths", async () => {
   const root = "file:///workspaces/promptware/os/";
-  // If base is not provided, it might default to CWD or __filename.
-  // The resolve.ts implementation uses 'new URL(uri, base)' logic.
-  // If uri is absolute (starts with /), it's file://
-
-  // Note: resolve.ts treats paths starting with / as relative to ROOT, not filesystem root.
-  // So /tmp/test.txt becomes root + tmp/test.txt
   await withMockKv(root, undefined, async () => {
-    const result = await resolveModule.process({ uri: "/tmp/test.txt" }, {} as any);
-    assertEquals(result.resolved, "file:///workspaces/promptware/os/tmp/test.txt");
+    const result = await dispatch(resolveModule, "FileSystem.Resolve", { uri: "/tmp/test.txt" });
+    const data = result.data as { resolved: string };
+    assertEquals(data.resolved, "file:///workspaces/promptware/os/tmp/test.txt");
   });
 });
 
 Deno.test("RFC 0015: Absolute URLs MUST pass through unchanged", async () => {
   const root = "https://example.com/os/";
   await withMockKv(root, undefined, async () => {
-    const result = await resolveModule.process({ uri: "https://external.com/resource.md" }, {} as any);
-    assertEquals(result.resolved, "https://external.com/resource.md");
+    const result = await dispatch(resolveModule, "FileSystem.Resolve", { uri: "https://external.com/resource.md" });
+    const data = result.data as { resolved: string };
+    assertEquals(data.resolved, "https://external.com/resource.md");
   });
 });
 
 Deno.test("RFC 0015: Relative path without base MUST anchor to root", async () => {
   const root = "https://example.com/os/";
   await withMockKv(root, undefined, async () => {
-    const result = await resolveModule.process({ uri: "agents/powell.md" }, {} as any);
-    assertEquals(result.resolved, "https://example.com/os/agents/powell.md");
+    const result = await dispatch(resolveModule, "FileSystem.Resolve", { uri: "agents/powell.md" });
+    const data = result.data as { resolved: string };
+    assertEquals(data.resolved, "https://example.com/os/agents/powell.md");
   });
 });

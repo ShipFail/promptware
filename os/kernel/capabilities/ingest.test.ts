@@ -1,5 +1,6 @@
 import { assertEquals, assertRejects } from "jsr:@std/assert";
 import ingestModule from "./ingest.ts";
+import { dispatch } from "../test-utils.ts";
 
 // Mock fetch for ingest
 const originalFetch = globalThis.fetch;
@@ -39,8 +40,9 @@ Deno.test("RFC 0020: Ingest MUST return raw content without front matter", async
   mockFetch(content);
   try {
     await withMockKv("https://root.com/", async () => {
-      const result = await ingestModule.process({ uri: "https://example.com/simple.md" }, {} as any);
-      assertEquals(result.content, content);
+      const result = await dispatch(ingestModule, "FileSystem.Ingest", { uri: "https://example.com/simple.md" });
+      const data = result.data as { content: string };
+      assertEquals(data.content, content);
     });
   } finally {
     restoreFetch();
@@ -57,9 +59,10 @@ description: A test agent
   mockFetch(content);
   try {
     await withMockKv("https://root.com/", async () => {
-      const result = await ingestModule.process({ uri: "https://example.com/agent.md" }, {} as any);
+      const result = await dispatch(ingestModule, "FileSystem.Ingest", { uri: "https://example.com/agent.md" });
+      const data = result.data as { content: string };
       // Should return hydrated content with frontmatter
-      assertEquals(result.content.includes("# Hello"), true);
+      assertEquals(data.content.includes("# Hello"), true);
     });
   } finally {
     restoreFetch();
@@ -71,7 +74,7 @@ Deno.test("RFC 0020: Ingest MUST fail on fetch error", async () => {
   try {
     await withMockKv("https://root.com/", async () => {
       await assertRejects(
-        async () => await ingestModule.process({ uri: "https://example.com/bad.md" }, {} as any),
+        async () => await dispatch(ingestModule, "FileSystem.Ingest", { uri: "https://example.com/bad.md" }),
         Error,
         "Network Error"
       );
@@ -88,12 +91,13 @@ Deno.test("RFC 0020: Ingest MUST preserve body content", async () => {
   mockFetch(content);
   try {
     await withMockKv("https://root.com/", async () => {
-      const result = await ingestModule.process({ uri: "https://example.com/test.md" }, {} as any);
+      const result = await dispatch(ingestModule, "FileSystem.Ingest", { uri: "https://example.com/test.md" });
+      const data = result.data as { content: string };
       // Body should be preserved after front matter
-      if (!result.content.includes("# Hello World")) {
+      if (!data.content.includes("# Hello World")) {
         throw new Error("Body content was modified");
       }
-      if (!result.content.includes("This is content.")) {
+      if (!data.content.includes("This is content.")) {
         throw new Error("Body content was truncated");
       }
     });

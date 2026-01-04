@@ -132,6 +132,6 @@ export async function route(
       type: message.type, 
       id: message.metadata?.id 
     }, err);
-    return createError(message, err.message || String(err));
+    return createError(message, err);
   }
 }
