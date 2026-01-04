@@ -14,7 +14,7 @@ import { OsMessage, createCommand } from "../schema/message.ts";
 import { routerStream } from "./router.ts";
 import { loggerStream } from "./logger.ts";
 import { KernelRuntime } from "./interface.ts";
-import { NDJSONDecodeStream, NDJSONEncodeStream } from "./ndjson.ts";
+import { NDJSONDecodeStream, NDJSONEncodeStream } from "../lib/ndjson.ts";
 
 export class InlineRuntime implements KernelRuntime {
   async run(): Promise<number> {

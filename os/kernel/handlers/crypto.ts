@@ -1,6 +1,6 @@
 import { z } from "jsr:@zod/zod";
 import { Capability } from "../schema/contract.ts";
-import { OsMessage } from "../schema/message.ts";
+import { createMessage } from "../schema/message.ts";
 import { parseArgs } from "jsr:@std/cli/parse-args";
 import { seal, open, deriveKey } from "../lib/crypto.ts";
 
@@ -28,22 +28,6 @@ const SealOutputSchema = z.object({
   ciphertext: z.string().describe("The encrypted secret (pwenc:v1:...)"),
 }).describe("Output from crypto/seal capability.");
 
-const sealProcess = async (input: z.infer<typeof SealInputSchema>, _message: OsMessage): Promise<z.infer<typeof SealOutputSchema>> => {
-  const ciphertext = await seal(input.plaintext);
-  return { ciphertext };
-};
-
-export const cryptoSealModule: Capability<typeof SealInputSchema, typeof SealOutputSchema> = {
-  type: "command",
-  InputSchema: SealInputSchema,
-  OutputSchema: SealOutputSchema,
-  process: sealProcess,
-  fromArgs: (args: string[]) => {
-    if (args.length < 1) throw new Error("Usage: crypto/seal <plaintext>");
-    return { plaintext: args[0] };
-  },
-};
-
 // ================================
 // QUERY: crypto/open
 // ================================
@@ -56,22 +40,6 @@ const OpenOutputSchema = z.object({
   plaintext: z.string().describe("The decrypted plaintext"),
 }).describe("Output from crypto/open capability.");
 
-const openProcess = async (input: z.infer<typeof OpenInputSchema>, _message: OsMessage): Promise<z.infer<typeof OpenOutputSchema>> => {
-  const plaintext = await open(input.ciphertext);
-  return { plaintext };
-};
-
-export const cryptoOpenModule: Capability<typeof OpenInputSchema, typeof OpenOutputSchema> = {
-  type: "query",
-  InputSchema: OpenInputSchema,
-  OutputSchema: OpenOutputSchema,
-  process: openProcess,
-  fromArgs: (args: string[]) => {
-    if (args.length < 1) throw new Error("Usage: crypto/open <ciphertext>");
-    return { ciphertext: args[0] };
-  },
-};
-
 // ================================
 // QUERY: crypto/derive
 // ================================
@@ -82,18 +50,69 @@ const DeriveOutputSchema = z.object({
   kid: z.string().describe("The derived Key ID (SSH key fingerprint)"),
 }).describe("Output from crypto/derive capability.");
 
-const deriveProcess = async (_input: z.infer<typeof DeriveInputSchema>, _message: OsMessage): Promise<z.infer<typeof DeriveOutputSchema>> => {
-  const { kid } = await deriveKey();
-  return { kid };
+export const CryptoModule = {
+  "Security.Seal": (): Capability<any, any> => ({
+    description: "Encrypt a secret using the OS key.",
+    inbound: z.object({
+      kind: z.literal("command"),
+      type: z.literal("Security.Seal"),
+      data: SealInputSchema
+    }),
+    outbound: z.object({
+      kind: z.literal("reply"),
+      type: z.literal("Security.Seal"),
+      data: SealOutputSchema
+    }),
+    factory: () => new TransformStream({
+      async transform(msg, controller) {
+        const input = msg.data as z.infer<typeof SealInputSchema>;
+        const ciphertext = await seal(input.plaintext);
+        controller.enqueue(createMessage("reply", "Security.Seal", { ciphertext }, undefined, msg.metadata?.correlation, msg.metadata?.id));
+      }
+    })
+  }),
+  "Security.Open": (): Capability<any, any> => ({
+    description: "Decrypt a sealed secret using the OS key.",
+    inbound: z.object({
+      kind: z.literal("query"),
+      type: z.literal("Security.Open"),
+      data: OpenInputSchema
+    }),
+    outbound: z.object({
+      kind: z.literal("reply"),
+      type: z.literal("Security.Open"),
+      data: OpenOutputSchema
+    }),
+    factory: () => new TransformStream({
+      async transform(msg, controller) {
+        const input = msg.data as z.infer<typeof OpenInputSchema>;
+        const plaintext = await open(input.ciphertext);
+        controller.enqueue(createMessage("reply", "Security.Open", { plaintext }, undefined, msg.metadata?.correlation, msg.metadata?.id));
+      }
+    })
+  }),
+  "Security.Derive": (): Capability<any, any> => ({
+    description: "Derive and return the OS Key ID (KID).",
+    inbound: z.object({
+      kind: z.literal("query"),
+      type: z.literal("Security.Derive"),
+      data: DeriveInputSchema
+    }),
+    outbound: z.object({
+      kind: z.literal("reply"),
+      type: z.literal("Security.Derive"),
+      data: DeriveOutputSchema
+    }),
+    factory: () => new TransformStream({
+      async transform(msg, controller) {
+        const { kid } = await deriveKey();
+        controller.enqueue(createMessage("reply", "Security.Derive", { kid }, undefined, msg.metadata?.correlation, msg.metadata?.id));
+      }
+    })
+  })
 };
 
-export const cryptoDeriveModule: Capability<typeof DeriveInputSchema, typeof DeriveOutputSchema> = {
-  type: "query",
-  InputSchema: DeriveInputSchema,
-  OutputSchema: DeriveOutputSchema,
-  process: deriveProcess,
-  fromArgs: (_args: string[]) => ({}),
-};
+export default CryptoModule;
 
 // ================================
 // CLI Entry Point (Dual-Mode)

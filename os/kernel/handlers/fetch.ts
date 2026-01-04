@@ -1,6 +1,6 @@
 import { z } from "jsr:@zod/zod";
 import { Capability } from "../schema/contract.ts";
-import { OsMessage } from "../schema/message.ts";
+import { createMessage } from "../schema/message.ts";
 import { open } from "../lib/crypto.ts";
 
 const PWENC_PREFIX = "pwenc:v1:";
@@ -27,12 +27,12 @@ async function unsealHeaders(headers: Headers): Promise<void> {
   }
 }
 
-export const InputSchema = z.object({
+const InputSchema = z.object({
   url: z.string().url().describe("The URL to fetch."),
   init: z.record(z.string(), z.any()).optional().describe("Optional RequestInit object (headers, method, etc)."),
 }).describe("Input for the fetch capability.");
 
-export const OutputSchema = z.object({
+const OutputSchema = z.object({
   ok: z.boolean().describe("True if the response status is 2xx."),
   status: z.number().describe("The HTTP status code."),
   statusText: z.string().describe("The status text."),
@@ -41,36 +41,49 @@ export const OutputSchema = z.object({
   url: z.string().describe("The final URL after redirects."),
 }).describe("Output from the fetch capability.");
 
-export const process = async (input: z.infer<typeof InputSchema>, _message: OsMessage): Promise<z.infer<typeof OutputSchema>> => {
-  const req = new Request(input.url, input.init);
-  await unsealHeaders(req.headers);
-  const res = await fetch(req);
-  const bodyText = await res.text();
-  const headersObj: Record<string, string> = {};
-  res.headers.forEach((v, k) => headersObj[k] = v);
+export const FetchModule = {
+  "Network.Fetch": (): Capability<any, any> => ({
+    description: "Fetch a URL with optional sealed headers.",
+    inbound: z.object({
+      kind: z.literal("command"),
+      type: z.literal("Network.Fetch"),
+      data: InputSchema
+    }),
+    outbound: z.object({
+      kind: z.literal("reply"),
+      type: z.literal("Network.Fetch"),
+      data: OutputSchema
+    }),
+    factory: () => new TransformStream({
+      async transform(msg, controller) {
+        const input = msg.data as z.infer<typeof InputSchema>;
+        const req = new Request(input.url, input.init);
+        await unsealHeaders(req.headers);
+        const res = await fetch(req);
+        try {
+          const bodyText = await res.text();
+          const headersObj: Record<string, string> = {};
+          res.headers.forEach((v, k) => headersObj[k] = v);
 
-  return {
-    ok: res.ok,
-    status: res.status,
-    statusText: res.statusText,
-    headers: headersObj,
-    body: bodyText,
-    url: res.url
-  };
+          const result = {
+            ok: res.ok,
+            status: res.status,
+            statusText: res.statusText,
+            headers: headersObj,
+            body: bodyText,
+            url: res.url
+          };
+          
+          controller.enqueue(createMessage("reply", "Network.Fetch", result, undefined, msg.metadata?.correlation, msg.metadata?.id));
+        } finally {
+          // Ensure body is consumed/closed
+          if (!res.bodyUsed && res.body) {
+            await res.body.cancel();
+          }
+        }
+      }
+    })
+  })
 };
 
-const capability: Capability<typeof InputSchema, typeof OutputSchema> = {
-  type: "command",
-  InputSchema,
-  OutputSchema,
-  process,
-  fromArgs: (args: string[]) => {
-    if (args.length < 1) throw new Error("Usage: fetch <url> [init_json]");
-    return {
-      url: args[0],
-      init: args[1] ? JSON.parse(args[1]) : undefined,
-    };
-  },
-};
-
-export default capability;
+export default FetchModule;

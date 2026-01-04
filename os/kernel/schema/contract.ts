@@ -3,49 +3,36 @@ import { OsMessage } from "./message.ts";
 
 /**
  * A Capability defines the strict contract for a kernel feature.
- * It exports Zod schemas for input/output and a process function.
+ * It exports Zod schemas for input/output and a processor stream.
  * This allows the kernel to:
  * 1. Validate inputs before execution.
  * 2. Introspect capabilities for the LLM (via Sys.Describe).
  * 3. Guarantee output structure.
- * 4. Enforce CQRS semantics (command vs query).
+ * 4. Enforce CQRS semantics (command vs query) via Schema.
  */
 export interface Capability<I extends z.ZodTypeAny, O extends z.ZodTypeAny> {
   /**
-   * CQRS type discriminator (REQUIRED).
-   * - "command": Mutates state, has side effects (e.g., Memory.Set, Http.Fetch)
-   * - "query": Read-only, idempotent (e.g., Memory.Get, Echo)
-   *
-   * Note: Capabilities can only be command or query. The event/response/error types
-   * are reserved for the event envelope, not capability classification.
-   *
-   * Used for documentation, introspection, and semantic routing.
+   * Human-readable description for LLM introspection.
    */
-  type: "command" | "query";
+  description: string;
 
   /**
-   * The Zod schema for the input arguments.
+   * The Zod schema for the inbound message (Command/Query).
+   * MUST include .describe() for LLM introspection.
+   * MUST validate `kind` (command|query) and `type` (e.g. Memory.Get).
+   */
+  inbound: I;
+
+  /**
+   * The Zod schema for the outbound message (Reply/Event).
    * MUST include .describe() for LLM introspection.
    */
-  InputSchema: I;
+  outbound: O;
 
   /**
-   * The Zod schema for the output data.
-   * MUST include .describe() for LLM introspection.
+   * The reactive processor factory.
+   * Returns a fresh TransformStream that accepts Inbound OsMessages and emits Outbound OsMessages.
+   * This allows the kernel to manage the lifecycle (e.g., restart on error).
    */
-  OutputSchema: O;
-
-  /**
-   * The implementation of the capability.
-   * @param input The validated input data.
-   * @param message The original OsMessage (for context/tracing).
-   * @returns A promise resolving to the validated output data.
-   */
-  process: (input: z.infer<I>, message: OsMessage) => Promise<z.infer<O>>;
-
-  /**
-   * Optional factory to convert CLI arguments (string array) to the InputSchema.
-   * Used when the kernel receives a shell-style command (array payload) for this capability.
-   */
-  fromArgs?: (args: string[]) => z.infer<I>;
+  factory: () => TransformStream<OsMessage, OsMessage>;
 }

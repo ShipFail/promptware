@@ -1,18 +1,12 @@
 import { z } from "jsr:@zod/zod";
 import { Capability } from "../schema/contract.ts";
-import { OsMessage } from "../schema/message.ts";
+import { createMessage } from "../schema/message.ts";
 
 /**
  * PromptWare ØS Memory Capabilities
  *
  * Provides CQRS-compliant key-value operations via Deno KV.
  * Enforces RFC 0018: Vault paths require pwenc encryption.
- *
- * Exports 4 capabilities:
- * - memory/get (query): Retrieve value by key
- * - memory/list (query): List entries by prefix
- * - memory/set (command): Store key-value pair
- * - memory/delete (command): Remove key
  */
 
 // ================================
@@ -27,7 +21,8 @@ async function withKv<T>(fn: (kv: Deno.Kv) => Promise<T>): Promise<T> {
   try {
     return await fn(kv);
   } finally {
-    kv.close();
+    // Ensure KV is closed, but handle potential race conditions if Deno test runner is strict
+    try { kv.close(); } catch {}
   }
 }
 
@@ -43,131 +38,150 @@ function parseKey(k: string): string[] {
 }
 
 // ================================
-// QUERY: memory/get
+// Schemas
 // ================================
 
-const GetInputSchema = z.object({
+const GetInput = z.object({
   key: z.string().describe("The absolute path to retrieve (e.g., /foo/bar)"),
 }).describe("Input for memory/get capability.");
 
-const GetOutputSchema = z.any().describe("The stored value, or null if not found.");
+const GetOutput = z.any().describe("The stored value, or null if not found.");
 
-const getProcess = async (input: z.infer<typeof GetInputSchema>, _message: OsMessage): Promise<z.infer<typeof GetOutputSchema>> => {
-  return withKv(async (kv) => {
-    const res = await kv.get(parseKey(input.key));
-    return res.value;
-  });
-};
-
-export const memoryGetModule: Capability<typeof GetInputSchema, typeof GetOutputSchema> = {
-  type: "query",
-  InputSchema: GetInputSchema,
-  OutputSchema: GetOutputSchema,
-  process: getProcess,
-  fromArgs: (args: string[]) => {
-    if (args.length < 1) throw new Error("Usage: memory/get <key>");
-    return { key: args[0] };
-  },
-};
-
-// ================================
-// QUERY: memory/list
-// ================================
-
-const ListInputSchema = z.object({
+const ListInput = z.object({
   prefix: z.string().optional().describe("Optional prefix path to filter results (e.g., /vault)"),
 }).describe("Input for memory/list capability.");
 
-const ListOutputSchema = z.record(z.string(), z.any()).describe("Object mapping paths to values.");
+const ListOutput = z.record(z.string(), z.any()).describe("Object mapping paths to values.");
 
-const listProcess = async (input: z.infer<typeof ListInputSchema>, _message: OsMessage): Promise<z.infer<typeof ListOutputSchema>> => {
-  return withKv(async (kv) => {
-    const prefix = input.prefix ? parseKey(input.prefix) : [];
-    const result: Record<string, any> = {};
-    for await (const entry of kv.list({ prefix })) {
-      result["/" + entry.key.join("/")] = entry.value;
-    }
-    return result;
-  });
-};
-
-export const memoryListModule: Capability<typeof ListInputSchema, typeof ListOutputSchema> = {
-  type: "query",
-  InputSchema: ListInputSchema,
-  OutputSchema: ListOutputSchema,
-  process: listProcess,
-  fromArgs: (args: string[]) => {
-    return { prefix: args[0] };
-  },
-};
-
-// ================================
-// COMMAND: memory/set
-// ================================
-
-const SetInputSchema = z.object({
+const SetInput = z.object({
   key: z.string().describe("The absolute path to store (e.g., /config/api-key)"),
   value: z.any().describe("The value to store (any JSON-serializable type)"),
 }).describe("Input for memory/set capability.");
 
-const SetOutputSchema = z.object({
+const SetOutput = z.object({
   success: z.boolean(),
   message: z.string(),
 }).describe("Confirmation of the set operation.");
 
-const setProcess = async (input: z.infer<typeof SetInputSchema>, _message: OsMessage): Promise<z.infer<typeof SetOutputSchema>> => {
-  // RFC 0018: Vault Enforcement
-  if (input.key.startsWith("/vault/")) {
-    const valStr = typeof input.value === 'string' ? input.value : JSON.stringify(input.value);
-    if (!valStr.startsWith("pwenc:v1:")) {
-      throw new Error("E_VAULT_REQUIRES_PWENC: /vault/ paths accept only ciphertext (pwenc:v1:...).");
-    }
-  }
-
-  return withKv(async (kv) => {
-    await kv.set(parseKey(input.key), input.value);
-    return { success: true, message: `Set ${input.key}` };
-  });
-};
-
-export const memorySetModule: Capability<typeof SetInputSchema, typeof SetOutputSchema> = {
-  type: "command",
-  InputSchema: SetInputSchema,
-  OutputSchema: SetOutputSchema,
-  process: setProcess,
-  fromArgs: (args: string[]) => {
-    if (args.length < 2) throw new Error("Usage: memory/set <key> <value>");
-    return { key: args[0], value: args[1] };
-  },
-};
-
-// ================================
-// COMMAND: memory/delete
-// ================================
-
-const DeleteInputSchema = z.object({
+const DeleteInput = z.object({
   key: z.string().describe("The absolute path to delete (e.g., /temp/cache)"),
 }).describe("Input for memory/delete capability.");
 
-const DeleteOutputSchema = z.object({
+const DeleteOutput = z.object({
   success: z.boolean(),
   message: z.string(),
 }).describe("Confirmation of the delete operation.");
 
-const deleteProcess = async (input: z.infer<typeof DeleteInputSchema>, _message: OsMessage): Promise<z.infer<typeof DeleteOutputSchema>> => {
-  return withKv(async (kv) => {
-    await kv.delete(parseKey(input.key));
-    return { success: true, message: `Deleted ${input.key}` };
-  });
-};
+// ================================
+// Exports
+// ================================
 
-export const memoryDeleteModule: Capability<typeof DeleteInputSchema, typeof DeleteOutputSchema> = {
-  type: "command",
-  InputSchema: DeleteInputSchema,
-  OutputSchema: DeleteOutputSchema,
-  process: deleteProcess,
-  fromArgs: (args: string[]) => {
-    if (args.length < 1) throw new Error("Usage: memory/delete <key>");
-    return { key: args[0] };
-  },
+export default {
+  "Memory.Get": (): Capability<any, any> => ({
+    description: "Retrieve value by key",
+    inbound: z.object({
+      kind: z.literal("query"),
+      type: z.literal("Memory.Get"),
+      data: GetInput
+    }),
+    outbound: z.object({
+      kind: z.literal("reply"),
+      type: z.literal("Memory.Get"),
+      data: GetOutput
+    }),
+    factory: () => new TransformStream({
+      async transform(msg, controller) {
+        const data = msg.data as z.infer<typeof GetInput>;
+        const result = await withKv(async (kv) => {
+          const res = await kv.get(parseKey(data.key));
+          return res.value;
+        });
+        controller.enqueue(createMessage("reply", "Memory.Get", result, undefined, msg.metadata?.correlation, msg.metadata?.id));
+      }
+    })
+  }),
+
+  "Memory.List": (): Capability<any, any> => ({
+    description: "List entries by prefix",
+    inbound: z.object({
+      kind: z.literal("query"),
+      type: z.literal("Memory.List"),
+      data: ListInput
+    }),
+    outbound: z.object({
+      kind: z.literal("reply"),
+      type: z.literal("Memory.List"),
+      data: ListOutput
+    }),
+    factory: () => new TransformStream({
+      async transform(msg, controller) {
+        const data = msg.data as z.infer<typeof ListInput>;
+        const result = await withKv(async (kv) => {
+          const prefix = data.prefix ? parseKey(data.prefix) : [];
+          const result: Record<string, any> = {};
+          for await (const entry of kv.list({ prefix })) {
+            result["/" + entry.key.join("/")] = entry.value;
+          }
+          return result;
+        });
+        controller.enqueue(createMessage("reply", "Memory.List", result, undefined, msg.metadata?.correlation, msg.metadata?.id));
+      }
+    })
+  }),
+
+  "Memory.Set": (): Capability<any, any> => ({
+    description: "Store key-value pair",
+    inbound: z.object({
+      kind: z.literal("command"),
+      type: z.literal("Memory.Set"),
+      data: SetInput
+    }),
+    outbound: z.object({
+      kind: z.literal("reply"),
+      type: z.literal("Memory.Set"),
+      data: SetOutput
+    }),
+    factory: () => new TransformStream({
+      async transform(msg, controller) {
+        const data = msg.data as z.infer<typeof SetInput>;
+        // RFC 0018: Vault Enforcement
+        if (data.key.startsWith("/vault/")) {
+          const valStr = typeof data.value === 'string' ? data.value : JSON.stringify(data.value);
+          if (!valStr.startsWith("pwenc:v1:")) {
+            throw new Error("E_VAULT_REQUIRES_PWENC: /vault/ paths accept only ciphertext (pwenc:v1:...).");
+          }
+        }
+
+        const result = await withKv(async (kv) => {
+          await kv.set(parseKey(data.key), data.value);
+          return { success: true, message: `Set ${data.key}` };
+        });
+        controller.enqueue(createMessage("reply", "Memory.Set", result, undefined, msg.metadata?.correlation, msg.metadata?.id));
+      }
+    })
+  }),
+
+  "Memory.Delete": (): Capability<any, any> => ({
+    description: "Remove key",
+    inbound: z.object({
+      kind: z.literal("command"),
+      type: z.literal("Memory.Delete"),
+      data: DeleteInput
+    }),
+    outbound: z.object({
+      kind: z.literal("reply"),
+      type: z.literal("Memory.Delete"),
+      data: DeleteOutput
+    }),
+    factory: () => new TransformStream({
+      async transform(msg, controller) {
+        const data = msg.data as z.infer<typeof DeleteInput>;
+        const result = await withKv(async (kv) => {
+          await kv.delete(parseKey(data.key));
+          return { success: true, message: `Deleted ${data.key}` };
+        });
+        controller.enqueue(createMessage("reply", "Memory.Delete", result, undefined, msg.metadata?.correlation, msg.metadata?.id));
+      }
+    })
+  })
 };

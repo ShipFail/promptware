@@ -1,9 +1,9 @@
 import { z } from "jsr:@zod/zod";
 import { Capability } from "../schema/contract.ts";
-import { OsMessage } from "../schema/message.ts";
+import { createMessage } from "../schema/message.ts";
 import { parseArgs } from "jsr:@std/cli/parse-args";
 import { parse, stringify } from "jsr:@std/yaml";
-import { join, dirname } from "jsr:@std/path";
+import { resolve, isUrl, getKernelParams } from "../vfs/core.ts";
 
 /**
  * PromptWare ØS Ingest Capability
@@ -11,69 +11,6 @@ import { join, dirname } from "jsr:@std/path";
  * Fetches and hydrates markdown files (JIT linking).
  * Resolves skill and tool metadata from YAML frontmatter.
  */
-
-function isUrl(path: string): boolean {
-  try {
-    new URL(path);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function resolve(uri: string, base?: string, explicitRoot?: string): Promise<string> {
-  let root = explicitRoot;
-  let mounts: Record<string, string> | undefined;
-
-  if (!root) {
-    const kv = await Deno.openKv();
-    try {
-      const res = await kv.get(["proc", "cmdline"]);
-      if (res.value) {
-        const params = JSON.parse(res.value as string);
-        root = params.root;
-        mounts = params.mounts;
-      } else {
-        throw new Error("Kernel Panic: proc/cmdline not found.");
-      }
-    } finally {
-      kv.close();
-    }
-  }
-
-  if (isUrl(uri)) {
-    if (uri.startsWith("os://")) {
-      const path = uri.replace("os://", "");
-
-      if (mounts) {
-        const parts = path.split("/");
-        const topLevel = parts[0];
-        if (mounts[topLevel]) {
-          const rest = parts.slice(1).join("/");
-          if (isUrl(mounts[topLevel])) {
-            return new URL(rest, mounts[topLevel]).href;
-          }
-        }
-      }
-
-      return new URL(path, root).href;
-    }
-    return uri;
-  }
-
-  if (uri.startsWith("/")) {
-    return new URL(uri.slice(1), root).href;
-  }
-
-  if (base) {
-    if (isUrl(base)) {
-      return new URL(uri, base).href;
-    }
-    return join(dirname(base), uri);
-  }
-
-  return new URL(uri, root).href;
-}
 
 async function fetchContent(path: string): Promise<string> {
   if (isUrl(path)) {
@@ -147,14 +84,11 @@ async function ingest(targetUri: string, explicitRoot?: string): Promise<string>
   let root: string = explicitRoot || "";
 
   if (!root) {
-    const kv = await Deno.openKv();
-    try {
-      const res = await kv.get(["proc", "cmdline"]);
-      if (!res.value) throw new Error("Kernel Panic: proc/cmdline not found. Is the kernel initialized?");
-      const params = JSON.parse(res.value as string);
+    const params = await getKernelParams();
+    if (params) {
       root = params.root;
-    } finally {
-      kv.close();
+    } else {
+      throw new Error("Kernel Panic: proc/cmdline not found. Is the kernel initialized?");
     }
   }
 
@@ -210,31 +144,38 @@ async function ingest(targetUri: string, explicitRoot?: string): Promise<string>
   return `---\n${newFm}---${body}`;
 }
 
-export const InputSchema = z.object({
+const InputSchema = z.object({
   uri: z.string().describe("The URI of the resource to ingest (markdown file)"),
 }).describe("Input for the ingest capability.");
 
-export const OutputSchema = z.object({
+const OutputSchema = z.object({
   content: z.string().describe("The ingested and hydrated content with resolved metadata"),
 }).describe("Output from the ingest capability.");
 
-export const process = async (input: z.infer<typeof InputSchema>, _message: OsMessage): Promise<z.infer<typeof OutputSchema>> => {
-  const content = await ingest(input.uri);
-  return { content };
+export const IngestModule = {
+  "FileSystem.Ingest": (): Capability<any, any> => ({
+    description: "Ingest and hydrate a markdown file with metadata.",
+    inbound: z.object({
+      kind: z.literal("query"),
+      type: z.literal("FileSystem.Ingest"),
+      data: InputSchema
+    }),
+    outbound: z.object({
+      kind: z.literal("reply"),
+      type: z.literal("FileSystem.Ingest"),
+      data: OutputSchema
+    }),
+    factory: () => new TransformStream({
+      async transform(msg, controller) {
+        const input = msg.data as z.infer<typeof InputSchema>;
+        const content = await ingest(input.uri);
+        controller.enqueue(createMessage("reply", "FileSystem.Ingest", { content }, undefined, msg.metadata?.correlation, msg.metadata?.id));
+      }
+    })
+  })
 };
 
-const capability: Capability<typeof InputSchema, typeof OutputSchema> = {
-  type: "query",
-  InputSchema,
-  OutputSchema,
-  process,
-  fromArgs: (args: string[]) => {
-    if (args.length < 1) throw new Error("Usage: ingest <uri>");
-    return { uri: args[0] };
-  },
-};
-
-export default capability;
+export default IngestModule;
 
 // CLI Entry Point
 if (import.meta.main) {

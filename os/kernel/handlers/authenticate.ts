@@ -10,7 +10,7 @@
 
 import { z } from "jsr:@zod/zod";
 import { Capability } from "../schema/contract.ts";
-import { OsMessage } from "../schema/message.ts";
+import { createMessage } from "../schema/message.ts";
 
 // Input Schema
 const AuthenticateInput = z.object({
@@ -24,27 +24,29 @@ const AuthenticateOutput = z.object({
   message: z.string().describe("Authentication status message"),
 }).describe("Output from Syscall.Authenticate");
 
-const authenticateCapability: Capability<
-  typeof AuthenticateInput,
-  typeof AuthenticateOutput
-> = {
-  type: "command",
-  InputSchema: AuthenticateInput,
-  OutputSchema: AuthenticateOutput,
-
-  process: async (_input: z.infer<typeof AuthenticateInput>, _message: OsMessage): Promise<z.infer<typeof AuthenticateOutput>> => {
-    // Inline mode: No-op (always succeeds)
-    // Worker mode (Stage 4): Will check credentials
-    return {
-      authenticated: true,
-      message: "Authentication successful (inline mode: no-op)",
-    };
-  },
-
-  // CLI adapter: Convert empty args to empty object
-  fromArgs: (_args: string[]) => {
-    return {};
-  },
+export const AuthenticateModule = {
+  "Syscall.Authenticate": (): Capability<any, any> => ({
+    description: "Authenticate the connection (No-op in inline mode).",
+    inbound: z.object({
+      kind: z.literal("command"),
+      type: z.literal("Syscall.Authenticate"),
+      data: AuthenticateInput
+    }),
+    outbound: z.object({
+      kind: z.literal("reply"),
+      type: z.literal("Syscall.Authenticate"),
+      data: AuthenticateOutput
+    }),
+    factory: () => new TransformStream({
+      async transform(msg, controller) {
+        const result = {
+          authenticated: true,
+          message: "Authentication successful (inline mode: no-op)",
+        };
+        controller.enqueue(createMessage("reply", "Syscall.Authenticate", result, undefined, msg.metadata?.correlation, msg.metadata?.id));
+      }
+    })
+  })
 };
 
-export default authenticateCapability;
+export default AuthenticateModule;

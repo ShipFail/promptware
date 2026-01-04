@@ -11,23 +11,19 @@ import { TextLineStream } from "jsr:@std/streams";
 import { KernelRuntime } from "./interface.ts";
 import { OsMessage, createError } from "../schema/message.ts";
 import { getSocketPath } from "./socket-path.ts";
-import { NDJSONDecodeStream, NDJSONEncodeStream } from "./ndjson.ts";
+import { NDJSONDecodeStream, NDJSONEncodeStream } from "../lib/ndjson.ts";
 import { routerStream } from "./router.ts";
-import { WorkerLogger, SyslogWorkerLogger } from "./worker-logger.ts";
+import { logger } from "./logger.ts";
 import { isShutdownRequested, onShutdown } from "./lifecycle.ts";
 
 // Global worker state for graceful shutdown
 let workerListener: Deno.Listener | null = null;
 
 export class WorkerRuntime implements KernelRuntime {
-  private logger: WorkerLogger;
-
-  constructor(logger?: WorkerLogger) {
-    this.logger = logger || new SyslogWorkerLogger();
-    
+  constructor() {
     // Listen for shutdown requests
     onShutdown(() => {
-      this.logger.info("Shutdown signal received");
+      logger.info("Shutdown signal received");
       if (workerListener) {
         try {
           workerListener.close();
@@ -47,10 +43,10 @@ export class WorkerRuntime implements KernelRuntime {
     // 2. Bind Unix socket
     try {
       workerListener = Deno.listen({ transport: "unix", path: sockPath });
-      this.logger.info("Worker started", { socketPath: sockPath });
+      logger.info("Worker started", { socketPath: sockPath });
     } catch (e: unknown) {
       const errorMessage = e instanceof Error ? e.message : String(e);
-      this.logger.error("Failed to bind socket", {
+      logger.error("Failed to bind socket", {
         socketPath: sockPath,
         error: errorMessage,
       });
@@ -62,7 +58,7 @@ export class WorkerRuntime implements KernelRuntime {
       for await (const conn of workerListener) {
         // Check shutdown flag before accepting new connections
         if (isShutdownRequested()) {
-          this.logger.info("Shutdown requested, rejecting new connection");
+          logger.info("Shutdown requested, rejecting new connection");
           conn.close();
           break;
         }
@@ -70,12 +66,12 @@ export class WorkerRuntime implements KernelRuntime {
         // Handle each connection in parallel
         this.handleConnection(conn as Deno.UnixConn).catch((err: unknown) => {
           const errorMessage = err instanceof Error ? err.message : String(err);
-          this.logger.error("Connection error", { error: errorMessage });
+          logger.error("Connection error", { error: errorMessage });
         });
       }
     } finally {
       // 4. Cleanup on exit
-      this.logger.info("Worker shutting down");
+      logger.info("Worker shutting down");
 
       try {
         workerListener?.close();
@@ -99,7 +95,7 @@ export class WorkerRuntime implements KernelRuntime {
    * RFC-23 Section 4.6: First message MUST be Syscall.Authenticate
    */
   private async handleConnection(conn: Deno.UnixConn): Promise<void> {
-    this.logger.info("Main thread connected");
+    logger.info("Main thread connected");
 
     try {
       // Build bidirectional pipeline with auth validation:
@@ -118,10 +114,10 @@ export class WorkerRuntime implements KernelRuntime {
       // Pipe output back to main thread
       await outputStream.pipeTo(conn.writable);
 
-      this.logger.info("Main thread disconnected");
+      logger.info("Main thread disconnected");
     } catch (e: unknown) {
       const errorMessage = e instanceof Error ? e.message : String(e);
-      this.logger.warn("Main thread connection error", { error: errorMessage });
+      logger.warn("Main thread connection error", { error: errorMessage });
     } finally {
       try {
         conn.close();
@@ -194,7 +190,7 @@ export class WorkerRuntime implements KernelRuntime {
         (e.message.includes("Connection refused") ||
           e.message.includes("No such file"))
       ) {
-        this.logger.info("Removing stale socket", { socketPath: sockPath });
+        logger.info("Removing stale socket", { socketPath: sockPath });
         await Deno.remove(sockPath);
         return;
       }

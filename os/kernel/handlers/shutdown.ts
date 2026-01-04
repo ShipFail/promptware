@@ -10,7 +10,7 @@
 
 import { z } from "jsr:@zod/zod";
 import { Capability } from "../schema/contract.ts";
-import { OsMessage } from "../schema/message.ts";
+import { createMessage } from "../schema/message.ts";
 import { requestShutdown } from "../bus/lifecycle.ts";
 
 // Input Schema
@@ -23,27 +23,26 @@ const ShutdownOutput = z.object({
   message: z.string().describe("Shutdown acknowledgment message"),
 }).describe("Output from Syscall.Shutdown");
 
-const shutdownCapability: Capability<
-  typeof ShutdownInput,
-  typeof ShutdownOutput
-> = {
-  type: "command",
-  InputSchema: ShutdownInput,
-  OutputSchema: ShutdownOutput,
-
-  process: async (_input: z.infer<typeof ShutdownInput>, _message: OsMessage): Promise<z.infer<typeof ShutdownOutput>> => {
-    // Trigger graceful shutdown (only affects worker mode)
-    requestShutdown();
-
-    return {
-      message: "Shutdown acknowledged",
-    };
-  },
-
-  // CLI adapter: Convert empty args to empty object
-  fromArgs: (_args: string[]) => {
-    return {};
-  },
+export const ShutdownModule = {
+  "Syscall.Shutdown": (): Capability<any, any> => ({
+    description: "Request graceful shutdown of the kernel.",
+    inbound: z.object({
+      kind: z.literal("command"),
+      type: z.literal("Syscall.Shutdown"),
+      data: ShutdownInput
+    }),
+    outbound: z.object({
+      kind: z.literal("reply"),
+      type: z.literal("Syscall.Shutdown"),
+      data: ShutdownOutput
+    }),
+    factory: () => new TransformStream({
+      async transform(msg, controller) {
+        requestShutdown();
+        controller.enqueue(createMessage("reply", "Syscall.Shutdown", { message: "Shutdown acknowledged" }, undefined, msg.metadata?.correlation, msg.metadata?.id));
+      }
+    })
+  })
 };
 
-export default shutdownCapability;
+export default ShutdownModule;
