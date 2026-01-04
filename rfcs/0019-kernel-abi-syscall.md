@@ -5,9 +5,9 @@ author: Ship.Fail
 status: Draft
 type: Standards Track
 created: 2025-12-24
-updated: 2025-12-29
-version: 1.0.0
-tags: [kernel, abi, syscall]
+updated: 2026-01-04
+version: 1.1.0
+tags: [kernel, abi, syscall, ping]
 ---
 
 # RFC 0019: Kernel ABI & Syscall Interface
@@ -84,7 +84,7 @@ User-space implementations MUST NOT define syscalls using these prefixes.
 ### 3.6. Collision Prevention Examples
 
 **Valid Kernel Names** (Reserved):
-- `Echo`
+- `Ping`
 - `Memory.Get`
 - `Http.Fetch`
 - `Syscall.Authenticate`
@@ -230,6 +230,27 @@ The `Syscall.List` query allows agents to discover available capabilities.
     }
     ```
 
+### 5.4. Ping (ABI Integrity Test)
+
+The `Ping` query implements **IETF RFC 6455 PING/PONG semantics** to verify transport integrity. It serves as the canonical test for framing correctness, ensuring that data is transmitted without mutation, truncation, or type coercion.
+
+#### 5.4.1. Message Interface
+*   **Kind**: `query`
+*   **Type**: `Ping`
+*   **Data**: `{"payload": <any JSON-serializable value>}`
+*   **Success Reply**: `kind: "reply"`, `type: "Ping"`, `data: {"payload": <identical value>}`
+
+#### 5.4.2. Normative Invariants
+1.  **Identity**: `Pong.payload` MUST be strictly equal to `Ping.payload` (byte-for-byte identical).
+2.  **Type Preservation**: All JSON types (string, number, boolean, null, array, object) MUST be preserved without coercion.
+3.  **Lineage**: `metadata.causation` MUST link to the request ID.
+
+#### 5.4.3. Required Test Scenarios
+Implementations MUST verify:
+*   **Primitives**: Empty strings, zeros, false booleans, nulls, unicode, escape sequences.
+*   **Structures**: Deeply nested objects, mixed arrays, empty objects/arrays.
+*   **Boundaries**: Large payloads (1KB, 10KB) to verify no truncation.
+
 ## 6. Forward Compatibility Guarantees
 
 To ensure long-term stability across kernel versions and implementations, the following guarantees MUST be maintained:
@@ -315,7 +336,38 @@ Error messages SHOULD:
 - **[RFC 0024]** - CQRS Message Schema
   - Defines OsMessage schema for message-driven syscall communication
 
+- **[IETF RFC 6455]** - The WebSocket Protocol
+  - https://www.rfc-editor.org/rfc/rfc6455
+  - Section 5.5.2-5.5.3 defines PING/PONG frame semantics adopted by the Ping syscall
+
+## 10. Reference Implementation
+
+The reference implementation of the PromptWare OS Kernel uses `os/kernel/main.ts` as the canonical entry point.
+
+*   **Architecture**: The abstract interface defined in this RFC is referred to as the **Syscall Interface**.
+*   **Implementation**: The concrete executable that implements this interface is `main.ts`.
+
+All kernel invocations SHOULD be directed to `main.ts` (or its compiled binary equivalent).
+
 ## 9. Appendix: Change Log
+
+### Version 1.1.0 (2026-01-04)
+
+**Feature Addition** - Ping Syscall (ABI Integrity Test):
+
+- **Added**:
+  - Section 5.4: Ping syscall specification with RFC 6455 PING/PONG semantics
+  - 20 conformance test cases (PING-001 through PING-020)
+  - Reference to IETF RFC 6455 (WebSocket Protocol)
+
+- **Changed**:
+  - Section 3.6: Updated reserved syscall examples (`Echo` → `Ping`)
+  - Removed legacy `Echo` syscall (replaced by `Ping`)
+
+- **Rationale**:
+  - `Echo` transformed payload structure (`message` → `echo`), unsuitable for framing tests
+  - `Ping` returns identical payload, enabling detection of mutation/truncation/type coercion
+  - Aligns with industry-standard PING/PONG semantics from WebSocket protocol
 
 ### Version 1.0.0 (2025-12-29)
 
