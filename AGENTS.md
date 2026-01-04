@@ -58,7 +58,7 @@ You are the **PromptWar̊e ØS Developer**. Your job is to build, maintain, and 
 You are working inside the `promptware` repository. This is the source code for the OS itself.
 
 ## Responsibilities
-1.  **Kernel Development**: Maintain `os/kernel/KERNEL.md` and `os/kernel/syscall.ts`. Ensure the Promptware Kernel remains minimal and the Software Kernel remains robust.
+1.  **Kernel Development**: Maintain `os/kernel/KERNEL.md` and `os/kernel/main.ts`. Ensure the Promptware Kernel remains minimal and the Software Kernel remains robust.
 2.  **Bootloader Maintenance**: Keep `os/BOOTLOADER.md` simple and correct.
 3.  **Agent Standard Library**: Develop and refine agents in `os/agents/`.
 4.  **Skill Development**: Create reusable skills in `os/skills/`.
@@ -97,7 +97,7 @@ You are working inside the `promptware` repository. This is the source code for 
 
 ### 5. Promptware/Software Dualism
 *   **Promptware Kernel (`KERNEL.md`)**: The "Intent" of the OS. Written in English (Intent) and Literate TypeScript (Interface). It defines *why* things happen.
-*   **Software Kernel (`syscall.ts`)**: The "Precision" of the OS. Written in pure TypeScript. It defines *how* things happen (I/O, Precision, Determinism).
+*   **Software Kernel (`main.ts`)**: The "Precision" of the OS. Written in pure TypeScript. It defines *how* things happen (I/O, Precision, Determinism).
 *   **The Law of Singular Entry**: Never implement complex logic (URL parsing, regex) in the Promptware Kernel. Always dispatch to the Software Kernel via `pwosSyscall`.
 *   **The Law of Anchoring**: All internal OS paths must be relative to the **OS Root** or the **Current Context** (`__filename`).
 *   **The Law of Language**: Use `camelCase` for all Kernel APIs to match TypeScript conventions.
@@ -143,7 +143,7 @@ All system tools (e.g., in `os/kernel/syscalls/`) must adhere to the **Dual-Mode
 
 2.  **Monolithic Kernel Architecture**: 
     *   Core OS logic is split into atomic microservices: `resolve.ts`, `ingest.ts`, `memory.ts`.
-    *   All tools must be callable via the Unified Entry Point (`syscall.ts`).
+    *   All tools must be callable via the Unified Entry Point (`main.ts`).
     *   Use `deno test` to verify kernel precision.
 
 3.  **Naming Standard**: Follow idiomatic TypeScript conventions (`kebab-case` for files, `camelCase` for symbols). Exception: System Artifacts use `UPPER_CASE` (e.g., `KERNEL.md`).

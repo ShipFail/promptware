@@ -1,5 +1,5 @@
 /**
- * os/kernel/transport/protocol/ndjson.ts
+ * os/kernel/lib/ndjson.ts
  *
  * RFC-23 Stage 3: NDJSON Protocol Layer
  *
