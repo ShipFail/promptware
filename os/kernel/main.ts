@@ -16,55 +16,71 @@ import { InlineRuntime } from "./bus/inline.ts";
 import { MainRuntime } from "./bus/main.ts";
 import { WorkerRuntime } from "./bus/worker.ts";
 import { ensureSupportedPlatform } from "./bus/platform.ts";
+import { logger } from "./bus/logger.ts";
+
+/**
+ * Determines the execution mode based on CLI arguments.
+ * Pure function for testability.
+ */
+export function determineMode(args: string[]): string {
+  const parsed = parseArgs(args, { string: ["mode"] });
+  if (parsed.mode) return parsed.mode;
+
+  // Smart default:
+  // - If args provided (CLI mode): use inline
+  // - If pipe mode (no args): use main (worker)
+  const hasArgs = parsed._.length > 0;
+  return hasArgs ? "inline" : "main";
+}
+
+/**
+ * Factory to create the appropriate runtime.
+ * Isolated for testability.
+ */
+export function createRuntime(mode: string): KernelRuntime {
+  switch (mode) {
+    case "inline":
+      return new InlineRuntime();
+    case "main":
+      ensureSupportedPlatform();
+      return new MainRuntime();
+    case "worker":
+      ensureSupportedPlatform();
+      return new WorkerRuntime();
+    default:
+      throw new Error(`Unknown mode: ${mode}`);
+  }
+}
+
+/**
+ * The Kernel Supervisor.
+ * Orchestrates the boot process and handles panics.
+ * Returns exit code instead of exiting process.
+ */
+export async function kernelMain(
+  args: string[], 
+  runtimeFactory = createRuntime
+): Promise<number> {
+  try {
+    const mode = determineMode(args);
+    const runtime = runtimeFactory(mode);
+    return await runtime.run();
+  } catch (e: unknown) {
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    // If it's an unknown mode error, log as error, otherwise fatal panic
+    if (errorMessage.startsWith("Unknown mode")) {
+      logger.error(`Error: ${errorMessage}`);
+      logger.error('Valid modes: "inline", "main", "worker"');
+    } else {
+      logger.fatal(`[Kernel Panic] ${errorMessage}`, {}, e instanceof Error ? e : undefined);
+    }
+    return 1;
+  }
+}
 
 // Run if main
 if (import.meta.main) {
-  const args = parseArgs(Deno.args, {
-    string: ["mode"],
-  });
-
-  // Smart default mode selection:
-  // - If args provided (CLI mode): use inline
-  // - If pipe mode (no args): use main (worker)
-  // - Explicit --mode flag overrides
-  let defaultMode = "inline";
-  if (!args.mode) {
-    const hasArgs = args._.length > 0;
-    defaultMode = hasArgs ? "inline" : "main";
-  }
-
-  const mode = args.mode || defaultMode;
-  let runtime: KernelRuntime;
-
-  switch (mode) {
-    case "inline":
-      runtime = new InlineRuntime();
-      break;
-    case "main":
-    case "client": // Deprecated alias
-      ensureSupportedPlatform(); // Check not Windows
-      runtime = new MainRuntime();
-      break;
-    case "worker":
-    case "daemon": // Deprecated alias
-      ensureSupportedPlatform(); // Check not Windows
-      runtime = new WorkerRuntime();
-      break;
-    default:
-      console.error(`Error: Unknown mode: ${mode}`);
-      console.error('Valid modes: "inline", "main", "worker"');
-      Deno.exit(1);
-  }
-
-  try {
-    const exitCode = await runtime.run();
-    Deno.exit(exitCode);
-  } catch (e: unknown) {
-    const errorMessage = e instanceof Error ? e.message : String(e);
-    const errorStack = e instanceof Error ? e.stack : "";
-    console.error(`[Kernel Panic] ${errorMessage}`);
-    if (errorStack) console.error(errorStack);
-    Deno.exit(1);
-  }
+  const exitCode = await kernelMain(Deno.args);
+  Deno.exit(exitCode);
 }
 

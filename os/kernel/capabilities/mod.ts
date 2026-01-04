@@ -10,7 +10,7 @@
 export type { Capability } from "../schema/contract.ts";
 
 // Basic Utilities
-export { default as echoModule } from "./echo.ts";
+export { default as pingModule } from "./ping.ts";
 export { default as fetchModule } from "./fetch.ts";
 
 // Memory Operations (CQRS-compliant)

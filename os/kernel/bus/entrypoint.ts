@@ -20,8 +20,8 @@ export interface EntrypointCommand {
  * Detects the entrypoint command for spawning new processes.
  *
  * Handles both:
- * - Local file invocation: deno run -A /path/to/syscall.ts
- * - URL invocation: deno run -A https://example.com/syscall.ts
+ * - Local file invocation: deno run -A /path/to/main.ts
+ * - URL invocation: deno run -A https://example.com/main.ts
  *
  * @returns Command and args needed to re-invoke the kernel
  */

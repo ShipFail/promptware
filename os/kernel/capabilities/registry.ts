@@ -7,6 +7,7 @@ import ingestModule from "./ingest.ts";
 import cryptoModule from "./crypto.ts";
 import syscallAuthModule from "./authenticate.ts";
 import syscallShutdownModule from "./shutdown.ts";
+import sysDescribeModule from "./describe.ts";
 
 /**
  * Central Capability Registry
@@ -32,3 +33,4 @@ register(ingestModule);
 register(cryptoModule);
 register(syscallAuthModule);
 register(syscallShutdownModule);
+register(sysDescribeModule);

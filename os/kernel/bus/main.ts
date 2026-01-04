@@ -12,7 +12,7 @@ import { KernelRuntime } from "./interface.ts";
 import { OsMessage, createCommand } from "../schema/message.ts";
 import { getSocketPath } from "./socket-path.ts";
 import { getEntrypointCommand } from "./entrypoint.ts";
-import { NDJSONDecodeStream, NDJSONEncodeStream } from "./ndjson.ts";
+import { NDJSONDecodeStream, NDJSONEncodeStream } from "../lib/ndjson.ts";
 
 export class MainRuntime implements KernelRuntime {
   async run(): Promise<number> {

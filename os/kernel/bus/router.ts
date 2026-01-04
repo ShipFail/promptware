@@ -9,16 +9,8 @@
 
 import { BusStream } from "./stream-types.ts";
 import { OsMessage } from "../schema/message.ts";
-import { Capability } from "../schema/contract.ts";
-import { registry as baseRegistry } from "../handlers/registry.ts";
-import sysDescribeModule from "../handlers/describe.ts";
+import { registry } from "../capabilities/registry.ts";
 import { route } from "./engine.ts";
-
-// Full Registry (Base + System Utilities)
-const registry: Record<string, Capability<any, any>> = {
-  ...baseRegistry,
-  "Sys.Describe": sysDescribeModule,
-};
 
 export const routerStream: BusStream = new TransformStream({
   async transform(message: OsMessage, controller) {

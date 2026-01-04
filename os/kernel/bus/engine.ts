@@ -9,6 +9,7 @@
 
 import { OsMessage, createMessage, createError } from "../schema/message.ts";
 import { Capability } from "../schema/contract.ts";
+import { logger } from "./logger.ts";
 
 export type Registry = Record<string, Capability<any, any>>;
 
@@ -30,31 +31,54 @@ export async function route(
 
     // 2. Route: Look up capability
     const capability = registry[message.type];
-    let result: unknown;
-    let handled = false;
 
     if (capability) {
       // Native capability found
-      let inputData = message.data;
+      
+      // A. Validate input
+      // Note: We assume message.data matches the schema structure.
+      // If it's an array (CLI args), we might need a separate adapter layer before this.
+      // For now, we assume structured input.
+      const input = await capability.inbound.parseAsync(message);
 
-      // Check for CLI/Shell adapter requirement
-      if (Array.isArray(inputData) && capability.fromArgs) {
-        // Convert array args to structured input
-        inputData = capability.fromArgs(inputData.map(String));
+      // B. Execute capability (Stream Processing)
+      // Create a fresh processor instance for this request (Crash-Only/Resilient)
+      const processor = capability.factory();
+
+      // Use concurrent pipeTo pattern to avoid deadlock
+      // The writable side waits for readable to drain, and vice versa
+      const results: OsMessage[] = [];
+      const collector = new WritableStream<OsMessage>({
+        write(chunk) {
+          results.push(chunk);
+        },
+      });
+
+      const inputStream = new ReadableStream<OsMessage>({
+        start(controller) {
+          controller.enqueue(input);
+          controller.close();
+        },
+      });
+
+      // Run both pipes CONCURRENTLY - this is critical!
+      await Promise.all([
+        inputStream.pipeTo(processor.writable),
+        processor.readable.pipeTo(collector),
+      ]);
+
+      if (results.length === 0) {
+        throw new Error("Capability processor returned no output");
       }
 
-      // A. Validate input
-      const input = await capability.InputSchema.parseAsync(inputData);
-
-      // B. Execute capability
-      const output = await capability.process(input, message);
-
       // C. Validate output
-      result = capability.OutputSchema.parse(output);
-      handled = true;
+      const output = await capability.outbound.parseAsync(results[0]);
+      return output;
+
     } else {
       // Mode 3: Shell fallback
       // If no native capability, try to execute as a shell command.
+      logger.info(`Shell fallback: ${message.type}`, { data: message.data });
 
       let args: string[] = [];
       if (Array.isArray(message.data)) {
@@ -82,21 +106,17 @@ export async function route(
       const stderr = decoder.decode(output.stderr);
 
       if (!output.success) {
-        throw new Error(
-          `Shell command '${message.type}' failed (exit code ${output.code}): ${stderr}`
-        );
+        const errorMsg = `Shell command '${message.type}' failed (exit code ${output.code}): ${stderr}`;
+        logger.warn(errorMsg, { stdout, stderr, code: output.code });
+        throw new Error(errorMsg);
       }
 
-      result = {
+      const result = {
         stdout,
         stderr,
         code: output.code,
       };
-      handled = true;
-    }
-
-    // 3. Response: Wrap result in a new message
-    if (handled) {
+      
       return createMessage(
         "reply",
         message.type,
@@ -106,12 +126,12 @@ export async function route(
         message.metadata?.id // This message caused the result
       );
     }
-
-    // Should never reach here
-    throw new Error("Message was not handled");
   } catch (err: any) {
     // 4. Error handling: Return error message instead of throwing
-    console.error(err); // Print stack trace to stderr
+    logger.error("Kernel Panic (Recovered)", { 
+      type: message.type, 
+      id: message.metadata?.id 
+    }, err);
     return createError(message, err.message || String(err));
   }
 }

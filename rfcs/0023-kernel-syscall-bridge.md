@@ -544,10 +544,10 @@ The reference implementation uses Deno's `--location` flag to pass the origin pa
 
 ```bash
 # Inline mode with origin
-deno run -A --location=https://my-os.local/ syscall.ts Memory.Set /key value
+deno run -A --location=https://my-os.local/ main.ts Memory.Set /key value
 
 # Daemon mode with origin
-deno run -A --location=https://acme.com/ syscall.ts --mode=daemon
+deno run -A --location=https://acme.com/ main.ts --mode=daemon
 ```
 
 #### B.2.2. Why `--location`?
@@ -626,7 +626,7 @@ const cmd = new Deno.Command(Deno.execPath(), {
   args: [
     "run", "-A",
     `--location=${normalizedOrigin}`,
-    "syscall.ts",
+    "main.ts",
     "Memory.Set",
     "/key",
     "value"
@@ -640,7 +640,7 @@ In daemon mode, the origin is set when the daemon process starts:
 
 ```bash
 # Daemon started with origin from boot config
-deno run -A --location=https://my-os.local/ syscall.ts --mode=daemon
+deno run -A --location=https://my-os.local/ main.ts --mode=daemon
 ```
 
 All client connections to this daemon inherit the daemon's origin enforcement:
@@ -655,7 +655,7 @@ Client mode connects to an existing daemon, which already has its origin configu
 ```bash
 # Client connects to daemon (daemon's origin applies)
 echo '{"type":"command","name":"Memory.Set","payload":{"key":"/foo","value":"bar"}}' \
-  | deno run -A syscall.ts
+  | deno run -A main.ts
 ```
 
 ### B.5. Security Implementation
@@ -700,7 +700,7 @@ While the reference implementation uses `--location`, other implementations MAY 
 
 ```bash
 export PWOS_ORIGIN="https://my-os.local/"
-deno run -A syscall.ts Memory.Set /key value
+deno run -A main.ts Memory.Set /key value
 ```
 
 Syscalls would read `Deno.env.get("PWOS_ORIGIN")` and use it to partition storage.
