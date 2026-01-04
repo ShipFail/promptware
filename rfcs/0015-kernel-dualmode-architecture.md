@@ -62,14 +62,41 @@ To ensure clarity across Philosophy, Architecture, and Implementation, we define
 | **2. Architecture** | *What* it is | **Software Kernel** (Executor) vs. **PromptWare Kernel** (Orchestrator) |
 | **3. Implementation** | *How* it works | **Worker** (Background Process) vs. **Main Thread** (LLM Context) |
 
-### 3.2. Definitions
+### 4.2. Core Concepts (The Mental Model)
+
+To ensure clarity across Philosophy, Architecture, and Implementation, we define the following core concepts:
+
+#### 1. Dual-Kernel Architecture
+*   **PromptWare Kernel (System 2)**: The LLM. It handles **Intent**, Orchestration, and Reasoning. It is the "Main Thread."
+*   **Software Kernel (System 1)**: The Runtime. It handles **Mechanism**, I/O, and Deterministic Execution. It is the "Worker."
+
+#### 2. The Message Bridge (The Singularity)
+*   **Single Port**: All communication flows through `worker.postMessage`. There are no side channels.
+*   **Timeline View**:
+    *   `-> Topic { Payload }`: **Into Bridge** (Command/Query from LLM).
+    *   `<- Topic { Data }`: **Out of Bridge** (Event/Reply from Kernel).
+
+#### 3. Kernel Signals (CQRS)
+*   **Signal**: The atomic unit of communication.
+*   **Polymorphic Payload**: Signals efficiently carry data as either `string` (small/text) or `BlobPointer` (large/binary).
+
+#### 4. Event-Driven Prompting
+*   **The Processor**: The LLM acts as a reactive processor. It doesn't just "run a script"; it reacts to **Interrupts**.
+*   **Software-Push**: The Software Kernel drives the lifecycle by pushing commands (like `[Worker] -> Kernel.Ingest -> [LLM]`) to the LLM.
+
+#### 5. Prompt-Side Execution
+*   **Self-Modification**: Some signals (e.g., `Kernel.Ingest`) are **Commands** executed by the PromptWare Kernel itself.
+*   **Action**: The LLM executes these commands by updating its own mental model (Context Window).
+
+### 4.3. Definitions
 
 *   **Pr̊ØS**: PromptWar̊e ØS.
 *   **PromptWare Kernel**: The high-level Orchestrator (System 2), written in natural language. It runs on the **Main Thread**.
 *   **Software Kernel**: The low-level Executor (System 1), written in executable code (TypeScript). It runs as a **Worker**.
 *   **System Space**: The protected memory region containing the OS Kernel, Agents, and Skills. Defined by the logical root `os:///`.
 *   **User Space**: The user's workspace (e.g., `src/`, `docs/`), containing data that can be freely read and written.
-*   **Ingest**: The process of fetching a resource, parsing its instructions, and formally adopting its persona. Analogous to "loading a binary."
+*   **Hydrate**: The mechanism of fetching, parsing, and resolving a resource into a usable string or blob. (Software Kernel / System 1).
+*   **Ingest**: The policy of adopting a hydrated resource into the active Context Window and accepting its instructions. (PromptWare Kernel / System 2).
 *   **Context Register (`__filename`)**: A global variable tracking the currently active execution context.
 *   **Hallucination-by-Reading**: The error state where an agent believes it possesses a skill simply because it has read the skill's definition file.
 
@@ -83,7 +110,17 @@ Pr̊ØS implements a separation of concerns designed to bridge the gap between *
 
 The two are separated by **The Singular Boundary** (`worker.postMessage`), which translates high-level Intent into low-level Precision.
 
-#### 5.1.1. The Singularity Pattern
+#### 5.1.1. Mechanism vs. Policy Separation
+Pr̊ØS adopts the microkernel philosophy of separating Mechanism from Policy:
+
+*   **Mechanism (Software Kernel)**: Provides the "How". It exposes atomic, unopinionated capabilities (e.g., `Vector.Store`, `FileSystem.Hydrate`). It does not know *why* it is storing data, only *that* it must store it securely.
+*   **Policy (PromptWare Kernel)**: Provides the "What" and "Why". It defines the logic, strategy, and business rules (e.g., "Chunk this file by paragraph and store it in the 'memory' collection").
+
+**Example**:
+*   **Mechanism**: `Vector.Store(text)` (Just stores bits).
+*   **Policy**: The `memory-manager` skill (Decides how to chunk, tag, and index the text before storage).
+
+#### 5.1.2. The Singularity Pattern
 The Kernel enforces a **Single Output Port** for all agency. The Main Thread (LLM) has exactly one way to affect the world: sending an `OsMessage` to the Worker.
 
 *   **Input**: The LLM receives text (Prompt, Context, Tool Outputs).
@@ -98,7 +135,7 @@ The Kernel manages the LLM's context window as a structured memory space.
 *   **The Context Register**: `__filename`
     *   Stores the **Context Identity** (absolute URI) of the currently active agent or skill.
     *   Analogous to TypeScript's `__filename`, it allows the agent to resolve relative paths ("whoami").
-    *   Updated *only* via `pwosIngest()`.
+    *   Updated *only* via `FileSystem.Hydrate()`.
 *   **Kernel Parameters**: `os:///proc/cmdline`
     *   Stores boot parameters (Root URI, Init Agent).
     *   Read-only view of kernel boot configuration.
@@ -157,8 +194,8 @@ await VFS.write("os:///memory/vault/token", "pwenc:v1:...");
 await VFS.read("os:///proc/cmdline");               // Proc driver
 await VFS.write("os:///sys/config/mode", "debug");  // Sys driver
 
-// Kernel Syscall (not VFS operation)
-await pwosIngest("os:///agents/shell.md");          // Kernel loads via VFS.read()
+// Kernel Syscall (Signal)
+-> FileSystem.Hydrate { uri: "os:///agents/shell.md" }  // Kernel resolves and fetches
 
 // Legacy Memory API (may be deprecated in future)
 await Memory.Get("vault/token");  // Equivalent to VFS.read("os:///memory/vault/token")
@@ -252,12 +289,12 @@ The architecture enforces a strict separation of privilege based on the **Orches
 *   **The PromptWare Kernel (Orchestrator)**:
     *   **Privilege**: Highest. It holds the "Constitution" and directs the system.
     *   **Access**: Can read `os:///` (System Space) to understand capabilities.
-    *   **Role**: Governance, Planning, and Decision Making.
+    *   **Role**: Governance, Planning, Decision Making, and **Policy Definition**.
 
 *   **The Software Kernel (Executor)**:
     *   **Privilege**: Restricted. It can only execute what is explicitly requested via Syscalls.
     *   **Access**: Can execute code and perform I/O.
-    *   **Role**: Deterministic Execution and Safety Enforcement.
+    *   **Role**: Deterministic Execution, Safety Enforcement, and **Mechanism Implementation**.
 
 *   **User Space**:
     *   **Privilege**: Lowest.
@@ -279,13 +316,13 @@ The Kernel enforces these laws via the System Prompt (`KERNEL.md`).
 > "If it's not Ingested, it's Encrypted."
 
 *   **Constraint**: Information obtained via direct reading of System Space is considered **CORRUPTED**. The Agent cannot act on it.
-*   **Requirement**: The Agent must use `pwosIngest()` to "decrypt" (load) the capability.
+*   **Requirement**: The Agent must use `FileSystem.Hydrate()` to "decrypt" (load) the capability.
 
 #### Law 3: The Law of Singular Entry
 > "All physics must flow through the Boundary."
 
 *   **Constraint**: All physical execution, state mutation, or authority acquisition **MUST** enter the Software Kernel via `worker.postMessage`.
-*   **Enforcement**: No Skill, Agent, or Tool may invoke a syscall handler (e.g., `ingest.ts`) directly.
+*   **Enforcement**: No Skill, Agent, or Tool may bypass the **Message Bridge** to invoke **Kernel Subsystems** directly.
 
 ### 5.6. The Law of Responsibility (Error Taxonomy)
 
@@ -347,9 +384,9 @@ PID 0 MUST immediately execute the following sequence to bring the system to a u
     *   Requirement: `VFS.read("os:///proc/cmdline")` MUST return parameters
 
 4.  **Launch Init Agent**:
-    *   Execute `pwosIngest(params.init)`
-    *   Code driver resolves path via mount table
-    *   Goal: Fetch and adopt the user-space persona (PID 1)
+    *   Signal: `-> FileSystem.Hydrate { uri: params.init }`
+    *   Wait: The Software Kernel will reply with `<- Kernel.Ingest`
+    *   React: Follow the **Law of Ingestion** to adopt the persona
 
 5.  **System Ready**:
     *   Report successful boot
@@ -429,15 +466,21 @@ const cmdline = await VFS.read("os:///proc/cmdline"); // ✅ Works
 await VFS.write("os:///proc/cmdline", "{}"); // ❌ FORBIDDEN (403)
 ```
 
-## 7. The Lifecycle of Authority (Ingestion)
+## 7. The Lifecycle of Authority (Hydration & Ingestion)
 
-Ingestion is the process of transforming **Text** (Source Code) into **Authority** (Capability). It is a **Kernel Syscall** (`pwosIngest`), not a VFS operation.
+The transformation of **Text** (Source Code) into **Authority** (Capability) follows a strict **Event-Driven** lifecycle.
 
-1.  **Check Capability**: The Kernel verifies the target VFS node has the `EXECUTABLE` capability.
-2.  **Fetch**: The Kernel calls `VFS.read()` to retrieve the raw bits from storage.
-3.  **Validate**: The integrity and authenticity of the bits are verified.
-4.  **Load**: The bits are materialized into the Execution Context.
-5.  **Adopt**: The Agent formally accepts the new identity or capability.
+### 7.1. Hydration (The Pull)
+*   **Signal**: `-> FileSystem.Hydrate { uri }`
+*   **Actor**: The PromptWare Kernel (LLM).
+*   **Intent**: "I need this resource."
+*   **Mechanism**: The Software Kernel resolves the URI and fetches the bits.
+
+### 7.2. Ingestion (The Push)
+*   **Signal**: `<- Kernel.Ingest { data: string | BlobPointer }`
+*   **Actor**: The Software Kernel (Runtime).
+*   **Intent**: "You MUST adopt this resource now."
+*   **Policy**: The PromptWare Kernel receives this **Interrupt**, dereferences the data (if a BlobPointer), and integrates it into its active context.
 
 *Note: The technical implementation of this pipeline is defined in RFC 0020.*
 
@@ -450,7 +493,7 @@ To prevent the "Read-Only" vulnerability, the Kernel includes a reactive Watchdo
 *   **Response**:
     1.  **Halt** execution.
     2.  **Report** `🚨 SECURITY VIOLATION`.
-    3.  **Auto-Correct**: Immediately execute `pwosIngest()` on the target.
+    3.  **Auto-Correct**: Immediately signal `-> FileSystem.Hydrate { uri }` and **Ingest** the result.
 
 This "Fail-Secure" mechanism ensures that even if the LLM drifts, the Kernel forces it back into compliance.
 

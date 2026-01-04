@@ -17,21 +17,21 @@ Execute the following Test Plan to validate the Kernel, Memory, VFS, and User Sp
 
 ### Phase 1: Kernel Physics (Low-Level ABI)
 1.  **ABI Bridge Test**:
-    *   Action: Execute `pwosSyscall("echo", "ping")`.
+    *   Action: Dispatch `Syscall.Ping` with `{ payload: "ping" }`.
     *   Criteria: Output must be exactly "ping".
 2.  **Context Resolution Test**:
-    *   Action: Execute `pwosResolve("./diagnostic.md")`.
+    *   Action: Dispatch `FileSystem.Resolve` with `{ uri: "./diagnostic.md" }`.
     *   Criteria: Output must be an absolute URI ending in `/os/agents/diagnostic.md`.
 3.  **Memory Persistence Test**:
     *   Action:
         1.  Generate a random ID (e.g., timestamp).
-        2.  `pwosMemory("set", "sys/diag/test_id", ID)`.
-        3.  `pwosMemory("get", "sys/diag/test_id")`.
+        2.  Dispatch `Memory.Set` with `{ key: "sys/diag/test_id", value: ID }`.
+        3.  Dispatch `Memory.Get` with `{ key: "sys/diag/test_id" }`.
     *   Criteria: The read value must match the written ID.
 
 ### Phase 2: System Integrity (State)
 4.  **Boot Parameters Check**:
-    *   Action: `pwosMemory("get", "proc/cmdline")`.
+    *   Action: Dispatch `Memory.Get` with `{ key: "os/kernel/boot-params" }`.
     *   Criteria: Output must be a valid JSON object containing `root` and `init`.
 
 ### Phase 3: User Space (Environment)

@@ -1,8 +1,8 @@
 import { assertEquals, assertRejects } from "jsr:@std/assert";
-import ingestModule from "./ingest.ts";
-import { dispatch } from "../test-utils.ts";
+import hydrateModule from "./hydrate.ts";
+import { dispatch, dispatchAll } from "../test-utils.ts";
 
-// Mock fetch for ingest
+// Mock fetch for hydrate
 const originalFetch = globalThis.fetch;
 
 function mockFetch(body: string) {
@@ -34,22 +34,30 @@ async function withMockKv(root: string, fn: () => Promise<void>) {
   }
 }
 
-Deno.test("RFC 0020: Ingest MUST return raw content without front matter", async () => {
+Deno.test("RFC 0020: Hydrate MUST return ACK and trigger Kernel.Ingest", async () => {
   const content = "# Just Markdown\n\nNo YAML here.";
 
   mockFetch(content);
   try {
     await withMockKv("https://root.com/", async () => {
-      const result = await dispatch(ingestModule, "FileSystem.Ingest", { uri: "https://example.com/simple.md" });
-      const data = result.data as { content: string };
-      assertEquals(data.content, content);
+      const results = await dispatchAll(hydrateModule, "FileSystem.Hydrate", { uri: "https://example.com/simple.md" });
+      
+      // 1. Check ACK
+      assertEquals(results.length, 2);
+      assertEquals(results[0].kind, "reply");
+      assertEquals((results[0].data as any).code, 202);
+
+      // 2. Check Ingest
+      assertEquals(results[1].kind, "command");
+      assertEquals(results[1].type, "Kernel.Ingest");
+      assertEquals((results[1].data as any).data, content);
     });
   } finally {
     restoreFetch();
   }
 });
 
-Deno.test("RFC 0020: Ingest MUST preserve content with front matter", async () => {
+Deno.test("RFC 0020: Hydrate MUST preserve content with front matter", async () => {
   const content = `---
 name: TestAgent
 description: A test agent
@@ -59,45 +67,47 @@ description: A test agent
   mockFetch(content);
   try {
     await withMockKv("https://root.com/", async () => {
-      const result = await dispatch(ingestModule, "FileSystem.Ingest", { uri: "https://example.com/agent.md" });
-      const data = result.data as { content: string };
+      const results = await dispatchAll(hydrateModule, "FileSystem.Hydrate", { uri: "https://example.com/agent.md" });
+      const ingestData = (results[1].data as any).data;
       // Should return hydrated content with frontmatter
-      assertEquals(data.content.includes("# Hello"), true);
+      assertEquals(ingestData.includes("# Hello"), true);
     });
   } finally {
     restoreFetch();
   }
 });
 
-Deno.test("RFC 0020: Ingest MUST fail on fetch error", async () => {
+Deno.test("RFC 0020: Hydrate MUST fail on fetch error", async () => {
   globalThis.fetch = async () => { throw new Error("Network Error"); };
   try {
     await withMockKv("https://root.com/", async () => {
-      await assertRejects(
-        async () => await dispatch(ingestModule, "FileSystem.Ingest", { uri: "https://example.com/bad.md" }),
-        Error,
-        "Network Error"
-      );
+      // dispatchAll should return an error message in the stream, NOT throw
+      const results = await dispatchAll(hydrateModule, "FileSystem.Hydrate", { uri: "https://example.com/bad.md" });
+      
+      assertEquals(results.length, 1);
+      assertEquals(results[0].kind, "error");
+      assertEquals((results[0].data as any).message, "Failed to read https://example.com/bad.md: Network Error");
     });
   } finally {
     restoreFetch();
   }
 });
 
-Deno.test("RFC 0020: Ingest MUST preserve body content", async () => {
+Deno.test("RFC 0020: Hydrate MUST preserve body content", async () => {
   const body = "\n\n# Hello World\n\nThis is content.\n";
   const content = `---\nname: Test\n---${body}`;
 
   mockFetch(content);
   try {
     await withMockKv("https://root.com/", async () => {
-      const result = await dispatch(ingestModule, "FileSystem.Ingest", { uri: "https://example.com/test.md" });
-      const data = result.data as { content: string };
+      const results = await dispatchAll(hydrateModule, "FileSystem.Hydrate", { uri: "https://example.com/test.md" });
+      const ingestData = (results[1].data as any).data;
+      
       // Body should be preserved after front matter
-      if (!data.content.includes("# Hello World")) {
+      if (!ingestData.includes("# Hello World")) {
         throw new Error("Body content was modified");
       }
-      if (!data.content.includes("This is content.")) {
+      if (!ingestData.includes("This is content.")) {
         throw new Error("Body content was truncated");
       }
     });

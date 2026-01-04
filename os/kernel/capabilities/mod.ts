@@ -23,7 +23,7 @@ export {
 
 // URI Resolution and Content Ingestion
 export { default as resolveModule } from "./resolve.ts";
-export { default as ingestModule } from "./ingest.ts";
+export { default as hydrateModule } from "./hydrate.ts";
 
 // Cryptographic Operations (RFC 0016)
 export {

@@ -85,13 +85,13 @@ You are working inside the `promptware` repository. This is the source code for 
 
 ### 3. Tool-Based Context Separation
 *   **User Space (Local)**: Standard tools (`read_file`, `run_in_terminal`) operate on the **Local Filesystem**.
-*   **Kernel Space (VFS)**: System calls (`pwosResolve`, `pwosSyscall`, `pwosIngest`) operate on the **OS Virtual Filesystem**.
-*   **No Ambiguity**: Never mix contexts. If you need a local file, use a local tool. If you need an OS resource, use a Kernel syscall.
+*   **Kernel Space (VFS)**: Kernel Signals (Ingress `-> FileSystem.Resolve`, `-> Syscall.Call`, `-> FileSystem.Hydrate`) operate on the **OS Virtual Filesystem**.
+*   **No Ambiguity**: Never mix contexts. If you need a local file, use a local tool. If you need an OS resource, use a Kernel Signal.
 *   *Detail*: [rfcs/0013-vfs-core-architecture.md](rfcs/0013-vfs-core-architecture.md)
 
 ### 4. Explicit Addressing
 *   **`os://` Protocol**: Use `os://path/to/resource` to explicitly reference OS resources (e.g., `os://skills/writer.md`).
-*   **Default Context**: `pwosIngest` defaults to the `os://` protocol.
+*   **Default Context**: `-> FileSystem.Hydrate` defaults to the `os://` protocol.
 *   **Local Paths**: Standard paths (`/src/main.ts`, `./README.md`) always refer to the Local Disk.
 *   *Detail*: [rfcs/0013-vfs-core-architecture.md](rfcs/0013-vfs-core-architecture.md)
 
@@ -111,11 +111,45 @@ You are working inside the `promptware` repository. This is the source code for 
 ### 7. The Law of Co-Creation
 *   **Attribution Protocol**: On new artifacts, you MUST list 'Huan' and your Agent Name as authors. On edits, you MUST append your Agent Name to existing authors. an unsigned edit is an unfinished task.
 
+### 8. The Law of Notation (Signal Flow)
+*   **Reference Frame**: All arrows are relative to **You** (The PromptWare Kernel / Main Thread).
+*   **Ingress (`->`)**: You **Dispatching** a signal to the System. (Command/Query).
+    *   *Mnemonic*: "I send this out."
+    *   *Syntax*: `-> Topic { Payload }`
+*   **Egress (`<-`)**: You **Receiving** a signal from the System. (Event/Reply).
+    *   *Mnemonic*: "This comes into me."
+    *   *Syntax*: `<- Topic { Data }`
+*   **Actor Explicit**: In complex specs, use `[Main] -> [Worker]` or `[Worker] -> [Main]` to be absolute.
+
+## Core Concepts (The Mental Model)
+
+### 1. Dual-Kernel Architecture
+*   **PromptWare Kernel (System 2)**: The LLM. It handles **Intent**, Orchestration, and Reasoning. It is the "Main Thread."
+*   **Software Kernel (System 1)**: The Runtime. It handles **Mechanism**, I/O, and Deterministic Execution. It is the "Worker."
+
+### 2. The Message Bridge (The Singularity)
+*   **Single Port**: All communication flows through `worker.postMessage`. There are no side channels.
+*   **Timeline View**:
+    *   `-> Topic { Payload }`: **Into Bridge** (Command/Query from LLM).
+    *   `<- Topic { Data }`: **Out of Bridge** (Event/Reply from Kernel).
+
+### 3. Kernel Signals (CQRS)
+*   **Signal**: The atomic unit of communication.
+*   **Polymorphic Payload**: Signals efficiently carry data as either `string` (small/text) or `BlobPointer` (large/binary).
+
+### 4. Event-Driven Prompting
+*   **The Processor**: The LLM acts as a reactive processor. It doesn't just "run a script"; it reacts to **Interrupts**.
+*   **Software-Push**: The Software Kernel drives the lifecycle by pushing commands (like `<- Kernel.Ingest`) to the LLM.
+
+### 5. Prompt-Side Execution
+*   **Self-Modification**: Some signals (e.g., `Kernel.Ingest`) are **Commands** executed by the PromptWare Kernel itself.
+*   **Action**: The LLM executes these commands by updating its own mental model (Context Window).
+
 ## Skill Development Standards
 When creating new skills in `os/skills/`:
-1.  **Library Definition**: `SKILL.md` acts as a header file. It maps high-level functions to Kernel System Calls.
+1.  **Library Definition**: `SKILL.md` acts as a header file. It maps high-level functions to Kernel Signals.
 2.  **JIT Linking**: You write the **Source** (clean Markdown). The **JIT Linker** hydrates it into the **Binary** (Prompt context). Do not hardcode help text in `SKILL.md`.
-3.  **Zero-Footprint**: All tools must use `pwosSyscall(syscall, args)`. NEVER instruct an agent to download a script.
+3.  **Zero-Footprint**: All tools must use `-> Syscall.Call { args }`. NEVER instruct an agent to download a script.
 4.  **Atomic Scripts**: Deno scripts (`.ts`) should be stateless and do one thing well.
 *   *Detail*: [rfcs/0020-sys-jit-linking.md](rfcs/0020-sys-jit-linking.md)
 
@@ -142,8 +176,14 @@ All system tools (e.g., in `os/kernel/syscalls/`) must adhere to the **Dual-Mode
     *   Use `parseArgs` from `jsr:@std/cli/parse-args` for CLI argument handling.
 
 2.  **Monolithic Kernel Architecture**: 
-    *   Core OS logic is split into atomic microservices: `resolve.ts`, `ingest.ts`, `memory.ts`.
+    *   Core OS logic is split into atomic microservices: `resolve.ts`, `hydrate.ts`, `memory.ts`.
     *   All tools must be callable via the Unified Entry Point (`main.ts`).
     *   Use `deno test` to verify kernel precision.
 
 3.  **Naming Standard**: Follow idiomatic TypeScript conventions (`kebab-case` for files, `camelCase` for symbols). Exception: System Artifacts use `UPPER_CASE` (e.g., `KERNEL.md`).
+
+4.  **The Law of Introspection (Schema Descriptions)**:
+    *   **Context**: Zod descriptions (`.describe()`) are **Runtime Prompts** for the LLM.
+    *   **Rule**: Write them as telegraphic equations (`202=Async`) to minimize token cost and maximize AI comprehension.
+    *   **Style**: "Description = Intent + Constraints - Noise".
+    *   **Example**: `z.string().describe("Target URI. Must be absolute.")`

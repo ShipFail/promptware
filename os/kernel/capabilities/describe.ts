@@ -1,52 +1,59 @@
 import { z } from "jsr:@zod/zod";
 import { Capability } from "../schema/contract.ts";
 import { createMessage, OsMessage } from "../schema/message.ts";
-import { registry } from "./registry.ts";
+import { registry } from "./registry-store.ts";
 
 const DescribeInput = z.object({
-  capability: z.string().describe("The name of the capability to describe."),
-}).describe("Input for the Sys.Describe capability.");
+  capabilities: z.array(z.string()).describe("List of capabilities to describe. Use ['*'] for all."),
+}).describe("Input for the Syscall.Describe capability.");
 
 const DescribeOutput = z.object({
-  name: z.string().describe("The capability name."),
-  description: z.string().describe("Human-readable description."),
-}).describe("Output from the Sys.Describe capability.");
+  schemas: z.record(z.string(), z.object({
+    description: z.string(),
+    // In a full implementation, we would serialize the Zod schema here.
+    // For now, we return the human-readable description.
+  }))
+}).describe("Output from the Syscall.Describe capability.");
 
 const DescribeInbound = z.object({
   kind: z.literal("query"),
-  type: z.literal("Sys.Describe"),
+  type: z.literal("Syscall.Describe"),
   data: DescribeInput,
 });
 
 const DescribeOutbound = z.object({
   kind: z.literal("reply"),
-  type: z.literal("Sys.Describe"),
+  type: z.literal("Syscall.Describe"),
   data: DescribeOutput,
 });
 
 export default {
-  "Sys.Describe": (): Capability<typeof DescribeInbound, typeof DescribeOutbound> => ({
+  "Syscall.Describe": (): Capability<typeof DescribeInbound, typeof DescribeOutbound> => ({
     description: "Introspects the kernel capabilities.",
     inbound: DescribeInbound,
     outbound: DescribeOutbound,
     factory: () => new TransformStream({
       async transform(msg, controller) {
         const data = msg.data as z.infer<typeof DescribeInput>;
-        const cap = registry[data.capability];
+        const targets = data.capabilities.includes("*") 
+          ? Object.keys(registry) 
+          : data.capabilities;
 
-        if (!cap) {
-          throw new Error(`Capability '${data.capability}' not found.`);
+        const schemas: Record<string, { description: string }> = {};
+
+        for (const target of targets) {
+          const cap = registry[target];
+          if (cap) {
+            schemas[target] = {
+              description: cap.description,
+            };
+          }
         }
-
-        const result = {
-          name: data.capability,
-          description: cap.description,
-        };
 
         controller.enqueue(createMessage(
           "reply",
-          "Sys.Describe",
-          result,
+          "Syscall.Describe",
+          { schemas },
           undefined,
           msg.metadata?.correlation,
           msg.metadata?.id

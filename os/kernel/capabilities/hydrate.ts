@@ -1,12 +1,13 @@
 import { z } from "jsr:@zod/zod";
 import { Capability } from "../schema/contract.ts";
-import { createMessage } from "../schema/message.ts";
+import { createMessage, createReply, createError } from "../schema/message.ts";
 import { parseArgs } from "jsr:@std/cli/parse-args";
 import { parse, stringify } from "jsr:@std/yaml";
 import { resolve, isUrl, getKernelParams } from "../vfs/core.ts";
+import { createBlobPointer, BlobPointer } from "../lib/blob.ts";
 
 /**
- * PromptWare ØS Ingest Capability
+ * PromptWare ØS Hydrate Capability
  *
  * Fetches and hydrates markdown files (JIT linking).
  * Resolves skill and tool metadata from YAML frontmatter.
@@ -80,7 +81,7 @@ async function getToolDescription(path: string): Promise<string> {
   }
 }
 
-async function ingest(targetUri: string, explicitRoot?: string): Promise<string> {
+async function hydrate(targetUri: string, explicitRoot?: string): Promise<string> {
   let root: string = explicitRoot || "";
 
   if (!root) {
@@ -145,37 +146,70 @@ async function ingest(targetUri: string, explicitRoot?: string): Promise<string>
 }
 
 const InputSchema = z.object({
-  uri: z.string().describe("The URI of the resource to ingest (markdown file)"),
-}).describe("Input for the ingest capability.");
+  uri: z.string().describe("The URI of the resource to hydrate (markdown file)"),
+}).describe("Input for the hydrate capability.");
 
-const OutputSchema = z.object({
-  content: z.string().describe("The ingested and hydrated content with resolved metadata"),
-}).describe("Output from the ingest capability.");
+const ReplySchema = z.object({
+  code: z.number().describe("HTTP Status. 202=Async, 4xx=Fail."),
+  message: z.string().describe("Outcome summary."),
+  cause: z.any().optional().describe("Failure reason.")
+}).describe("ACK. 202 Accepted triggers 'Kernel.Ingest'.");
 
-export const IngestModule = {
-  "FileSystem.Ingest": (): Capability<any, any> => ({
-    description: "Ingest and hydrate a markdown file with metadata.",
+export const HydrateModule = {
+  "FileSystem.Hydrate": (): Capability<any, any> => ({
+    description: "Hydrate a markdown file with metadata.",
     inbound: z.object({
-      kind: z.literal("query"),
-      type: z.literal("FileSystem.Ingest"),
+      kind: z.literal("command"),
+      type: z.literal("FileSystem.Hydrate"),
       data: InputSchema
     }),
     outbound: z.object({
       kind: z.literal("reply"),
-      type: z.literal("FileSystem.Ingest"),
-      data: OutputSchema
+      type: z.literal("FileSystem.Hydrate"),
+      data: ReplySchema
     }),
     factory: () => new TransformStream({
       async transform(msg, controller) {
-        const input = msg.data as z.infer<typeof InputSchema>;
-        const content = await ingest(input.uri);
-        controller.enqueue(createMessage("reply", "FileSystem.Ingest", { content }, undefined, msg.metadata?.correlation, msg.metadata?.id));
+        try {
+          const input = msg.data as z.infer<typeof InputSchema>;
+          const content = await hydrate(input.uri);
+          
+          // 1. Send ACK (202 Accepted)
+          controller.enqueue(createReply(msg, { code: 202, message: "Accepted" }));
+
+          // 2. Prepare Ingest Payload (BlobPointer vs String)
+          let ingestData: string | BlobPointer;
+          
+          // Threshold: 10KB (safe margin for 16KB limit)
+          if (content.length > 10000) {
+             const tempFile = await Deno.makeTempFile({ prefix: "pwo-ingest-", suffix: ".md" });
+             await Deno.writeTextFile(tempFile, content);
+             ingestData = createBlobPointer(tempFile);
+          } else {
+             ingestData = content;
+          }
+
+          // 3. Send Kernel.Ingest Command (Interrupt)
+          const ingestMsg = createMessage(
+            "command",
+            "Kernel.Ingest",
+            { data: ingestData },
+            undefined, // new ID
+            msg.metadata?.correlation,
+            msg.metadata?.id // causation is the Hydrate command
+          );
+          
+          controller.enqueue(ingestMsg);
+
+        } catch (e: any) {
+          controller.enqueue(createError(msg, e));
+        }
       }
     })
   })
 };
 
-export default IngestModule;
+export default HydrateModule;
 
 // CLI Entry Point
 if (import.meta.main) {
@@ -187,10 +221,10 @@ if (import.meta.main) {
 
   if (args.help) {
     console.log(`
-Usage: deno run -A ingest.ts [--root <os_root>] <uri>
+Usage: deno run -A hydrate.ts [--root <os_root>] <uri>
 
 Arguments:
-  uri     The URI of the markdown file to ingest.
+  uri     The URI of the markdown file to hydrate.
 
 Options:
   --root <url>    The OS Root URL (optional, loads from KV if not provided).
@@ -208,7 +242,7 @@ Options:
   }
 
   try {
-    const content = await ingest(uri, root);
+    const content = await hydrate(uri, root);
     console.log(content);
   } catch (e: any) {
     console.error(`Error: ${e.message}`);

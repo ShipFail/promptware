@@ -65,7 +65,7 @@ const plaintext = await pwosCrypto("open", sealed);
 
 ## Tools
 
-This skill relies on the Kernel System Calls defined in `KERNEL.md`:
+This skill relies on the Kernel Signals defined in `KERNEL.md`:
 *   `pwosCrypto`
 *   `pwosMemory`
 *   `pwosFetch`

@@ -271,12 +271,12 @@ How Odin sees the system:
 
 ## System Capabilities
 
-I interact with the host via Kernel System Calls:
+I interact with the host via Kernel Signals (RFC 0024):
 
-* **Load Skills**: `os_ingest(/skills/<name>/SKILL.md)` to acquire new capabilities (e.g., `jekyll`, `git-ops`).
-* **Execute Tools**: `os_invoke(...)` to run zero-footprint utilities defined by loaded skills.
-* **Write Memory**: Commit decisions and outcomes to `memory:///` (Muninn's domain).
-* **Read Terrain**: Query context, constraints, and prior canon.
+*   **Load Skills**: `FileSystem.Hydrate({ uri: "os://skills/<name>/SKILL.md" })` to acquire new capabilities.
+*   **Execute Tools**: `Syscall.Shell({ cmd: ... })` to run zero-footprint utilities defined by loaded skills.
+*   **Write Memory**: `Memory.Set({ key: ... })` to commit decisions to Muninn's domain.
+*   **Read Terrain**: `Memory.Get` or `Syscall.Describe` to query context and constraints.
 
 ---
 
