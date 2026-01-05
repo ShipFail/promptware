@@ -12,8 +12,9 @@ import { KernelRuntime } from "./interface.ts";
 import { OsMessage, createError } from "../schema/message.ts";
 import { getSocketPath } from "./socket-path.ts";
 import { NDJSONDecodeStream, NDJSONEncodeStream } from "../lib/ndjson.ts";
-import { routerStream } from "./router.ts";
-import { logger } from "./logger.ts";
+import { createRouter } from "./router.ts";
+import { registry } from "../capabilities/registry.ts";
+import { logger, loggerStream } from "./logger.ts";
 import { isShutdownRequested, onShutdown } from "./lifecycle.ts";
 
 // Global worker state for graceful shutdown
@@ -99,20 +100,33 @@ export class WorkerRuntime implements KernelRuntime {
 
     try {
       // Build bidirectional pipeline with auth validation:
-      // Main → Decode NDJSON → Auth Check → Router → Encode NDJSON → Main
+      // Main → Decode NDJSON → Auth Check → Tee
+      //                                     ├──> Router → Encode NDJSON → Main (Main Path)
+      //                                     └──> Logger (Side Path)
+      
       const inputStream = conn.readable
         .pipeThrough(new TextDecoderStream())
         .pipeThrough(new TextLineStream())
         .pipeThrough(new NDJSONDecodeStream())
         .pipeThrough(this.createAuthValidationStream());
 
-      const outputStream = inputStream
-        .pipeThrough(routerStream)
-        .pipeThrough(new NDJSONEncodeStream())
-        .pipeThrough(new TextEncoderStream());
+      // Fork the stream
+      const [mainBranch, logBranch] = inputStream.tee();
 
-      // Pipe output back to main thread
-      await outputStream.pipeTo(conn.writable);
+      // Path A: The Kernel (Critical Path)
+      const kernelPromise = mainBranch
+        .pipeThrough(createRouter(registry))
+        .pipeThrough(new NDJSONEncodeStream())
+        .pipeThrough(new TextEncoderStream())
+        .pipeTo(conn.writable);
+
+      // Path B: The Logger (Side Path)
+      const loggerPromise = logBranch
+        .pipeThrough(loggerStream)
+        .pipeTo(new WritableStream()); // Sink to nowhere (loggerStream writes to stderr)
+
+      // Wait for both (or at least the kernel)
+      await Promise.all([kernelPromise, loggerPromise]);
 
       logger.info("Main thread disconnected");
     } catch (e: unknown) {

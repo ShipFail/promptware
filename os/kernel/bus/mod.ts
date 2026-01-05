@@ -15,11 +15,10 @@
 export { NDJSONDecodeStream, NDJSONEncodeStream } from "../lib/ndjson.ts";
 
 // Routing Layer
-export { route } from "./engine.ts";
-export type { Registry } from "./engine.ts";
+export { createRouter } from "./router.ts";
+export type { Registry } from "./router.ts";
 
 // Stream Layer
-export { routerStream } from "./router.ts";
 export { loggerStream } from "./logger.ts";
 export type { BusStream } from "./interface.ts";
 

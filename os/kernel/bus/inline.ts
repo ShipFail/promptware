@@ -11,8 +11,9 @@ import { TextLineStream } from "jsr:@std/streams";
 import { parseArgs } from "jsr:@std/cli/parse-args";
 
 import { OsMessage, createCommand } from "../schema/message.ts";
-import { routerStream } from "./router.ts";
+import { createRouter } from "./router.ts";
 import { loggerStream } from "./logger.ts";
+import { registry } from "../capabilities/registry.ts";
 import { KernelRuntime } from "./interface.ts";
 import { NDJSONDecodeStream, NDJSONEncodeStream } from "../lib/ndjson.ts";
 
@@ -35,14 +36,6 @@ export class InlineRuntime implements KernelRuntime {
     if (isCliMode) {
       // A. Interactive/CLI Mode (Args -> Single Event)
       const name = args._[0]?.toString();
-      // Parse payload as JSON if possible, otherwise string
-      // For simplicity in this refactor, we'll assume the args are passed as is or parsed if needed.
-      // The old code sliced args. Let's keep it simple.
-      // RFC-24: Command<T> payload is T.
-      // We'll treat the rest of args as the payload object if it parses, or an array?
-      // The old code passed `args._.slice(1)` as payload.
-      // Let's assume the user passes a JSON string as the second arg, or we construct an object.
-      // For now, let's just pass the raw args as 'args' property to match typical CLI usage.
       
       if (!name) {
         console.error("Usage: deno run -A main.ts <capability> [args...]");
@@ -51,8 +44,6 @@ export class InlineRuntime implements KernelRuntime {
       }
 
       // Construct payload from remaining args
-      // If one arg and it looks like JSON, parse it.
-      // Otherwise, pass as array.
       let payload: Record<string, unknown> = {};
       const remainingArgs = args._.slice(1);
       
@@ -81,19 +72,29 @@ export class InlineRuntime implements KernelRuntime {
         .pipeThrough(new NDJSONDecodeStream());
     }
 
-    // 2. Build Pipeline
-    // Source -> Logger -> Router -> NDJSON Encoder -> Stdout
-    const outputStream = inputStream
-      .pipeThrough(loggerStream)
-      .pipeThrough(routerStream)
+    // 2. Build Pipeline (Tee Pattern)
+    // Source -> Tee
+    //           ├──> Router -> NDJSON Encoder -> Stdout (Main Path)
+    //           └──> Logger (Side Path)
+    
+    const [mainBranch, logBranch] = inputStream.tee();
+
+    // Path A: The Kernel (Critical Path)
+    const kernelStream = mainBranch
+      .pipeThrough(createRouter(registry))
       .pipeThrough(new NDJSONEncodeStream()) // Converts OsMessage to NDJSON strings
       .pipeThrough(new TextEncoderStream()); // Converts strings to bytes
 
+    // Path B: The Logger (Side Path)
+    const loggerPromise = logBranch
+      .pipeThrough(loggerStream)
+      .pipeTo(new WritableStream()); // Sink to nowhere (loggerStream writes to stderr)
+
+    // Execute
     if (isCliMode) {
       // CLI Mode: Buffer in memory, then write
-      // This avoids the hanging issue with pipeTo(stdout.writable)
       const chunks: Uint8Array[] = [];
-      await outputStream.pipeTo(
+      const kernelPromise = kernelStream.pipeTo(
         new WritableStream({
           write(chunk) {
             chunks.push(chunk);
@@ -101,19 +102,23 @@ export class InlineRuntime implements KernelRuntime {
         })
       );
 
+      await Promise.all([kernelPromise, loggerPromise]);
+
       // Write all chunks to stdout
       for (const chunk of chunks) {
         await Deno.stdout.write(chunk);
       }
     } else {
       // Pipe Mode: Stream directly to stdout
-      await outputStream.pipeTo(
+      const kernelPromise = kernelStream.pipeTo(
         new WritableStream({
           async write(chunk) {
             await Deno.stdout.write(chunk);
           },
         })
       );
+
+      await Promise.all([kernelPromise, loggerPromise]);
     }
 
     return 0;
