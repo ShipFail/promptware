@@ -23,26 +23,24 @@ const ShutdownOutput = z.object({
   message: z.string().describe("Shutdown acknowledgment message"),
 }).describe("Output from Syscall.Shutdown");
 
-export const ShutdownModule = {
-  "Syscall.Shutdown": (): Capability<any, any> => ({
-    description: "Request graceful shutdown of the kernel.",
-    inbound: z.object({
-      kind: z.literal("command"),
-      type: z.literal("Syscall.Shutdown"),
-      data: ShutdownInput
-    }),
-    outbound: z.object({
-      kind: z.literal("reply"),
-      type: z.literal("Syscall.Shutdown"),
-      data: ShutdownOutput
-    }),
-    factory: () => new TransformStream({
-      async transform(msg, controller) {
-        requestShutdown();
-        controller.enqueue(createMessage("reply", "Syscall.Shutdown", { message: "Shutdown acknowledged" }, undefined, msg.metadata?.correlation, msg.metadata?.id));
-      }
-    })
+export const SyscallShutdown: Capability<any, any> = {
+  description: "Request graceful shutdown of the kernel.",
+  inbound: z.object({
+    kind: z.literal("command"),
+    type: z.literal("Syscall.Shutdown"),
+    data: ShutdownInput
+  }),
+  outbound: z.object({
+    kind: z.literal("reply"),
+    type: z.literal("Syscall.Shutdown"),
+    data: ShutdownOutput
+  }),
+  factory: () => new TransformStream({
+    async transform(msg, controller) {
+      requestShutdown();
+      controller.enqueue(createMessage("reply", "Syscall.Shutdown", { message: "Shutdown acknowledged" }, undefined, msg.metadata?.correlation, msg.metadata?.id));
+    }
   })
 };
 
-export default ShutdownModule;
+export default [SyscallShutdown];

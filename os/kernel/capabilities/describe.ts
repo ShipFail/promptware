@@ -27,38 +27,38 @@ const DescribeOutbound = z.object({
   data: DescribeOutput,
 });
 
-export default {
-  "Syscall.Describe": (): Capability<typeof DescribeInbound, typeof DescribeOutbound> => ({
-    description: "Introspects the kernel capabilities.",
-    inbound: DescribeInbound,
-    outbound: DescribeOutbound,
-    factory: () => new TransformStream({
-      async transform(msg, controller) {
-        const data = msg.data as z.infer<typeof DescribeInput>;
-        const targets = data.capabilities.includes("*") 
-          ? Object.keys(registry) 
-          : data.capabilities;
+export const SyscallDescribe: Capability<typeof DescribeInbound, typeof DescribeOutbound> = {
+  description: "Introspects the kernel capabilities.",
+  inbound: DescribeInbound,
+  outbound: DescribeOutbound,
+  factory: () => new TransformStream({
+    async transform(msg, controller) {
+      const data = msg.data as z.infer<typeof DescribeInput>;
+      const targets = data.capabilities.includes("*") 
+        ? Object.keys(registry) 
+        : data.capabilities;
 
-        const schemas: Record<string, { description: string }> = {};
+      const schemas: Record<string, { description: string }> = {};
 
-        for (const target of targets) {
-          const cap = registry[target];
-          if (cap) {
-            schemas[target] = {
-              description: cap.description,
-            };
-          }
+      for (const target of targets) {
+        const cap = registry[target];
+        if (cap) {
+          schemas[target] = {
+            description: cap.description,
+          };
         }
-
-        controller.enqueue(createMessage(
-          "reply",
-          "Syscall.Describe",
-          { schemas },
-          undefined,
-          msg.metadata?.correlation,
-          msg.metadata?.id
-        ));
       }
-    })
+
+      controller.enqueue(createMessage(
+        "reply",
+        "Syscall.Describe",
+        { schemas },
+        undefined,
+        msg.metadata?.correlation,
+        msg.metadata?.id
+      ));
+    }
   })
 };
+
+export default [SyscallDescribe];

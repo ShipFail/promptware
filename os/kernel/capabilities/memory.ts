@@ -76,112 +76,112 @@ const DeleteOutput = z.object({
 // Exports
 // ================================
 
-export default {
-  "Memory.Get": (): Capability<any, any> => ({
-    description: "Retrieve value by key",
-    inbound: z.object({
-      kind: z.literal("query"),
-      type: z.literal("Memory.Get"),
-      data: GetInput
-    }),
-    outbound: z.object({
-      kind: z.literal("reply"),
-      type: z.literal("Memory.Get"),
-      data: GetOutput
-    }),
-    factory: () => new TransformStream({
-      async transform(msg, controller) {
-        const data = msg.data as z.infer<typeof GetInput>;
-        const result = await withKv(async (kv) => {
-          const res = await kv.get(parseKey(data.key));
-          return res.value;
-        });
-        controller.enqueue(createMessage("reply", "Memory.Get", result, undefined, msg.metadata?.correlation, msg.metadata?.id));
-      }
-    })
+export const MemoryGet: Capability<any, any> = {
+  description: "Retrieve value by key",
+  inbound: z.object({
+    kind: z.literal("query"),
+    type: z.literal("Memory.Get"),
+    data: GetInput
   }),
-
-  "Memory.List": (): Capability<any, any> => ({
-    description: "List entries by prefix",
-    inbound: z.object({
-      kind: z.literal("query"),
-      type: z.literal("Memory.List"),
-      data: ListInput
-    }),
-    outbound: z.object({
-      kind: z.literal("reply"),
-      type: z.literal("Memory.List"),
-      data: ListOutput
-    }),
-    factory: () => new TransformStream({
-      async transform(msg, controller) {
-        const data = msg.data as z.infer<typeof ListInput>;
-        const result = await withKv(async (kv) => {
-          const prefix = data.prefix ? parseKey(data.prefix) : [];
-          const result: Record<string, any> = {};
-          for await (const entry of kv.list({ prefix })) {
-            result["/" + entry.key.join("/")] = entry.value;
-          }
-          return result;
-        });
-        controller.enqueue(createMessage("reply", "Memory.List", result, undefined, msg.metadata?.correlation, msg.metadata?.id));
-      }
-    })
+  outbound: z.object({
+    kind: z.literal("reply"),
+    type: z.literal("Memory.Get"),
+    data: GetOutput
   }),
-
-  "Memory.Set": (): Capability<any, any> => ({
-    description: "Store key-value pair",
-    inbound: z.object({
-      kind: z.literal("command"),
-      type: z.literal("Memory.Set"),
-      data: SetInput
-    }),
-    outbound: z.object({
-      kind: z.literal("reply"),
-      type: z.literal("Memory.Set"),
-      data: SetOutput
-    }),
-    factory: () => new TransformStream({
-      async transform(msg, controller) {
-        const data = msg.data as z.infer<typeof SetInput>;
-        // RFC 0018: Vault Enforcement
-        if (data.key.startsWith("/vault/")) {
-          const valStr = typeof data.value === 'string' ? data.value : JSON.stringify(data.value);
-          if (!valStr.startsWith("pwenc:v1:")) {
-            throw new Error("E_VAULT_REQUIRES_PWENC: /vault/ paths accept only ciphertext (pwenc:v1:...).");
-          }
-        }
-
-        const result = await withKv(async (kv) => {
-          await kv.set(parseKey(data.key), data.value);
-          return { success: true, message: `Set ${data.key}` };
-        });
-        controller.enqueue(createMessage("reply", "Memory.Set", result, undefined, msg.metadata?.correlation, msg.metadata?.id));
-      }
-    })
-  }),
-
-  "Memory.Delete": (): Capability<any, any> => ({
-    description: "Remove key",
-    inbound: z.object({
-      kind: z.literal("command"),
-      type: z.literal("Memory.Delete"),
-      data: DeleteInput
-    }),
-    outbound: z.object({
-      kind: z.literal("reply"),
-      type: z.literal("Memory.Delete"),
-      data: DeleteOutput
-    }),
-    factory: () => new TransformStream({
-      async transform(msg, controller) {
-        const data = msg.data as z.infer<typeof DeleteInput>;
-        const result = await withKv(async (kv) => {
-          await kv.delete(parseKey(data.key));
-          return { success: true, message: `Deleted ${data.key}` };
-        });
-        controller.enqueue(createMessage("reply", "Memory.Delete", result, undefined, msg.metadata?.correlation, msg.metadata?.id));
-      }
-    })
+  factory: () => new TransformStream({
+    async transform(msg, controller) {
+      const data = msg.data as z.infer<typeof GetInput>;
+      const result = await withKv(async (kv) => {
+        const res = await kv.get(parseKey(data.key));
+        return res.value;
+      });
+      controller.enqueue(createMessage("reply", "Memory.Get", result, undefined, msg.metadata?.correlation, msg.metadata?.id));
+    }
   })
 };
+
+export const MemoryList: Capability<any, any> = {
+  description: "List entries by prefix",
+  inbound: z.object({
+    kind: z.literal("query"),
+    type: z.literal("Memory.List"),
+    data: ListInput
+  }),
+  outbound: z.object({
+    kind: z.literal("reply"),
+    type: z.literal("Memory.List"),
+    data: ListOutput
+  }),
+  factory: () => new TransformStream({
+    async transform(msg, controller) {
+      const data = msg.data as z.infer<typeof ListInput>;
+      const result = await withKv(async (kv) => {
+        const prefix = data.prefix ? parseKey(data.prefix) : [];
+        const result: Record<string, any> = {};
+        for await (const entry of kv.list({ prefix })) {
+          result["/" + entry.key.join("/")] = entry.value;
+        }
+        return result;
+      });
+      controller.enqueue(createMessage("reply", "Memory.List", result, undefined, msg.metadata?.correlation, msg.metadata?.id));
+    }
+  })
+};
+
+export const MemorySet: Capability<any, any> = {
+  description: "Store key-value pair",
+  inbound: z.object({
+    kind: z.literal("command"),
+    type: z.literal("Memory.Set"),
+    data: SetInput
+  }),
+  outbound: z.object({
+    kind: z.literal("reply"),
+    type: z.literal("Memory.Set"),
+    data: SetOutput
+  }),
+  factory: () => new TransformStream({
+    async transform(msg, controller) {
+      const data = msg.data as z.infer<typeof SetInput>;
+      // RFC 0018: Vault Enforcement
+      if (data.key.startsWith("/vault/")) {
+        const valStr = typeof data.value === 'string' ? data.value : JSON.stringify(data.value);
+        if (!valStr.startsWith("pwenc:v1:")) {
+          throw new Error("E_VAULT_REQUIRES_PWENC: /vault/ paths accept only ciphertext (pwenc:v1:...).");
+        }
+      }
+
+      const result = await withKv(async (kv) => {
+        await kv.set(parseKey(data.key), data.value);
+        return { success: true, message: `Set ${data.key}` };
+      });
+      controller.enqueue(createMessage("reply", "Memory.Set", result, undefined, msg.metadata?.correlation, msg.metadata?.id));
+    }
+  })
+};
+
+export const MemoryDelete: Capability<any, any> = {
+  description: "Remove key",
+  inbound: z.object({
+    kind: z.literal("command"),
+    type: z.literal("Memory.Delete"),
+    data: DeleteInput
+  }),
+  outbound: z.object({
+    kind: z.literal("reply"),
+    type: z.literal("Memory.Delete"),
+    data: DeleteOutput
+  }),
+  factory: () => new TransformStream({
+    async transform(msg, controller) {
+      const data = msg.data as z.infer<typeof DeleteInput>;
+      const result = await withKv(async (kv) => {
+        await kv.delete(parseKey(data.key));
+        return { success: true, message: `Deleted ${data.key}` };
+      });
+      controller.enqueue(createMessage("reply", "Memory.Delete", result, undefined, msg.metadata?.correlation, msg.metadata?.id));
+    }
+  })
+};
+
+export default [MemoryGet, MemoryList, MemorySet, MemoryDelete];

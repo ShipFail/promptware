@@ -1,17 +1,17 @@
 import { assertEquals } from "jsr:@std/assert";
-import describeModule from "./describe.ts";
+import { SyscallDescribe } from "./describe.ts";
 import { dispatch } from "../lib/dispatch.ts";
 import "./registry.ts"; // Ensure registry is populated
 
 Deno.test("Syscall.Describe: Should return description for specific capability", async () => {
-  const result = await dispatch(describeModule, "Syscall.Describe", { capabilities: ["Syscall.Describe"] });
+  const result = await dispatch(SyscallDescribe, { capabilities: ["Syscall.Describe"] });
   const data = result.data as { schemas: Record<string, { description: string }> };
   
   assertEquals(data.schemas["Syscall.Describe"].description, "Introspects the kernel capabilities.");
 });
 
 Deno.test("Syscall.Describe: Should return all capabilities with wildcard", async () => {
-  const result = await dispatch(describeModule, "Syscall.Describe", { capabilities: ["*"] });
+  const result = await dispatch(SyscallDescribe, { capabilities: ["*"] });
   const data = result.data as { schemas: Record<string, { description: string }> };
   
   // It should contain at least Syscall.Describe itself
@@ -22,7 +22,7 @@ Deno.test("Syscall.Describe: Should return all capabilities with wildcard", asyn
 });
 
 Deno.test("Syscall.Describe: Should handle multiple specific capabilities", async () => {
-  const result = await dispatch(describeModule, "Syscall.Describe", { capabilities: ["Syscall.Describe", "Syscall.Ping"] });
+  const result = await dispatch(SyscallDescribe, { capabilities: ["Syscall.Describe", "Syscall.Ping"] });
   const data = result.data as { schemas: Record<string, { description: string }> };
   
   assertEquals(Object.keys(data.schemas).length, 2);

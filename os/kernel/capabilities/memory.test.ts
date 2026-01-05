@@ -1,5 +1,5 @@
 import { assertEquals, assertRejects } from "jsr:@std/assert";
-import memoryModule from "./memory.ts";
+import { MemoryGet, MemorySet, MemoryList, MemoryDelete } from "./memory.ts";
 import { dispatch } from "../lib/dispatch.ts";
 
 // RFC 0018: Memory Subsystem Specification
@@ -9,7 +9,7 @@ import { dispatch } from "../lib/dispatch.ts";
 
 Deno.test("RFC 0018: Memory MUST enforce absolute paths on get", async () => {
   await assertRejects(
-    async () => await dispatch(memoryModule, "Memory.Get", { key: "relative/path" }),
+    async () => await dispatch(MemoryGet, { key: "relative/path" }),
     Error,
     "Invalid path: 'relative/path'. Paths MUST be absolute (start with /)."
   );
@@ -17,7 +17,7 @@ Deno.test("RFC 0018: Memory MUST enforce absolute paths on get", async () => {
 
 Deno.test("RFC 0018: Memory MUST enforce absolute paths on set", async () => {
   await assertRejects(
-    async () => await dispatch(memoryModule, "Memory.Set", { key: "relative/path", value: "test" }),
+    async () => await dispatch(MemorySet, { key: "relative/path", value: "test" }),
     Error,
     "Invalid path: 'relative/path'. Paths MUST be absolute (start with /)."
   );
@@ -25,11 +25,11 @@ Deno.test("RFC 0018: Memory MUST enforce absolute paths on set", async () => {
 
 Deno.test("RFC 0018: Memory MUST enforce Sealed-at-Rest for /vault/", async () => {
   // Valid pwenc
-  await dispatch(memoryModule, "Memory.Set", { key: "/vault/test", value: "pwenc:v1:valid" });
+  await dispatch(MemorySet, { key: "/vault/test", value: "pwenc:v1:valid" });
 
   // Invalid plaintext
   await assertRejects(
-    async () => await dispatch(memoryModule, "Memory.Set", { key: "/vault/bad", value: "plaintext_secret" }),
+    async () => await dispatch(MemorySet, { key: "/vault/bad", value: "plaintext_secret" }),
     Error,
     "E_VAULT_REQUIRES_PWENC: /vault/ paths accept only ciphertext (pwenc:v1:...)."
   );
@@ -40,21 +40,21 @@ Deno.test("RFC 0018: Memory CRUD operations", async () => {
   const value = { theme: "dark" };
 
   // Set
-  await dispatch(memoryModule, "Memory.Set", { key, value: JSON.stringify(value) });
+  await dispatch(MemorySet, { key, value: JSON.stringify(value) });
 
   // Get
-  const getResult = await dispatch(memoryModule, "Memory.Get", { key });
+  const getResult = await dispatch(MemoryGet, { key });
   const retrieved = getResult.data;
   assertEquals(typeof retrieved, "string"); // KV stores the JSON string
 
   // List
-  const listResult = await dispatch(memoryModule, "Memory.List", { prefix: "/users/test/" });
+  const listResult = await dispatch(MemoryList, { prefix: "/users/test/" });
   const list = listResult.data as Record<string, any>;
   assertEquals(list["/users/test/setting"], JSON.stringify(value));
 
   // Delete
-  await dispatch(memoryModule, "Memory.Delete", { key });
-  const deletedResult = await dispatch(memoryModule, "Memory.Get", { key });
+  await dispatch(MemoryDelete, { key });
+  const deletedResult = await dispatch(MemoryGet, { key });
   assertEquals(deletedResult.data, null);
 });
 
@@ -62,8 +62,8 @@ Deno.test("RFC 0018: Memory MUST store JSON values as strings", async () => {
   const key = "/config/settings";
   const jsonValue = JSON.stringify({ enabled: true, count: 42 });
 
-  await dispatch(memoryModule, "Memory.Set", { key, value: jsonValue });
-  const result = await dispatch(memoryModule, "Memory.Get", { key });
+  await dispatch(MemorySet, { key, value: jsonValue });
+  const result = await dispatch(MemoryGet, { key });
 
   // Should be stored as string (caller must parse if needed)
   assertEquals(typeof result.data, "string");
@@ -76,8 +76,8 @@ Deno.test("RFC 0018: Memory MUST store non-JSON values as strings", async () => 
   const key = "/simple/text";
   const plainValue = "just a string";
 
-  await dispatch(memoryModule, "Memory.Set", { key, value: plainValue });
-  const result = await dispatch(memoryModule, "Memory.Get", { key });
+  await dispatch(MemorySet, { key, value: plainValue });
+  const result = await dispatch(MemoryGet, { key });
 
   assertEquals(result.data, plainValue);
 });

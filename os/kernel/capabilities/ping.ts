@@ -56,34 +56,34 @@ const PingOutbound = z.object({
   data: PingOutput,
 });
 
-export default {
-  "Syscall.Ping": (): Capability<typeof PingInbound, typeof PingOutbound> => ({
-    description:
-      "ABI integrity test: returns payload verbatim (RFC-6455 PING/PONG semantics). " +
-      "Proves framing correctness - no mutation, no truncation, correct correlation.",
-    inbound: PingInbound,
-    outbound: PingOutbound,
-    factory: () =>
-      new TransformStream({
-        transform(msg, controller) {
-          // Extract payload from input
-          const data = msg.data as z.infer<typeof PingInput>;
+export const SyscallPing: Capability<typeof PingInbound, typeof PingOutbound> = {
+  description:
+    "ABI integrity test: returns payload verbatim (RFC-6455 PING/PONG semantics). " +
+    "Proves framing correctness - no mutation, no truncation, correct correlation.",
+  inbound: PingInbound,
+  outbound: PingOutbound,
+  factory: () =>
+    new TransformStream({
+      transform(msg, controller) {
+        // Extract payload from input
+        const data = msg.data as z.infer<typeof PingInput>;
 
-          // Return payload VERBATIM - no transformation, no mutation
-          // This is the core invariant: Pong.payload === Ping.payload
-          const result = { payload: data.payload };
+        // Return payload VERBATIM - no transformation, no mutation
+        // This is the core invariant: Pong.payload === Ping.payload
+        const result = { payload: data.payload };
 
-          controller.enqueue(
-            createMessage(
-              "reply",
-              "Syscall.Ping",
-              result,
-              undefined, // New ID generated
-              msg.metadata?.correlation, // Preserve workflow correlation
-              msg.metadata?.id // This message caused the Pong
-            )
-          );
-        },
-      }),
-  }),
+        controller.enqueue(
+          createMessage(
+            "reply",
+            "Syscall.Ping",
+            result,
+            undefined, // New ID generated
+            msg.metadata?.correlation, // Preserve workflow correlation
+            msg.metadata?.id // This message caused the Pong
+          )
+        );
+      },
+    }),
 };
+
+export default [SyscallPing];

@@ -1,9 +1,9 @@
 import { assertEquals, assertExists } from "jsr:@std/assert";
-import shellModule from "./shell.ts";
+import { SyscallShell } from "./shell.ts";
 import { dispatch } from "../lib/dispatch.ts";
 
 Deno.test("Syscall.Shell: Execute simple command", async () => {
-  const result = await dispatch(shellModule, "Syscall.Shell", {
+  const result = await dispatch(SyscallShell, {
     cmd: "echo",
     args: ["hello world"]
   });
@@ -17,7 +17,7 @@ Deno.test("Syscall.Shell: Execute simple command", async () => {
 Deno.test("Syscall.Shell: Capture stderr", async () => {
   // Use a command that writes to stderr. 
   // 'sh -c' is portable enough for this environment (Linux).
-  const result = await dispatch(shellModule, "Syscall.Shell", {
+  const result = await dispatch(SyscallShell, {
     cmd: "sh",
     args: ["-c", "echo 'error message' >&2"]
   });
@@ -28,7 +28,7 @@ Deno.test("Syscall.Shell: Capture stderr", async () => {
 });
 
 Deno.test("Syscall.Shell: Return exit code", async () => {
-  const result = await dispatch(shellModule, "Syscall.Shell", {
+  const result = await dispatch(SyscallShell, {
     cmd: "sh",
     args: ["-c", "exit 42"]
   });
@@ -38,7 +38,7 @@ Deno.test("Syscall.Shell: Return exit code", async () => {
 });
 
 Deno.test("Syscall.Shell: Use custom CWD", async () => {
-  const result = await dispatch(shellModule, "Syscall.Shell", {
+  const result = await dispatch(SyscallShell, {
     cmd: "pwd",
     cwd: "/tmp"
   });
@@ -50,7 +50,7 @@ Deno.test("Syscall.Shell: Use custom CWD", async () => {
 });
 
 Deno.test("Syscall.Shell: Use custom Env", async () => {
-  const result = await dispatch(shellModule, "Syscall.Shell", {
+  const result = await dispatch(SyscallShell, {
     cmd: "sh",
     args: ["-c", "echo $TEST_VAR"],
     env: { "TEST_VAR": "secret_value" }

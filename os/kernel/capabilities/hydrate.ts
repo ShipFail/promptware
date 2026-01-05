@@ -155,61 +155,59 @@ const ReplySchema = z.object({
   cause: z.any().optional().describe("Failure reason.")
 }).describe("ACK. 202 Accepted triggers 'Kernel.Ingest'.");
 
-export const HydrateModule = {
-  "FileSystem.Hydrate": (): Capability<any, any> => ({
-    description: "Hydrate a markdown file with metadata.",
-    inbound: z.object({
-      kind: z.literal("command"),
-      type: z.literal("FileSystem.Hydrate"),
-      data: InputSchema
-    }),
-    outbound: z.object({
-      kind: z.literal("reply"),
-      type: z.literal("FileSystem.Hydrate"),
-      data: ReplySchema
-    }),
-    factory: () => new TransformStream({
-      async transform(msg, controller) {
-        try {
-          const input = msg.data as z.infer<typeof InputSchema>;
-          const content = await hydrate(input.uri);
-          
-          // 1. Send ACK (202 Accepted)
-          controller.enqueue(createReply(msg, { code: 202, message: "Accepted" }));
+export const FileSystemHydrate: Capability<any, any> = {
+  description: "Hydrate a markdown file with metadata.",
+  inbound: z.object({
+    kind: z.literal("command"),
+    type: z.literal("FileSystem.Hydrate"),
+    data: InputSchema
+  }),
+  outbound: z.object({
+    kind: z.literal("reply"),
+    type: z.literal("FileSystem.Hydrate"),
+    data: ReplySchema
+  }),
+  factory: () => new TransformStream({
+    async transform(msg, controller) {
+      try {
+        const input = msg.data as z.infer<typeof InputSchema>;
+        const content = await hydrate(input.uri);
+        
+        // 1. Send ACK (202 Accepted)
+        controller.enqueue(createReply(msg, { code: 202, message: "Accepted" }));
 
-          // 2. Prepare Ingest Payload (BlobPointer vs String)
-          let ingestData: string | BlobPointer;
-          
-          // Threshold: 10KB (safe margin for 16KB limit)
-          if (content.length > 10000) {
-             const tempFile = await Deno.makeTempFile({ prefix: "pwo-ingest-", suffix: ".md" });
-             await Deno.writeTextFile(tempFile, content);
-             ingestData = createBlobPointer(tempFile);
-          } else {
-             ingestData = content;
-          }
-
-          // 3. Send Kernel.Ingest Command (Interrupt)
-          const ingestMsg = createMessage(
-            "command",
-            "Kernel.Ingest",
-            { data: ingestData },
-            undefined, // new ID
-            msg.metadata?.correlation,
-            msg.metadata?.id // causation is the Hydrate command
-          );
-          
-          controller.enqueue(ingestMsg);
-
-        } catch (e: any) {
-          controller.enqueue(createError(msg, e));
+        // 2. Prepare Ingest Payload (BlobPointer vs String)
+        let ingestData: string | BlobPointer;
+        
+        // Threshold: 10KB (safe margin for 16KB limit)
+        if (content.length > 10000) {
+            const tempFile = await Deno.makeTempFile({ prefix: "pwo-ingest-", suffix: ".md" });
+            await Deno.writeTextFile(tempFile, content);
+            ingestData = createBlobPointer(tempFile);
+        } else {
+            ingestData = content;
         }
+
+        // 3. Send Kernel.Ingest Command (Interrupt)
+        const ingestMsg = createMessage(
+          "command",
+          "Kernel.Ingest",
+          { data: ingestData },
+          undefined, // new ID
+          msg.metadata?.correlation,
+          msg.metadata?.id // causation is the Hydrate command
+        );
+        
+        controller.enqueue(ingestMsg);
+
+      } catch (e: any) {
+        controller.enqueue(createError(msg, e));
       }
-    })
+    }
   })
 };
 
-export default HydrateModule;
+export default [FileSystemHydrate];
 
 // CLI Entry Point
 if (import.meta.main) {

@@ -1,5 +1,5 @@
 import { assertEquals, assertRejects } from "jsr:@std/assert";
-import hydrateModule from "./hydrate.ts";
+import { FileSystemHydrate } from "./hydrate.ts";
 import { dispatch, dispatchAll } from "../lib/dispatch.ts";
 
 // Mock fetch for hydrate
@@ -40,7 +40,7 @@ Deno.test("RFC 0020: Hydrate MUST return ACK and trigger Kernel.Ingest", async (
   mockFetch(content);
   try {
     await withMockKv("https://root.com/", async () => {
-      const results = await dispatchAll(hydrateModule, "FileSystem.Hydrate", { uri: "https://example.com/simple.md" });
+      const results = await dispatchAll(FileSystemHydrate, { uri: "https://example.com/simple.md" });
       
       // 1. Check ACK
       assertEquals(results.length, 2);
@@ -67,7 +67,7 @@ description: A test agent
   mockFetch(content);
   try {
     await withMockKv("https://root.com/", async () => {
-      const results = await dispatchAll(hydrateModule, "FileSystem.Hydrate", { uri: "https://example.com/agent.md" });
+      const results = await dispatchAll(FileSystemHydrate, { uri: "https://example.com/agent.md" });
       const ingestData = (results[1].data as any).data;
       // Should return hydrated content with frontmatter
       assertEquals(ingestData.includes("# Hello"), true);
@@ -82,7 +82,7 @@ Deno.test("RFC 0020: Hydrate MUST fail on fetch error", async () => {
   try {
     await withMockKv("https://root.com/", async () => {
       // dispatchAll should return an error message in the stream, NOT throw
-      const results = await dispatchAll(hydrateModule, "FileSystem.Hydrate", { uri: "https://example.com/bad.md" });
+      const results = await dispatchAll(FileSystemHydrate, { uri: "https://example.com/bad.md" });
       
       assertEquals(results.length, 1);
       assertEquals(results[0].kind, "error");
@@ -100,7 +100,7 @@ Deno.test("RFC 0020: Hydrate MUST preserve body content", async () => {
   mockFetch(content);
   try {
     await withMockKv("https://root.com/", async () => {
-      const results = await dispatchAll(hydrateModule, "FileSystem.Hydrate", { uri: "https://example.com/test.md" });
+      const results = await dispatchAll(FileSystemHydrate, { uri: "https://example.com/test.md" });
       const ingestData = (results[1].data as any).data;
       
       // Body should be preserved after front matter

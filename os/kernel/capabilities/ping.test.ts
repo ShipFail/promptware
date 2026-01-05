@@ -13,11 +13,11 @@
  */
 
 import { assertEquals, assertExists } from "jsr:@std/assert";
-import pingModule from "./ping.ts";
+import { SyscallPing } from "./ping.ts";
 import { dispatch } from "../lib/dispatch.ts";
 
 // Get the Ping capability
-const pingCapability = pingModule["Syscall.Ping"]();
+const pingCapability = SyscallPing;
 
 // ============================================================================
 // Test Group 1: Basic Type Preservation
@@ -25,49 +25,49 @@ const pingCapability = pingModule["Syscall.Ping"]();
 
 Deno.test("Ping: String payload MUST be returned verbatim", async () => {
   const payload = "hello world";
-  const result = await dispatch(pingModule, "Syscall.Ping", { payload });
+  const result = await dispatch(SyscallPing, { payload });
   assertEquals((result.data as any).payload, payload);
 });
 
 Deno.test("Ping: Empty string payload MUST be returned verbatim", async () => {
   const payload = "";
-  const result = await dispatch(pingModule, "Syscall.Ping", { payload });
+  const result = await dispatch(SyscallPing, { payload });
   assertEquals((result.data as any).payload, payload);
 });
 
 Deno.test("Ping: Number payload MUST be returned verbatim", async () => {
   const payload = 42;
-  const result = await dispatch(pingModule, "Syscall.Ping", { payload });
+  const result = await dispatch(SyscallPing, { payload });
   assertEquals((result.data as any).payload, payload);
 });
 
 Deno.test("Ping: Zero payload MUST be returned verbatim", async () => {
   const payload = 0;
-  const result = await dispatch(pingModule, "Syscall.Ping", { payload });
+  const result = await dispatch(SyscallPing, { payload });
   assertEquals((result.data as any).payload, payload);
 });
 
 Deno.test("Ping: Negative number payload MUST be returned verbatim", async () => {
   const payload = -123.456;
-  const result = await dispatch(pingModule, "Syscall.Ping", { payload });
+  const result = await dispatch(SyscallPing, { payload });
   assertEquals((result.data as any).payload, payload);
 });
 
 Deno.test("Ping: Boolean true payload MUST be returned verbatim", async () => {
   const payload = true;
-  const result = await dispatch(pingModule, "Syscall.Ping", { payload });
+  const result = await dispatch(SyscallPing, { payload });
   assertEquals((result.data as any).payload, payload);
 });
 
 Deno.test("Ping: Boolean false payload MUST be returned verbatim", async () => {
   const payload = false;
-  const result = await dispatch(pingModule, "Syscall.Ping", { payload });
+  const result = await dispatch(SyscallPing, { payload });
   assertEquals((result.data as any).payload, payload);
 });
 
 Deno.test("Ping: Null payload MUST be returned verbatim", async () => {
   const payload = null;
-  const result = await dispatch(pingModule, "Syscall.Ping", { payload });
+  const result = await dispatch(SyscallPing, { payload });
   assertEquals((result.data as any).payload, payload);
 });
 
@@ -77,25 +77,25 @@ Deno.test("Ping: Null payload MUST be returned verbatim", async () => {
 
 Deno.test("Ping: Object payload MUST be returned verbatim", async () => {
   const payload = { key: "value", nested: { deep: true } };
-  const result = await dispatch(pingModule, "Syscall.Ping", { payload });
+  const result = await dispatch(SyscallPing, { payload });
   assertEquals((result.data as any).payload, payload);
 });
 
 Deno.test("Ping: Empty object payload MUST be returned verbatim", async () => {
   const payload = {};
-  const result = await dispatch(pingModule, "Syscall.Ping", { payload });
+  const result = await dispatch(SyscallPing, { payload });
   assertEquals((result.data as any).payload, payload);
 });
 
 Deno.test("Ping: Array payload MUST be returned verbatim", async () => {
   const payload = [1, 2, 3, "four", { five: 5 }];
-  const result = await dispatch(pingModule, "Syscall.Ping", { payload });
+  const result = await dispatch(SyscallPing, { payload });
   assertEquals((result.data as any).payload, payload);
 });
 
 Deno.test("Ping: Empty array payload MUST be returned verbatim", async () => {
   const payload: unknown[] = [];
-  const result = await dispatch(pingModule, "Syscall.Ping", { payload });
+  const result = await dispatch(SyscallPing, { payload });
   assertEquals((result.data as any).payload, payload);
 });
 
@@ -112,7 +112,7 @@ Deno.test("Ping: Deeply nested structure MUST be returned verbatim", async () =>
       },
     },
   };
-  const result = await dispatch(pingModule, "Syscall.Ping", { payload });
+  const result = await dispatch(SyscallPing, { payload });
   assertEquals((result.data as any).payload, payload);
 });
 
@@ -122,20 +122,20 @@ Deno.test("Ping: Deeply nested structure MUST be returned verbatim", async () =>
 
 Deno.test("Ping: Unicode payload MUST be returned verbatim", async () => {
   const payload = "Hello 世界 🌍 مرحبا";
-  const result = await dispatch(pingModule, "Syscall.Ping", { payload });
+  const result = await dispatch(SyscallPing, { payload });
   assertEquals((result.data as any).payload, payload);
 });
 
 Deno.test("Ping: Special characters payload MUST be returned verbatim", async () => {
   const payload = "Line1\nLine2\tTabbed\r\nCRLF";
-  const result = await dispatch(pingModule, "Syscall.Ping", { payload });
+  const result = await dispatch(SyscallPing, { payload });
   assertEquals((result.data as any).payload, payload);
 });
 
 Deno.test("Ping: JSON-like string payload MUST NOT be parsed", async () => {
   // A string that looks like JSON should remain a string
   const payload = '{"not": "parsed"}';
-  const result = await dispatch(pingModule, "Syscall.Ping", { payload });
+  const result = await dispatch(SyscallPing, { payload });
   assertEquals((result.data as any).payload, payload);
   assertEquals(typeof (result.data as any).payload, "string");
 });
@@ -150,7 +150,7 @@ Deno.test("Ping: Mixed types in array MUST be preserved", async () => {
     { obj: "ect" },
     ["nested"],
   ];
-  const result = await dispatch(pingModule, "Syscall.Ping", { payload });
+  const result = await dispatch(SyscallPing, { payload });
   assertEquals((result.data as any).payload, payload);
 });
 
@@ -160,14 +160,14 @@ Deno.test("Ping: Mixed types in array MUST be preserved", async () => {
 
 Deno.test("Ping: 1KB payload MUST NOT be truncated", async () => {
   const payload = "x".repeat(1024);
-  const result = await dispatch(pingModule, "Syscall.Ping", { payload });
+  const result = await dispatch(SyscallPing, { payload });
   assertEquals(((result.data as any).payload as string).length, 1024);
   assertEquals((result.data as any).payload, payload);
 });
 
 Deno.test("Ping: 10KB payload MUST NOT be truncated", async () => {
   const payload = "y".repeat(10 * 1024);
-  const result = await dispatch(pingModule, "Syscall.Ping", { payload });
+  const result = await dispatch(SyscallPing, { payload });
   assertEquals(((result.data as any).payload as string).length, 10 * 1024);
   assertEquals((result.data as any).payload, payload);
 });
@@ -182,7 +182,7 @@ Deno.test("Ping: Complex 5KB object MUST NOT be truncated", async () => {
       nested: { value: i * 2 },
     };
   }
-  const result = await dispatch(pingModule, "Syscall.Ping", { payload });
+  const result = await dispatch(SyscallPing, { payload });
   assertEquals(Object.keys((result.data as any).payload as object).length, 100);
   assertEquals((result.data as any).payload, payload);
 });
@@ -193,7 +193,7 @@ Deno.test("Ping: Complex 5KB object MUST NOT be truncated", async () => {
 
 Deno.test("Ping: Correlation ID MUST be preserved in Pong", async () => {
   const correlationId = "workflow-abc-123";
-  const result = await dispatch(pingModule, "Syscall.Ping", { payload: "test" }, correlationId);
+  const result = await dispatch(SyscallPing, { payload: "test" }, correlationId);
   assertEquals(result.metadata?.correlation, correlationId);
 });
 
@@ -207,7 +207,7 @@ Deno.test("Ping: Causation ID MUST reference input message ID", async () => {
   // BUT, for this specific test, we can trust that dispatch creates a message with an ID.
   // Actually, let's just verify that causation IS present and is a string.
   
-  const result = await dispatch(pingModule, "Syscall.Ping", { payload: "test" });
+  const result = await dispatch(SyscallPing, { payload: "test" });
   assertExists(result.metadata?.causation);
   assertEquals(typeof result.metadata?.causation, "string");
 });

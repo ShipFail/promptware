@@ -20,30 +20,28 @@ const OutputSchema = z.object({
   resolved: z.string().url().describe("The fully resolved URL"),
 }).describe("Output from the resolve capability.");
 
-export const ResolveModule = {
-  "FileSystem.Resolve": (): Capability<any, any> => ({
-    description: "Resolve a URI against the OS root or a base context.",
-    inbound: z.object({
-      kind: z.literal("query"),
-      type: z.literal("FileSystem.Resolve"),
-      data: InputSchema
-    }),
-    outbound: z.object({
-      kind: z.literal("reply"),
-      type: z.literal("FileSystem.Resolve"),
-      data: OutputSchema
-    }),
-    factory: () => new TransformStream({
-      async transform(msg, controller) {
-        const input = msg.data as z.infer<typeof InputSchema>;
-        const resolved = await resolve(input.uri, input.base);
-        controller.enqueue(createMessage("reply", "FileSystem.Resolve", { resolved }, undefined, msg.metadata?.correlation, msg.metadata?.id));
-      }
-    })
+export const FileSystemResolve: Capability<any, any> = {
+  description: "Resolve a URI against the OS root or a base context.",
+  inbound: z.object({
+    kind: z.literal("query"),
+    type: z.literal("FileSystem.Resolve"),
+    data: InputSchema
+  }),
+  outbound: z.object({
+    kind: z.literal("reply"),
+    type: z.literal("FileSystem.Resolve"),
+    data: OutputSchema
+  }),
+  factory: () => new TransformStream({
+    async transform(msg, controller) {
+      const input = msg.data as z.infer<typeof InputSchema>;
+      const resolved = await resolve(input.uri, input.base);
+      controller.enqueue(createMessage("reply", "FileSystem.Resolve", { resolved }, undefined, msg.metadata?.correlation, msg.metadata?.id));
+    }
   })
 };
 
-export default ResolveModule;
+export default [FileSystemResolve];
 
 // CLI Entry Point
 if (import.meta.main) {

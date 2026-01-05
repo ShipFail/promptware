@@ -41,49 +41,47 @@ const OutputSchema = z.object({
   url: z.string().describe("The final URL after redirects."),
 }).describe("Output from the fetch capability.");
 
-export const FetchModule = {
-  "Network.Fetch": (): Capability<any, any> => ({
-    description: "Fetch a URL with optional sealed headers.",
-    inbound: z.object({
-      kind: z.literal("command"),
-      type: z.literal("Network.Fetch"),
-      data: InputSchema
-    }),
-    outbound: z.object({
-      kind: z.literal("reply"),
-      type: z.literal("Network.Fetch"),
-      data: OutputSchema
-    }),
-    factory: () => new TransformStream({
-      async transform(msg, controller) {
-        const input = msg.data as z.infer<typeof InputSchema>;
-        const req = new Request(input.url, input.init);
-        await unsealHeaders(req.headers);
-        const res = await fetch(req);
-        try {
-          const bodyText = await res.text();
-          const headersObj: Record<string, string> = {};
-          res.headers.forEach((v, k) => headersObj[k] = v);
+export const NetworkFetch: Capability<any, any> = {
+  description: "Fetch a URL with optional sealed headers.",
+  inbound: z.object({
+    kind: z.literal("command"),
+    type: z.literal("Network.Fetch"),
+    data: InputSchema
+  }),
+  outbound: z.object({
+    kind: z.literal("reply"),
+    type: z.literal("Network.Fetch"),
+    data: OutputSchema
+  }),
+  factory: () => new TransformStream({
+    async transform(msg, controller) {
+      const input = msg.data as z.infer<typeof InputSchema>;
+      const req = new Request(input.url, input.init);
+      await unsealHeaders(req.headers);
+      const res = await fetch(req);
+      try {
+        const bodyText = await res.text();
+        const headersObj: Record<string, string> = {};
+        res.headers.forEach((v, k) => headersObj[k] = v);
 
-          const result = {
-            ok: res.ok,
-            status: res.status,
-            statusText: res.statusText,
-            headers: headersObj,
-            body: bodyText,
-            url: res.url
-          };
-          
-          controller.enqueue(createMessage("reply", "Network.Fetch", result, undefined, msg.metadata?.correlation, msg.metadata?.id));
-        } finally {
-          // Ensure body is consumed/closed
-          if (!res.bodyUsed && res.body) {
-            await res.body.cancel();
-          }
+        const result = {
+          ok: res.ok,
+          status: res.status,
+          statusText: res.statusText,
+          headers: headersObj,
+          body: bodyText,
+          url: res.url
+        };
+        
+        controller.enqueue(createMessage("reply", "Network.Fetch", result, undefined, msg.metadata?.correlation, msg.metadata?.id));
+      } finally {
+        // Ensure body is consumed/closed
+        if (!res.bodyUsed && res.body) {
+          await res.body.cancel();
         }
       }
-    })
+    }
   })
 };
 
-export default FetchModule;
+export default [NetworkFetch];

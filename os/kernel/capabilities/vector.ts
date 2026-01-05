@@ -86,62 +86,62 @@ export async function shutdownVectorDriver() {
 
 // --- Capabilities ---
 
-export default {
-  "Vector.Embed": (): Capability<typeof EmbedInbound, typeof EmbedOutbound> => ({
-    description: "Generate embeddings for text.",
-    inbound: EmbedInbound,
-    outbound: EmbedOutbound,
-    factory: () => {
-      return new TransformStream({
-        async transform(msg, controller) {
-          const drv = await getDriver();
-          const data = msg.data as z.infer<typeof VectorEmbedInput>;
-          const vector = await drv.embed(data.text);
-          controller.enqueue(createMessage("reply", "Vector.Embed", { vector }, undefined, msg.metadata?.correlation, msg.metadata?.id));
-        }
-      });
+export const VectorEmbed: Capability<typeof EmbedInbound, typeof EmbedOutbound> = {
+  description: "Generate embeddings for text.",
+  inbound: EmbedInbound,
+  outbound: EmbedOutbound,
+  factory: () => {
+    return new TransformStream({
+      async transform(msg, controller) {
+        const drv = await getDriver();
+        const data = msg.data as z.infer<typeof VectorEmbedInput>;
+        const vector = await drv.embed(data.text);
+        controller.enqueue(createMessage("reply", "Vector.Embed", { vector }, undefined, msg.metadata?.correlation, msg.metadata?.id));
+      }
+    });
+  }
+};
+
+export const VectorStore: Capability<typeof StoreInbound, typeof StoreOutbound> = {
+  description: "Store a document in the vector database.",
+  inbound: StoreInbound,
+  outbound: StoreOutbound,
+  factory: () => new TransformStream({
+    async transform(msg, controller) {
+      const drv = await getDriver();
+      const data = msg.data as z.infer<typeof VectorStoreInput>;
+      await drv.store(data.collection, data.id, data.text, data.metadata);
+      controller.enqueue(createMessage("reply", "Vector.Store", { success: true, id: data.id }, undefined, msg.metadata?.correlation, msg.metadata?.id));
     }
-  }),
-
-  "Vector.Store": (): Capability<typeof StoreInbound, typeof StoreOutbound> => ({
-    description: "Store a document in the vector database.",
-    inbound: StoreInbound,
-    outbound: StoreOutbound,
-    factory: () => new TransformStream({
-      async transform(msg, controller) {
-        const drv = await getDriver();
-        const data = msg.data as z.infer<typeof VectorStoreInput>;
-        await drv.store(data.collection, data.id, data.text, data.metadata);
-        controller.enqueue(createMessage("reply", "Vector.Store", { success: true, id: data.id }, undefined, msg.metadata?.correlation, msg.metadata?.id));
-      }
-    })
-  }),
-
-  "Vector.Search": (): Capability<typeof SearchInbound, typeof SearchOutbound> => ({
-    description: "Semantic search.",
-    inbound: SearchInbound,
-    outbound: SearchOutbound,
-    factory: () => new TransformStream({
-      async transform(msg, controller) {
-        const drv = await getDriver();
-        const data = msg.data as z.infer<typeof VectorSearchInput>;
-        const results = await drv.search(data.collection, data.query, data.limit, data.threshold);
-        controller.enqueue(createMessage("reply", "Vector.Search", { results }, undefined, msg.metadata?.correlation, msg.metadata?.id));
-      }
-    })
-  }),
-
-  "Vector.Delete": (): Capability<typeof DeleteInbound, typeof DeleteOutbound> => ({
-    description: "Delete a document.",
-    inbound: DeleteInbound,
-    outbound: DeleteOutbound,
-    factory: () => new TransformStream({
-      async transform(msg, controller) {
-        const drv = await getDriver();
-        const data = msg.data as z.infer<typeof VectorDeleteInput>;
-        await drv.delete(data.collection, data.id);
-        controller.enqueue(createMessage("reply", "Vector.Delete", { success: true }, undefined, msg.metadata?.correlation, msg.metadata?.id));
-      }
-    })
   })
 };
+
+export const VectorSearch: Capability<typeof SearchInbound, typeof SearchOutbound> = {
+  description: "Semantic search.",
+  inbound: SearchInbound,
+  outbound: SearchOutbound,
+  factory: () => new TransformStream({
+    async transform(msg, controller) {
+      const drv = await getDriver();
+      const data = msg.data as z.infer<typeof VectorSearchInput>;
+      const results = await drv.search(data.collection, data.query, data.limit, data.threshold);
+      controller.enqueue(createMessage("reply", "Vector.Search", { results }, undefined, msg.metadata?.correlation, msg.metadata?.id));
+    }
+  })
+};
+
+export const VectorDelete: Capability<typeof DeleteInbound, typeof DeleteOutbound> = {
+  description: "Delete a document.",
+  inbound: DeleteInbound,
+  outbound: DeleteOutbound,
+  factory: () => new TransformStream({
+    async transform(msg, controller) {
+      const drv = await getDriver();
+      const data = msg.data as z.infer<typeof VectorDeleteInput>;
+      await drv.delete(data.collection, data.id);
+      controller.enqueue(createMessage("reply", "Vector.Delete", { success: true }, undefined, msg.metadata?.correlation, msg.metadata?.id));
+    }
+  })
+};
+
+export default [VectorEmbed, VectorStore, VectorSearch, VectorDelete];

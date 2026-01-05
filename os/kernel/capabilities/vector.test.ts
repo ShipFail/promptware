@@ -1,5 +1,5 @@
 import { assertEquals, assertExists } from "jsr:@std/assert";
-import vectorModule, { shutdownVectorDriver } from "./vector.ts";
+import { VectorStore, VectorSearch, VectorDelete, VectorEmbed, shutdownVectorDriver } from "./vector.ts";
 import { dispatch } from "../lib/dispatch.ts";
 
 // Force Mock Mode for Embeddings to avoid downloading models during test
@@ -13,7 +13,7 @@ Deno.test("Vector Subsystem", async (t) => {
 
   try {
     await t.step("Vector.Embed (Mock)", async () => {
-      const result = await dispatch(vectorModule, "Vector.Embed", { text });
+      const result = await dispatch(VectorEmbed, { text });
       
       assertEquals(result.kind, "reply");
       const data = result.data as { vector: number[] };
@@ -22,7 +22,7 @@ Deno.test("Vector Subsystem", async (t) => {
     });
 
     await t.step("Vector.Store", async () => {
-      const result = await dispatch(vectorModule, "Vector.Store", { 
+      const result = await dispatch(VectorStore, { 
         collection, 
         id, 
         text, 
@@ -36,7 +36,7 @@ Deno.test("Vector Subsystem", async (t) => {
     });
 
     await t.step("Vector.Search", async () => {
-      const result = await dispatch(vectorModule, "Vector.Search", { 
+      const result = await dispatch(VectorSearch, { 
         collection, 
         query: "AI operating system" 
       });
@@ -53,7 +53,7 @@ Deno.test("Vector Subsystem", async (t) => {
     });
 
     await t.step("Vector.Delete", async () => {
-      const result = await dispatch(vectorModule, "Vector.Delete", { 
+      const result = await dispatch(VectorDelete, { 
         collection, 
         id 
       });
@@ -64,7 +64,7 @@ Deno.test("Vector Subsystem", async (t) => {
     });
 
     await t.step("Vector.Search (Empty after delete)", async () => {
-      const result = await dispatch(vectorModule, "Vector.Search", { 
+      const result = await dispatch(VectorSearch, { 
         collection, 
         query: "AI operating system" 
       });

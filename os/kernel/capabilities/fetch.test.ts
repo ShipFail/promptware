@@ -1,5 +1,5 @@
 import { assertEquals, assertRejects } from "jsr:@std/assert";
-import fetchModule from "./fetch.ts";
+import { NetworkFetch } from "./fetch.ts";
 import { dispatch } from "../lib/dispatch.ts";
 
 // Mock globalThis.fetch
@@ -25,7 +25,7 @@ Deno.test("RFC 0017: Fetch MUST attempt to unseal pwenc headers", async () => {
   // This proves fetch.ts detected the header and called open().
 
   await assertRejects(
-    async () => await dispatch(fetchModule, "Network.Fetch", {
+    async () => await dispatch(NetworkFetch, {
       url,
       init: {
         headers: { "Authorization": `Bearer ${pwenc}` }
@@ -46,7 +46,7 @@ Deno.test("RFC 0017: Fetch MUST pass through standard requests", async () => {
   });
 
   try {
-    const result = await dispatch(fetchModule, "Network.Fetch", {
+    const result = await dispatch(NetworkFetch, {
       url,
       init: {
         headers: { "X-Custom": "value" }
@@ -71,7 +71,7 @@ Deno.test("RFC 0017: Fetch MUST return serializable response object", async () =
   }));
 
   try {
-    const result = await dispatch(fetchModule, "Network.Fetch", { url });
+    const result = await dispatch(NetworkFetch, { url });
     const data = result.data as any;
 
     // Verify structure

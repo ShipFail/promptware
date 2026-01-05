@@ -50,69 +50,69 @@ const DeriveOutputSchema = z.object({
   kid: z.string().describe("The derived Key ID (SSH key fingerprint)"),
 }).describe("Output from crypto/derive capability.");
 
-export const CryptoModule = {
-  "Security.Seal": (): Capability<any, any> => ({
-    description: "Encrypt a secret using the OS key.",
-    inbound: z.object({
-      kind: z.literal("command"),
-      type: z.literal("Security.Seal"),
-      data: SealInputSchema
-    }),
-    outbound: z.object({
-      kind: z.literal("reply"),
-      type: z.literal("Security.Seal"),
-      data: SealOutputSchema
-    }),
-    factory: () => new TransformStream({
-      async transform(msg, controller) {
-        const input = msg.data as z.infer<typeof SealInputSchema>;
-        const ciphertext = await seal(input.plaintext);
-        controller.enqueue(createMessage("reply", "Security.Seal", { ciphertext }, undefined, msg.metadata?.correlation, msg.metadata?.id));
-      }
-    })
+export const SecuritySeal: Capability<any, any> = {
+  description: "Encrypt a secret using the OS key.",
+  inbound: z.object({
+    kind: z.literal("command"),
+    type: z.literal("Security.Seal"),
+    data: SealInputSchema
   }),
-  "Security.Open": (): Capability<any, any> => ({
-    description: "Decrypt a sealed secret using the OS key.",
-    inbound: z.object({
-      kind: z.literal("query"),
-      type: z.literal("Security.Open"),
-      data: OpenInputSchema
-    }),
-    outbound: z.object({
-      kind: z.literal("reply"),
-      type: z.literal("Security.Open"),
-      data: OpenOutputSchema
-    }),
-    factory: () => new TransformStream({
-      async transform(msg, controller) {
-        const input = msg.data as z.infer<typeof OpenInputSchema>;
-        const plaintext = await open(input.ciphertext);
-        controller.enqueue(createMessage("reply", "Security.Open", { plaintext }, undefined, msg.metadata?.correlation, msg.metadata?.id));
-      }
-    })
+  outbound: z.object({
+    kind: z.literal("reply"),
+    type: z.literal("Security.Seal"),
+    data: SealOutputSchema
   }),
-  "Security.Derive": (): Capability<any, any> => ({
-    description: "Derive and return the OS Key ID (KID).",
-    inbound: z.object({
-      kind: z.literal("query"),
-      type: z.literal("Security.Derive"),
-      data: DeriveInputSchema
-    }),
-    outbound: z.object({
-      kind: z.literal("reply"),
-      type: z.literal("Security.Derive"),
-      data: DeriveOutputSchema
-    }),
-    factory: () => new TransformStream({
-      async transform(msg, controller) {
-        const { kid } = await deriveKey();
-        controller.enqueue(createMessage("reply", "Security.Derive", { kid }, undefined, msg.metadata?.correlation, msg.metadata?.id));
-      }
-    })
+  factory: () => new TransformStream({
+    async transform(msg, controller) {
+      const input = msg.data as z.infer<typeof SealInputSchema>;
+      const ciphertext = await seal(input.plaintext);
+      controller.enqueue(createMessage("reply", "Security.Seal", { ciphertext }, undefined, msg.metadata?.correlation, msg.metadata?.id));
+    }
   })
 };
 
-export default CryptoModule;
+export const SecurityOpen: Capability<any, any> = {
+  description: "Decrypt a sealed secret using the OS key.",
+  inbound: z.object({
+    kind: z.literal("query"),
+    type: z.literal("Security.Open"),
+    data: OpenInputSchema
+  }),
+  outbound: z.object({
+    kind: z.literal("reply"),
+    type: z.literal("Security.Open"),
+    data: OpenOutputSchema
+  }),
+  factory: () => new TransformStream({
+    async transform(msg, controller) {
+      const input = msg.data as z.infer<typeof OpenInputSchema>;
+      const plaintext = await open(input.ciphertext);
+      controller.enqueue(createMessage("reply", "Security.Open", { plaintext }, undefined, msg.metadata?.correlation, msg.metadata?.id));
+    }
+  })
+};
+
+export const SecurityDerive: Capability<any, any> = {
+  description: "Derive and return the OS Key ID (KID).",
+  inbound: z.object({
+    kind: z.literal("query"),
+    type: z.literal("Security.Derive"),
+    data: DeriveInputSchema
+  }),
+  outbound: z.object({
+    kind: z.literal("reply"),
+    type: z.literal("Security.Derive"),
+    data: DeriveOutputSchema
+  }),
+  factory: () => new TransformStream({
+    async transform(msg, controller) {
+      const { kid } = await deriveKey();
+      controller.enqueue(createMessage("reply", "Security.Derive", { kid }, undefined, msg.metadata?.correlation, msg.metadata?.id));
+    }
+  })
+};
+
+export default [SecuritySeal, SecurityOpen, SecurityDerive];
 
 // ================================
 // CLI Entry Point (Dual-Mode)

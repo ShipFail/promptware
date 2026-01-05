@@ -24,29 +24,27 @@ const AuthenticateOutput = z.object({
   message: z.string().describe("Authentication status message"),
 }).describe("Output from Syscall.Authenticate");
 
-export const AuthenticateModule = {
-  "Syscall.Authenticate": (): Capability<any, any> => ({
-    description: "Authenticate the connection (No-op in inline mode).",
-    inbound: z.object({
-      kind: z.literal("command"),
-      type: z.literal("Syscall.Authenticate"),
-      data: AuthenticateInput
-    }),
-    outbound: z.object({
-      kind: z.literal("reply"),
-      type: z.literal("Syscall.Authenticate"),
-      data: AuthenticateOutput
-    }),
-    factory: () => new TransformStream({
-      async transform(msg, controller) {
-        const result = {
-          authenticated: true,
-          message: "Authentication successful (inline mode: no-op)",
-        };
-        controller.enqueue(createMessage("reply", "Syscall.Authenticate", result, undefined, msg.metadata?.correlation, msg.metadata?.id));
-      }
-    })
+export const SyscallAuthenticate: Capability<any, any> = {
+  description: "Authenticate the connection (No-op in inline mode).",
+  inbound: z.object({
+    kind: z.literal("command"),
+    type: z.literal("Syscall.Authenticate"),
+    data: AuthenticateInput
+  }),
+  outbound: z.object({
+    kind: z.literal("reply"),
+    type: z.literal("Syscall.Authenticate"),
+    data: AuthenticateOutput
+  }),
+  factory: () => new TransformStream({
+    async transform(msg, controller) {
+      const result = {
+        authenticated: true,
+        message: "Authentication successful (inline mode: no-op)",
+      };
+      controller.enqueue(createMessage("reply", "Syscall.Authenticate", result, undefined, msg.metadata?.correlation, msg.metadata?.id));
+    }
   })
 };
 
-export default AuthenticateModule;
+export default [SyscallAuthenticate];
