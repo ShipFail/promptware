@@ -1,6 +1,6 @@
 import { assertEquals, assertRejects } from "jsr:@std/assert";
 import memoryModule from "./memory.ts";
-import { dispatch } from "../test-utils.ts";
+import { dispatch } from "../lib/dispatch.ts";
 
 // RFC 0018: Memory Subsystem Specification
 // We use the real Deno KV but with an in-memory backend (if supported) or a temp file.

@@ -1,6 +1,6 @@
 import { assertEquals } from "jsr:@std/assert";
 import describeModule from "./describe.ts";
-import { dispatch } from "../test-utils.ts";
+import { dispatch } from "../lib/dispatch.ts";
 import "./registry.ts"; // Ensure registry is populated
 
 Deno.test("Syscall.Describe: Should return description for specific capability", async () => {

@@ -1,6 +1,6 @@
 import { assertEquals, assertRejects } from "jsr:@std/assert";
 import hydrateModule from "./hydrate.ts";
-import { dispatch, dispatchAll } from "../test-utils.ts";
+import { dispatch, dispatchAll } from "../lib/dispatch.ts";
 
 // Mock fetch for hydrate
 const originalFetch = globalThis.fetch;

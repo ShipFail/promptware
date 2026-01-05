@@ -1,6 +1,6 @@
 import { assertEquals, assertExists } from "jsr:@std/assert";
 import vectorModule, { shutdownVectorDriver } from "./vector.ts";
-import { dispatch } from "../test-utils.ts";
+import { dispatch } from "../lib/dispatch.ts";
 
 // Force Mock Mode for Embeddings to avoid downloading models during test
 Deno.env.set("TEST_MODE", "true");

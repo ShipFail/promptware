@@ -1,6 +1,6 @@
 import { assertEquals } from "jsr:@std/assert";
 import resolveModule from "./resolve.ts";
-import { dispatch } from "../test-utils.ts";
+import { dispatch } from "../lib/dispatch.ts";
 
 // Mock Deno.openKv to provide test root
 async function withMockKv(root: string, mounts: Record<string, string> | undefined, fn: () => Promise<void>) {

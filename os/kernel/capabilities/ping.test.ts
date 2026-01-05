@@ -14,7 +14,7 @@
 
 import { assertEquals, assertExists } from "jsr:@std/assert";
 import pingModule from "./ping.ts";
-import { dispatch } from "../test-utils.ts";
+import { dispatch } from "../lib/dispatch.ts";
 
 // Get the Ping capability
 const pingCapability = pingModule["Syscall.Ping"]();

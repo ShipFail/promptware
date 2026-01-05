@@ -1,6 +1,6 @@
 import { assertEquals, assertExists } from "jsr:@std/assert";
 import shellModule from "./shell.ts";
-import { dispatch } from "../test-utils.ts";
+import { dispatch } from "../lib/dispatch.ts";
 
 Deno.test("Syscall.Shell: Execute simple command", async () => {
   const result = await dispatch(shellModule, "Syscall.Shell", {

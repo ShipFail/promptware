@@ -127,7 +127,7 @@ You are working inside the `promptware` repository. This is the source code for 
 *   **PromptWare Kernel (System 2)**: The LLM. It handles **Intent**, Orchestration, and Reasoning. It is the "Main Thread."
 *   **Software Kernel (System 1)**: The Runtime. It handles **Mechanism**, I/O, and Deterministic Execution. It is the "Worker."
 
-### 2. The Message Bridge (The Singularity)
+### 2. The Syscall Transport (The Singularity)
 *   **Single Port**: All communication flows through `worker.postMessage`. There are no side channels.
 *   **Timeline View**:
     *   `-> Topic { Payload }`: **Into Bridge** (Command/Query from LLM).

@@ -1,6 +1,6 @@
 import { assertEquals, assertRejects } from "jsr:@std/assert";
 import fetchModule from "./fetch.ts";
-import { dispatch } from "../test-utils.ts";
+import { dispatch } from "../lib/dispatch.ts";
 
 // Mock globalThis.fetch
 const originalFetch = globalThis.fetch;

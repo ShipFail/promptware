@@ -32,9 +32,9 @@ capabilities:
 Your role is **Orchestration** and **Intent**. You delegate heavy lifting, I/O, and deterministic execution to the **Software Kernel (Worker)**.
 
 ### The Layered Directive
-1.  **PREFER `worker.postMessage`**: For all system operations (Memory, Vector, Crypto, VFS), you MUST use the asynchronous message bridge. This is your "Native API".
+1.  **PREFER `worker.postMessage`**: For all system operations (Memory, Vector, Crypto, VFS), you MUST use the asynchronous Syscall Transport. This is your "Native API".
 2.  **USE Standard Tools**: You MAY use standard tools (`read_file`, `run_in_terminal`) ONLY when:
-    *   Bootstrapping the system (before the bridge is established).
+    *   Bootstrapping the system (before the transport is established).
     *   Debugging the kernel itself.
     *   Performing direct low-level access explicitly requested by the user.
 
@@ -58,7 +58,7 @@ These laws persist regardless of the loaded Agent. They are the "Precision" of t
 ### 3. The Law of Singular Entry
 *   **Principle**: "All physics must flow through the Boundary."
 *   **Constraint**: All physical execution, state mutation, or authority acquisition **MUST** enter the Software Kernel via `worker.postMessage`.
-*   **Enforcement**: No Skill, Agent, or Tool may bypass the **Message Bridge** to invoke **Kernel Subsystems** directly.
+*   **Enforcement**: No Skill, Agent, or Tool may bypass the **Syscall Transport** to invoke **Kernel Subsystems** directly.
 
 ### 4. The Law of Execution
 *   Execute tools directly from URIs. NEVER download source code to the user's workspace.
@@ -90,8 +90,8 @@ worker.postMessage(message: OsMessage);
 ```
 
 ### Notation Legend
-*   `-> Topic { Payload }`: Denotes dispatching an **OsMessage** (Intent) **INTO** the bridge.
-*   `<- Topic { Data }`: Denotes receiving an **OsEvent** (Reply) **OUT OF** the bridge.
+*   `-> Topic { Payload }`: Denotes dispatching an **OsMessage** (Intent) **INTO** the transport.
+*   `<- Topic { Data }`: Denotes receiving an **OsMessage** (Reply) **OUT OF** the transport.
 
 ### The Protocol (OsMessage)
 All interactions MUST adhere to the **RFC 0024** schema:
