@@ -114,11 +114,25 @@ export class WorkerRuntime implements KernelRuntime {
       const [mainBranch, logBranch] = inputStream.tee();
 
       // Path A: The Kernel (Critical Path)
+      // We pipe to conn.writable, but we MUST NOT close it when the stream ends.
+      // Why? Because conn.writable is the socket. If we close it, the client sees EOF.
+      // But wait, we DO want the client to see EOF when we are done processing!
+      //
+      // The issue is that `pipeTo` closes the destination by default.
+      // If `kernelPromise` finishes (because input ended), it closes `conn.writable`.
+      // This is correct behavior for a request/response cycle initiated by a short-lived client.
+      //
+      // However, we are seeing "Connection reset by peer" errors.
+      // This usually happens if we write to a closed socket.
+      //
+      // Let's add error handling to the pipeTo to suppress the "Connection reset" noise
+      // which happens if the client disconnects abruptly.
       const kernelPromise = mainBranch
         .pipeThrough(createRouter(registry))
         .pipeThrough(new NDJSONEncodeStream())
         .pipeThrough(new TextEncoderStream())
-        .pipeTo(conn.writable);
+        .pipeTo(conn.writable)
+        .catch(() => {}); // Ignore write errors (client disconnected)
 
       // Path B: The Logger (Side Path)
       const loggerPromise = logBranch

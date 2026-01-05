@@ -1,7 +1,7 @@
 /**
- * PromptWare ØS Kernel Entry Point (main.ts)
+ * PromptWare ØS Message Bus (bus.ts)
  *
- * RFC-23: Dual-Mode Bus Architecture
+ * The Unified Entry Point for the Main Thread and Worker.
  *
  * Supports multiple execution modes:
  * - inline: In-process execution (default, v1.0 behavior) [Stage 1]

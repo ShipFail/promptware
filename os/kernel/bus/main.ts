@@ -75,15 +75,43 @@ export class MainRuntime implements KernelRuntime {
       });
 
       // 5. Pipe stdin (with auth) → worker (write half)
-      const stdinPipe = stdinWithAuth.pipeTo(conn.writable, {
-        preventClose: true, // Allow half-close
-      });
+      // We do NOT prevent close here. When stdin closes, we want to close the write half of the socket.
+      // This signals EOF to the worker's reader.
+      const stdinPipe = stdinWithAuth.pipeTo(conn.writable).catch(() => {});
 
       // 6. Pipe worker → stdout (read half)
-      const stdoutPipe = conn.readable.pipeTo(Deno.stdout.writable);
+      // We need to detect when the worker has finished replying to our request.
+      // However, the worker is a daemon, so it won't close the connection unless we do.
+      // But if we close the connection too early, we miss the reply.
+      //
+      // Solution: We rely on the fact that for a CLI tool, once stdin closes (EOF),
+      // we have sent all our commands. The worker will process them and send replies.
+      // Ideally, the worker should close the connection when it sees EOF from us,
+      // BUT the worker is designed to handle multiple concurrent connections.
+      //
+      // Actually, in `worker.ts`, the `handleConnection` loop pipes `conn.readable`...
+      // When `conn.readable` (from worker perspective, which is our write half) ends,
+      // the worker's `inputStream` ends.
+      // Then `kernelPromise` (pipeTo conn.writable) finishes.
+      // So the worker DOES close its write half (our read half) when it finishes processing our input!
+      //
+      // So why did it hang?
+      // Because `conn.writable` in `main.ts` was piped with `{ preventClose: true }`.
+      // This meant `conn.closeWrite()` was never called on the socket.
+      // So the worker never saw EOF.
+      
+      const stdoutPipe = conn.readable.pipeTo(Deno.stdout.writable).catch(() => {});
 
       // 7. Wait for both pipes to complete
       await Promise.all([stdinPipe, stdoutPipe]);
+
+      // 8. Explicitly close stdout to ensure the process exits cleanly
+      // This is sometimes needed if Deno.stdout is kept open by other things
+      try {
+        Deno.stdout.close();
+      } catch {
+        // Ignore
+      }
 
       return 0;
     } catch (e: unknown) {

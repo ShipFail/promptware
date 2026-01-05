@@ -2,6 +2,6 @@
   "name": "promptware-os",
   "version": "0.10.0",
   "license": "License-Ref-PPL-A-0.2",
-  "exports": "./kernel/main.ts",
+  "exports": "./kernel/bus.ts",
   "unstable": ["kv"]
 }
