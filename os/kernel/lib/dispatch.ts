@@ -1,5 +1,5 @@
 import { createMessage, OsMessage } from "../schema/message.ts";
-import { Capability } from "../schema/contract.ts";
+import { Capability } from "../schema/capability.ts";
 
 /**
  * Universal Dispatch Helper

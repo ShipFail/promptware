@@ -16,7 +16,7 @@
  */
 
 import { z } from "jsr:@zod/zod";
-import { Capability } from "../schema/contract.ts";
+import { Capability } from "../schema/capability.ts";
 import { createMessage } from "../schema/message.ts";
 
 /**

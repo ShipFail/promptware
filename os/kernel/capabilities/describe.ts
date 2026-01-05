@@ -1,5 +1,5 @@
 import { z } from "jsr:@zod/zod";
-import { Capability } from "../schema/contract.ts";
+import { Capability } from "../schema/capability.ts";
 import { createMessage, OsMessage } from "../schema/message.ts";
 import { registry } from "./registry-store.ts";
 

@@ -1,4 +1,4 @@
-import { Capability } from "../schema/contract.ts";
+import { Capability } from "../schema/capability.ts";
 import { registry } from "./registry-store.ts";
 export { registry } from "./registry-store.ts";
 

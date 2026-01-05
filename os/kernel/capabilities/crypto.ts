@@ -1,5 +1,5 @@
 import { z } from "jsr:@zod/zod";
-import { Capability } from "../schema/contract.ts";
+import { Capability } from "../schema/capability.ts";
 import { createMessage } from "../schema/message.ts";
 import { parseArgs } from "jsr:@std/cli/parse-args";
 import { seal, open, deriveKey } from "../lib/crypto.ts";

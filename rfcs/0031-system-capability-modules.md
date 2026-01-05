@@ -181,7 +181,7 @@ Because Processors are Streams, an error in one Processor does not crash the Ker
 
 ## 9. Implementation Plan
 
-1.  **Define Interface**: Create `os/kernel/schema/contract.ts` with the `Capability` interface.
+1.  **Define Interface**: Create `os/kernel/schema/capability.ts` with the `Capability` interface.
 2.  **Refactor Capabilities**: Convert all existing capabilities (`ping`, `memory`, `fetch`, etc.) to the Static Object pattern.
 3.  **Update Registry**: Modify `registry.ts` to accept `Capability[]` and introspect them.
 4.  **Update Dispatch**: Update `dispatch.ts` to support the new interface for testing.

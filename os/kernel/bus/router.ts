@@ -8,7 +8,7 @@
  */
 
 import { OsMessage, createError } from "../schema/message.ts";
-import { Capability } from "../schema/contract.ts";
+import { Capability } from "../schema/capability.ts";
 import { logger } from "./logger.ts";
 
 export type Registry = Record<string, Capability<any, any>>;

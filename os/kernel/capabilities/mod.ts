@@ -19,7 +19,7 @@ import authenticateCapabilities from "./authenticate.ts";
 import shutdownCapabilities from "./shutdown.ts";
 
 // Capability Contract
-export type { Capability } from "../schema/contract.ts";
+export type { Capability } from "../schema/capability.ts";
 
 // Export all capabilities as a default array (Plugin Pattern)
 // We flatten the arrays of capabilities from each module into a single list.
