@@ -44,31 +44,20 @@ export function createRouter(registry: Registry): TransformStream<OsMessage, OsM
           // No buffering. No arrays. Pure flow.
           const processor = capability.factory();
 
-          // Pipe Input -> Processor
-          const writer = processor.writable.getWriter();
-          // We must not await the write indefinitely if the processor is broken,
-          // but for a standard TransformStream, this is safe.
-          await writer.write(input);
-          await writer.close(); // Signal end of input for this single message
-
-          // Pipe Processor -> Output (Router Controller)
-          const reader = processor.readable.getReader();
-          
-          try {
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-              
-              // C. Validate output (Optional/Partial)
-              // We validate the first message if it matches the outbound schema,
-              // but we pass through everything.
-              // For strict correctness, we could validate here, but it might slow down streaming.
-              // Let's trust the capability factory for now, or add validation if needed.
-              controller.enqueue(value);
+          // Create a single-item stream for the input
+          const inputStream = new ReadableStream({
+            start(c) {
+              c.enqueue(input);
+              c.close();
             }
-          } finally {
-            reader.releaseLock();
-          }
+          });
+
+          // Pipe: Input -> Processor -> Router Output
+          await inputStream.pipeThrough(processor).pipeTo(new WritableStream({
+            write(chunk) {
+              controller.enqueue(chunk);
+            }
+          }));
 
         } else {
           // Mode 3: Secure Fallback (RFC-23)
