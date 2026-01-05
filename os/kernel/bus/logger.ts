@@ -87,13 +87,15 @@ class Logger {
 
 export const logger = new Logger();
 
-export const loggerStream: BusStream = new TransformStream({
-  transform(message: OsMessage, controller) {
-    logger.info(`[Stream] ${message.type}`, {
-      id: message.metadata?.id,
-      kind: message.kind,
-      correlation: message.metadata?.correlation
-    });
-    controller.enqueue(message);
-  },
-});
+export function createLoggerStream(): BusStream {
+  return new TransformStream({
+    transform(message: OsMessage, controller) {
+      logger.info(`[Stream] ${message.type}`, {
+        id: message.metadata?.id,
+        kind: message.kind,
+        correlation: message.metadata?.correlation
+      });
+      controller.enqueue(message);
+    },
+  });
+}

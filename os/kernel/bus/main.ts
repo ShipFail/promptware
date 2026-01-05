@@ -10,33 +10,23 @@
 import { TextLineStream } from "jsr:@std/streams";
 import { KernelRuntime } from "./interface.ts";
 import { OsMessage, createCommand } from "../schema/message.ts";
-import { getSocketPath } from "./socket-path.ts";
+import { getSocketPath, getLockPath, getSpawnLockPath } from "./socket-path.ts";
 import { getEntrypointCommand } from "./entrypoint.ts";
 import { NDJSONDecodeStream, NDJSONEncodeStream } from "../lib/ndjson.ts";
+import { dirname } from "jsr:@std/path";
 
 export class MainRuntime implements KernelRuntime {
   async run(): Promise<number> {
     const sockPath = getSocketPath();
 
-    // 1. Try connect to existing worker
+    // 1. Connect or Spawn (Robust "Spawn Lock" Pattern)
     let conn: Deno.UnixConn;
     try {
-      conn = await Deno.connect({ transport: "unix", path: sockPath }) as Deno.UnixConn;
-      console.error("[Main] Connected to existing worker");
-    } catch (_e) {
-      // 2. Connection failed → spawn worker and retry
-      console.error("[Main] Worker not running, spawning...");
-      await this.spawnWorker();
-
-      // 3. Retry connection with exponential backoff
-      try {
-        conn = await this.retryConnect(sockPath);
-        console.error("[Main] Connected to newly spawned worker");
-      } catch (e: unknown) {
-        const errorMessage = e instanceof Error ? e.message : String(e);
-        console.error(`[Main] Failed to connect after spawn: ${errorMessage}`);
-        return 1;
-      }
+      conn = await this.connectOrSpawn(sockPath);
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      console.error(`[Main] Failed to connect: ${errorMessage}`);
+      return 1;
     }
 
     try {
@@ -81,25 +71,6 @@ export class MainRuntime implements KernelRuntime {
 
       // 6. Pipe worker → stdout (read half)
       // We need to detect when the worker has finished replying to our request.
-      // However, the worker is a daemon, so it won't close the connection unless we do.
-      // But if we close the connection too early, we miss the reply.
-      //
-      // Solution: We rely on the fact that for a CLI tool, once stdin closes (EOF),
-      // we have sent all our commands. The worker will process them and send replies.
-      // Ideally, the worker should close the connection when it sees EOF from us,
-      // BUT the worker is designed to handle multiple concurrent connections.
-      //
-      // Actually, in `worker.ts`, the `handleConnection` loop pipes `conn.readable`...
-      // When `conn.readable` (from worker perspective, which is our write half) ends,
-      // the worker's `inputStream` ends.
-      // Then `kernelPromise` (pipeTo conn.writable) finishes.
-      // So the worker DOES close its write half (our read half) when it finishes processing our input!
-      //
-      // So why did it hang?
-      // Because `conn.writable` in `main.ts` was piped with `{ preventClose: true }`.
-      // This meant `conn.closeWrite()` was never called on the socket.
-      // So the worker never saw EOF.
-      
       const stdoutPipe = conn.readable.pipeTo(Deno.stdout.writable).catch(() => {});
 
       // 7. Wait for both pipes to complete
@@ -128,44 +99,143 @@ export class MainRuntime implements KernelRuntime {
   }
 
   /**
-   * Spawns a detached worker process.
-   * Supports both local file and URL-based invocation.
+   * Connects to the worker, spawning it if necessary.
+   * Implements the "Spawn Lock" pattern to prevent thundering herds.
    */
-  private async spawnWorker(): Promise<void> {
+  private async connectOrSpawn(sockPath: string): Promise<Deno.UnixConn> {
+    // 1. Fast Path: Try connecting immediately
+    try {
+      return await Deno.connect({ transport: "unix", path: sockPath }) as Deno.UnixConn;
+    } catch {
+      // Fallthrough to spawn logic
+    }
+
+    // 2. Acquire Spawn Lock
+    // This serializes the spawning process. Only one client can be here.
+    const lockPath = getSpawnLockPath();
+    let lockFile: Deno.FsFile | null = null;
+
+    try {
+      lockFile = await Deno.open(lockPath, { create: true, write: true });
+      await lockFile.lock(true); // Exclusive blocking lock
+
+      // 3. Double Check (Crucial!)
+      // Someone else might have spawned while we were waiting for the lock.
+      try {
+        return await Deno.connect({ transport: "unix", path: sockPath }) as Deno.UnixConn;
+      } catch {
+        // Still not running, so WE are the chosen spawner.
+      }
+
+      // 4. Spawn Worker
+      this.spawnProcess();
+
+      // 5. Wait for Socket (Event-Driven)
+      // We hold the spawn lock while waiting, so other clients wait on us.
+      // This is efficient because they will succeed in the "Double Check" step
+      // as soon as we release the lock.
+      return await this.waitForSocket(sockPath);
+
+    } finally {
+      // 6. Release Lock
+      try {
+        lockFile?.unlock();
+        lockFile?.close();
+      } catch {
+        // Ignore
+      }
+    }
+  }
+
+  private spawnProcess(): void {
     const { cmd, args } = getEntrypointCommand();
 
-    const workerCmd = new Deno.Command(cmd, {
-      args: [...args, "--mode=worker"],
+    // Use shell to redirect stderr to file, so it persists after main exits
+    const fullCmd = `${cmd} ${args.join(" ")} --mode=worker`;
+    const workerCmd = new Deno.Command("sh", {
+      args: ["-c", `${fullCmd} >>/tmp/promptware/worker.log 2>&1`],
       stdin: "null",
       stdout: "null",
-      stderr: "inherit", // Show worker logs in main's stderr
+      stderr: "null", 
     });
 
     // Spawn detached (don't wait for worker to exit)
     workerCmd.spawn();
-
-    // Give worker time to start listening
-    await new Promise((resolve) => setTimeout(resolve, 100));
   }
 
   /**
-   * Retries connection with exponential backoff.
-   * Delays: 10ms, 20ms, 40ms, 80ms, 160ms (total ~310ms)
+   * Waits for the socket to appear using filesystem events.
+   * Falls back to polling if watcher fails.
    */
-  private async retryConnect(path: string): Promise<Deno.UnixConn> {
-    const delays = [10, 20, 40, 80, 160];
+  private async waitForSocket(path: string): Promise<Deno.UnixConn> {
+    const dir = dirname(path);
+    const filename = path.split("/").pop()!;
+    
+    // Try connecting immediately just in case
+    try {
+      return await Deno.connect({ transport: "unix", path }) as Deno.UnixConn;
+    } catch {
+      // Ignore
+    }
 
-    for (const delay of delays) {
-      await new Promise((resolve) => setTimeout(resolve, delay));
+    // Watch for creation
+    let watcher: Deno.FsWatcher;
+    try {
+      watcher = Deno.watchFs(dir);
+    } catch (e) {
+      console.error(`[Main] Failed to create watcher on ${dir}:`, e);
+      throw e;
+    }
+    
+    const timeout = 5000; // 5s timeout
+    const start = Date.now();
 
+    try {
+      // Race: Watcher vs Timeout
+      // We loop because the watcher might fire for other files
+      while (Date.now() - start < timeout) {
+        // Create a promise for the next relevant event
+        const nextEvent = new Promise<void>((resolve) => {
+          (async () => {
+            try {
+              for await (const event of watcher) {
+                if (event.kind === "create" || event.kind === "modify") {
+                  if (event.paths.some(p => p.endsWith(filename))) {
+                    resolve();
+                    return;
+                  }
+                }
+              }
+            } catch (e) {
+               // Watcher closed or error
+            }
+          })();
+        });
+
+        // Wait for event or short timeout (to retry connect)
+        await Promise.race([
+          nextEvent,
+          new Promise((r) => setTimeout(r, 100))
+        ]);
+
+        // Try connecting
+        try {
+          return await Deno.connect({ transport: "unix", path }) as Deno.UnixConn;
+        } catch {
+          // Continue waiting
+        }
+      }
+    } catch (e) {
+       console.error("[Main] Error in waitForSocket loop:", e);
+       throw e;
+    } finally {
       try {
-        return await Deno.connect({ transport: "unix", path }) as Deno.UnixConn;
-      } catch (_e) {
-        // Continue to next retry
+        watcher.close();
+      } catch (e) {
+        console.error("[Main] Error closing watcher:", e);
       }
     }
 
-    // All retries failed
-    throw new Error(`Failed to connect to worker after ${delays.length} retries`);
+    throw new Error("Timed out waiting for worker socket");
   }
 }

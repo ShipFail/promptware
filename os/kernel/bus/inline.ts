@@ -12,7 +12,7 @@ import { parseArgs } from "jsr:@std/cli/parse-args";
 
 import { OsMessage, createMessage } from "../schema/message.ts";
 import { createRouter } from "./router.ts";
-import { loggerStream } from "./logger.ts";
+import { createLoggerStream } from "./logger.ts";
 import { registry } from "../capabilities/registry.ts";
 import { KernelRuntime } from "./interface.ts";
 import { NDJSONDecodeStream, NDJSONEncodeStream } from "../lib/ndjson.ts";
@@ -91,7 +91,7 @@ export class InlineRuntime implements KernelRuntime {
 
     // Path B: The Logger (Side Path)
     const loggerPromise = logBranch
-      .pipeThrough(loggerStream)
+      .pipeThrough(createLoggerStream())
       .pipeTo(new WritableStream()); // Sink to nowhere (loggerStream writes to stderr)
 
     // Execute

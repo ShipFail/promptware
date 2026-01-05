@@ -121,6 +121,14 @@ You are working inside the `promptware` repository. This is the source code for 
     *   *Syntax*: `<- Topic { Data }`
 *   **Actor Explicit**: In complex specs, use `[Main] -> [Worker]` or `[Worker] -> [Main]` to be absolute.
 
+### 9. The Law of Precision (Huan's Standard)
+> **Correctness is faster than debugging.**
+
+1.  **Determinism**: Systems are state machines, not probabilities. Eliminate all timing-based logic.
+2.  **Atomicity**: A resource exists in a valid state or not at all. Intermediate states are bugs.
+3.  **Isolation**: Locks define identity and intent. Conflating them causes deadlocks.
+4.  **Empiricism**: A bug without a reproduction script is a hypothesis, not a fact.
+
 ## Core Concepts (The Mental Model)
 
 ### 1. Dual-Kernel Architecture

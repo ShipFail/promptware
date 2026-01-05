@@ -40,3 +40,25 @@ export function getSocketPath(): string {
   // 4. Return socket path
   return `${runtimeDir}/kernel.sock`;
 }
+
+/**
+ * Computes the lock file path for worker spawning coordination.
+ *
+ * @returns Absolute path to kernel.lock
+ */
+export function getLockPath(): string {
+  return getSocketPath().replace(/\.sock$/, ".lock");
+}
+
+/**
+ * Computes the spawn lock file path.
+ *
+ * This lock is used by clients (Main Runtime) to serialize the spawning process.
+ * It prevents the "Thundering Herd" problem where multiple clients try to spawn
+ * a worker simultaneously.
+ *
+ * @returns Absolute path to spawn.lock
+ */
+export function getSpawnLockPath(): string {
+  return getSocketPath().replace(/\.sock$/, ".spawn.lock");
+}

@@ -10,15 +10,16 @@
 import { TextLineStream } from "jsr:@std/streams";
 import { KernelRuntime } from "./interface.ts";
 import { OsMessage, createError } from "../schema/message.ts";
-import { getSocketPath } from "./socket-path.ts";
+import { getSocketPath, getLockPath } from "./socket-path.ts";
 import { NDJSONDecodeStream, NDJSONEncodeStream } from "../lib/ndjson.ts";
 import { createRouter } from "./router.ts";
 import { registry } from "../capabilities/registry.ts";
-import { logger, loggerStream } from "./logger.ts";
+import { logger, createLoggerStream } from "./logger.ts";
 import { isShutdownRequested, onShutdown } from "./lifecycle.ts";
 
 // Global worker state for graceful shutdown
 let workerListener: Deno.Listener | null = null;
+let lockFile: Deno.FsFile | null = null;
 
 export class WorkerRuntime implements KernelRuntime {
   constructor() {
@@ -32,19 +33,64 @@ export class WorkerRuntime implements KernelRuntime {
           // Ignore
         }
       }
+      if (lockFile) {
+        try {
+          // Closing the file releases the lock
+          lockFile.close();
+        } catch {
+          // Ignore
+        }
+      }
     });
   }
 
   async run(): Promise<number> {
     const sockPath = getSocketPath();
+    const lockPath = getLockPath();
 
-    // 1. Single-instance check (remove stale socket if needed)
-    await this.ensureSingleInstance(sockPath);
-
-    // 2. Bind Unix socket
+    // 1. Acquire Exclusive Lock (The "Flock" Pattern)
+    // This blocks if another worker is running or starting.
+    // It ensures we are the single instance.
     try {
-      workerListener = Deno.listen({ transport: "unix", path: sockPath });
-      logger.info("Worker started", { socketPath: sockPath });
+      // Open with write permissions to allow locking
+      lockFile = await Deno.open(lockPath, { write: true, create: true });
+      
+      // Exclusive lock. Blocks until acquired.
+      // If another process holds it, we wait here.
+      // This solves the race condition: only one process can proceed to bind.
+      await lockFile.lock(true);
+      
+      logger.info("Acquired instance lock", { lockPath });
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      logger.fatal("Failed to acquire instance lock", { lockPath, error: errorMessage });
+      return 1;
+    }
+
+    // 2. Bind Unix socket (Atomic Creation)
+    // We use the "Bind-Listen-Rename" trick to ensure the socket is fully connectable
+    // the moment it appears on the filesystem.
+    //
+    // 1. Bind to a temporary path (kernel.sock.tmp)
+    // 2. Start listening
+    // 3. Rename tmp -> real (kernel.sock)
+    //
+    // This prevents the race condition where a client sees the file (created by bind)
+    // but connects before the kernel is ready to accept (listen), causing ECONNREFUSED.
+    const tmpSockPath = `${sockPath}.tmp`;
+
+    try {
+      // Cleanup stale files
+      try { await Deno.remove(sockPath); } catch (e) { if (!(e instanceof Deno.errors.NotFound)) throw e; }
+      try { await Deno.remove(tmpSockPath); } catch (e) { if (!(e instanceof Deno.errors.NotFound)) throw e; }
+
+      // Bind and Listen on temporary path
+      workerListener = Deno.listen({ transport: "unix", path: tmpSockPath });
+      
+      // Atomic Rename: The socket appears at the final path ONLY when it is ready.
+      await Deno.rename(tmpSockPath, sockPath);
+      
+      logger.info("Worker started (Atomic Bind)", { socketPath: sockPath });
     } catch (e: unknown) {
       const errorMessage = e instanceof Error ? e.message : String(e);
       logger.error("Failed to bind socket", {
@@ -66,8 +112,7 @@ export class WorkerRuntime implements KernelRuntime {
 
         // Handle each connection in parallel
         this.handleConnection(conn as Deno.UnixConn).catch((err: unknown) => {
-          const errorMessage = err instanceof Error ? err.message : String(err);
-          logger.error("Connection error", { error: errorMessage });
+          logger.error("Connection error", {}, err instanceof Error ? err : new Error(String(err)));
         });
       }
     } finally {
@@ -84,6 +129,19 @@ export class WorkerRuntime implements KernelRuntime {
         await Deno.remove(sockPath);
       } catch {
         // Ignore errors removing socket
+      }
+
+      try {
+        await Deno.remove(tmpSockPath);
+      } catch {
+        // Ignore
+      }
+
+      try {
+        // Release lock by closing file
+        lockFile?.close();
+      } catch {
+        // Ignore
       }
     }
 
@@ -104,7 +162,30 @@ export class WorkerRuntime implements KernelRuntime {
       //                                     ├──> Router → Encode NDJSON → Main (Main Path)
       //                                     └──> Logger (Side Path)
       
-      const inputStream = conn.readable
+      // Wrap conn.readable to swallow "operation canceled" errors which happen on abrupt disconnects
+      const safeReadable = new ReadableStream<Uint8Array>({
+        async start(controller) {
+          const reader = conn.readable.getReader();
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) {
+                controller.close();
+                break;
+              }
+              controller.enqueue(value);
+            }
+          } catch (e) {
+             // Log but treat as EOF to allow flushing pending writes
+             // logger.debug("Connection read error (treated as EOF)", { error: String(e) });
+             try { controller.close(); } catch {}
+          } finally {
+            reader.releaseLock();
+          }
+        }
+      });
+
+      const inputStream = safeReadable
         .pipeThrough(new TextDecoderStream())
         .pipeThrough(new TextLineStream())
         .pipeThrough(new NDJSONDecodeStream())
@@ -136,16 +217,16 @@ export class WorkerRuntime implements KernelRuntime {
 
       // Path B: The Logger (Side Path)
       const loggerPromise = logBranch
-        .pipeThrough(loggerStream)
-        .pipeTo(new WritableStream()); // Sink to nowhere (loggerStream writes to stderr)
+        .pipeThrough(createLoggerStream())
+        .pipeTo(new WritableStream()) // Sink to nowhere (loggerStream writes to stderr)
+        .catch(() => {});
 
       // Wait for both (or at least the kernel)
       await Promise.all([kernelPromise, loggerPromise]);
 
       logger.info("Main thread disconnected");
     } catch (e: unknown) {
-      const errorMessage = e instanceof Error ? e.message : String(e);
-      logger.warn("Main thread connection error", { error: errorMessage });
+      logger.warn("Main thread connection error", {}, e instanceof Error ? e : new Error(String(e)));
     } finally {
       try {
         conn.close();
@@ -184,48 +265,6 @@ export class WorkerRuntime implements KernelRuntime {
         controller.enqueue(message);
       },
     });
-  }
-
-  /**
-   * Ensures only one worker instance is running.
-   * RFC-23 Section 4.7.2: Stale socket cleanup
-   */
-  private async ensureSingleInstance(sockPath: string): Promise<void> {
-    // Check if socket file exists
-    try {
-      await Deno.stat(sockPath);
-    } catch (e: unknown) {
-      // Socket doesn't exist, we're first
-      if (e instanceof Deno.errors.NotFound) {
-        return;
-      }
-      throw e;
-    }
-
-    // Socket exists - try connecting to see if worker is alive
-    try {
-      const testConn = await Deno.connect({ transport: "unix", path: sockPath });
-      testConn.close();
-
-      // Connection succeeded → worker is running
-      throw new Error(
-        `Worker already running on ${sockPath}. Use --mode=main to connect.`
-      );
-    } catch (e: unknown) {
-      // Connection failed → stale socket, safe to remove
-      if (
-        e instanceof Error &&
-        (e.message.includes("Connection refused") ||
-          e.message.includes("No such file"))
-      ) {
-        logger.info("Removing stale socket", { socketPath: sockPath });
-        await Deno.remove(sockPath);
-        return;
-      }
-
-      // Other error (like "already running" from above)
-      throw e;
-    }
   }
 }
 
