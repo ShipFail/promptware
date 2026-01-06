@@ -195,25 +195,18 @@ export class WorkerRuntime implements KernelRuntime {
       const [mainBranch, logBranch] = inputStream.tee();
 
       // Path A: The Kernel (Critical Path)
-      // We pipe to conn.writable, but we MUST NOT close it when the stream ends.
-      // Why? Because conn.writable is the socket. If we close it, the client sees EOF.
-      // But wait, we DO want the client to see EOF when we are done processing!
-      //
-      // The issue is that `pipeTo` closes the destination by default.
-      // If `kernelPromise` finishes (because input ended), it closes `conn.writable`.
-      // This is correct behavior for a request/response cycle initiated by a short-lived client.
-      //
-      // However, we are seeing "Connection reset by peer" errors.
-      // This usually happens if we write to a closed socket.
-      //
-      // Let's add error handling to the pipeTo to suppress the "Connection reset" noise
-      // which happens if the client disconnects abruptly.
+      // We pipe to conn.writable and let it close automatically.
       const kernelPromise = mainBranch
         .pipeThrough(createRouter(registry))
         .pipeThrough(new NDJSONEncodeStream())
         .pipeThrough(new TextEncoderStream())
         .pipeTo(conn.writable)
-        .catch(() => {}); // Ignore write errors (client disconnected)
+        .then(() => {
+           logger.info("Writable stream closed (auto)");
+        })
+        .catch((e) => {
+           logger.error("PipeTo failed", { error: String(e) });
+        }); // Ignore write errors (client disconnected)
 
       // Path B: The Logger (Side Path)
       const loggerPromise = logBranch
@@ -225,14 +218,16 @@ export class WorkerRuntime implements KernelRuntime {
       await Promise.all([kernelPromise, loggerPromise]);
 
       logger.info("Main thread disconnected");
+
+      // Deterministic Flush (Linger Shim):
+      // Deno.UnixConn does not support SO_LINGER. Closing the FD immediately causing the kernel
+      // to discard the send buffer and send RST. We must delay the close to allow the buffer
+      // to drain to the peer.
+      await new Promise(r => setTimeout(r, 100));
     } catch (e: unknown) {
       logger.warn("Main thread connection error", {}, e instanceof Error ? e : new Error(String(e)));
     } finally {
-      try {
-        conn.close();
-      } catch {
-        // Ignore close errors
-      }
+      try { conn.close(); } catch { /* Ignore */ }
     }
   }
 

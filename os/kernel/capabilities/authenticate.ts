@@ -38,11 +38,20 @@ export const SyscallAuthenticate: Capability<any, any> = {
   }),
   factory: () => new TransformStream({
     async transform(msg, controller) {
-      const result = {
-        authenticated: true,
-        message: "Authentication successful (inline mode: no-op)",
-      };
-      controller.enqueue(createMessage("reply", "Syscall.Authenticate", result, undefined, msg.metadata?.correlation, msg.metadata?.id));
+      // RFC-23: Authentication success is silent on the bus to reduce noise.
+      // Only failures would be emitted (if we had logic to fail).
+      // Since this is a no-op success, we emit NOTHING.
+      
+      // However, the current architecture expects a reply for every command?
+      // The router pipes capability output to the main stream.
+      // If we enqueue nothing, the client (main.ts) won't see a reply.
+      // But main.ts doesn't explicitly wait for an Auth reply, it just pipes everything.
+      
+      // So, suppressing output here is safe for the protocol, 
+      // as long as the client doesn't block waiting for it.
+      
+      // result = { authenticated: true, ... }
+      // controller.enqueue(...) <--- REMOVED
     }
   })
 };

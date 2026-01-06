@@ -62,6 +62,7 @@ export class NDJSONEncodeStream extends TransformStream<OsMessage, string> {
       transform(event: OsMessage, controller) {
         // JSON.stringify() guarantees single-line output (escapes internal newlines)
         const line = JSON.stringify(event) + "\n";
+        console.error(`[NDJSON-Encode] Emitting: ${line.trim()}`);
         controller.enqueue(line);
       },
     });

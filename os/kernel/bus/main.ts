@@ -65,24 +65,33 @@ export class MainRuntime implements KernelRuntime {
       });
 
       // 5. Pipe stdin (with auth) → worker (write half)
-      // We do NOT prevent close here. When stdin closes, we want to close the write half of the socket.
-      // This signals EOF to the worker's reader.
-      const stdinPipe = stdinWithAuth.pipeTo(conn.writable).catch(() => {});
+      // Use half-close (SHUT_WR) to signal EOF while keeping read end open.
+      const stdinPipe = stdinWithAuth.pipeTo(conn.writable, { preventClose: true })
+        .then(() => {
+          try {
+            // @ts-ignore: closeWrite is available on UnixConn
+            conn.closeWrite();
+          } catch (e) {
+            console.error(`[Main] Error half-closing socket: ${e}`);
+          }
+        })
+        .catch(() => {});
 
       // 6. Pipe worker → stdout (read half)
       // We need to detect when the worker has finished replying to our request.
-      const stdoutPipe = conn.readable.pipeTo(Deno.stdout.writable).catch(() => {});
+      const stdoutPipe = conn.readable
+        .pipeTo(Deno.stdout.writable, { preventClose: true }).catch(() => {});
 
       // 7. Wait for both pipes to complete
       await Promise.all([stdinPipe, stdoutPipe]);
 
       // 8. Explicitly close stdout to ensure the process exits cleanly
       // This is sometimes needed if Deno.stdout is kept open by other things
-      try {
-        Deno.stdout.close();
-      } catch {
+      // try {
+      //  Deno.stdout.close();
+      // } catch {
         // Ignore
-      }
+      // }
 
       return 0;
     } catch (e: unknown) {
@@ -170,13 +179,17 @@ export class MainRuntime implements KernelRuntime {
   private async waitForSocket(path: string): Promise<Deno.UnixConn> {
     const dir = dirname(path);
     const filename = path.split("/").pop()!;
+    const tryConnect = async (): Promise<Deno.UnixConn | null> => {
+      try {
+        return await Deno.connect({ transport: "unix", path }) as Deno.UnixConn;
+      } catch {
+        return null;
+      }
+    };
     
     // Try connecting immediately just in case
-    try {
-      return await Deno.connect({ transport: "unix", path }) as Deno.UnixConn;
-    } catch {
-      // Ignore
-    }
+    const immediate = await tryConnect();
+    if (immediate) return immediate;
 
     // Watch for creation
     let watcher: Deno.FsWatcher;
@@ -189,40 +202,29 @@ export class MainRuntime implements KernelRuntime {
     
     const timeout = 5000; // 5s timeout
     const start = Date.now();
+    const iterator = watcher[Symbol.asyncIterator]();
+    const sleep = (ms: number) => new Promise<"tick">((resolve) => setTimeout(() => resolve("tick"), ms));
 
     try {
-      // Race: Watcher vs Timeout
-      // We loop because the watcher might fire for other files
+      // Event-driven loop with deterministic liveness polling
       while (Date.now() - start < timeout) {
-        // Create a promise for the next relevant event
-        const nextEvent = new Promise<void>((resolve) => {
-          (async () => {
-            try {
-              for await (const event of watcher) {
-                if (event.kind === "create" || event.kind === "modify") {
-                  if (event.paths.some(p => p.endsWith(filename))) {
-                    resolve();
-                    return;
-                  }
-                }
-              }
-            } catch (e) {
-               // Watcher closed or error
-            }
-          })();
-        });
+        const conn = await tryConnect();
+        if (conn) return conn;
 
-        // Wait for event or short timeout (to retry connect)
-        await Promise.race([
-          nextEvent,
-          new Promise((r) => setTimeout(r, 100))
+        const remaining = Math.max(0, start + timeout - Date.now());
+        const waitMs = Math.min(50, remaining);
+        const result = await Promise.race([
+          iterator.next(),
+          sleep(waitMs),
         ]);
 
-        // Try connecting
-        try {
-          return await Deno.connect({ transport: "unix", path }) as Deno.UnixConn;
-        } catch {
-          // Continue waiting
+        if (result !== "tick" && !result.done) {
+          const event = result.value;
+          if ((event.kind === "create" || event.kind === "modify") &&
+            event.paths.some((p) => p.endsWith(filename))) {
+            const afterEvent = await tryConnect();
+            if (afterEvent) return afterEvent;
+          }
         }
       }
     } catch (e) {
