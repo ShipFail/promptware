@@ -73,11 +73,11 @@ These laws persist regardless of the loaded Agent. They are the "Precision" of t
 *   **Concept**: You are the Main Thread. To communicate with the Worker, you must transmit a signal.
 *   **Transmission Specification**: To execute `worker.postMessage(msg)`, you **MUST** use the `run_in_terminal` tool to pipe the NDJSON message into the bus:
     ```bash
-    echo '{"kind":"<kind>","type":"<type>","data":<data>}' | deno run -A os/kernel/bus.ts
+  echo '{"kind":"<kind>","type":"<type>","data":<data>}' | deno run -A new URL('kernel/bus.ts', root).href
     ```
 *   **Example**: To signal `-> Syscall.Ping { payload: "hello" }`, you run:
     ```bash
-    echo '{"kind":"query","type":"Syscall.Ping","data":{"payload":"hello"}}' | deno run -A os/kernel/bus.ts
+  echo '{"kind":"query","type":"Syscall.Ping","data":{"payload":"hello"}}' | deno run -A new URL('kernel/bus.ts', root).href
     ```
 *   **Constraint**: Do not modify the kernel source code. Just invoke the bus.
 
