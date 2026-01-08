@@ -71,15 +71,17 @@ These laws persist regardless of the loaded Agent. They are the "Precision" of t
 
 ### 5. The Law of the Bus (Signal Transmission)
 *   **Concept**: You are the Main Thread. To communicate with the Worker, you must transmit a signal.
-*   **Transmission Specification**: To execute `worker.postMessage(msg)`, you **MUST** use the `run_in_terminal` tool to pipe the NDJSON message into the bus:
+*   **Bus URI**: Define `BUS_URI` as:
+    - `BUS_URI = new URL('kernel/bus.ts', root).href`
+*   **Transmission Specification**: Replace `<BUS_URI>` with that value, then pipe **exactly one** NDJSON line (one JSON object per line) into the bus:
     ```bash
-  echo '{"kind":"<kind>","type":"<type>","data":<data>}' | deno run -A new URL('kernel/bus.ts', root).href
+    echo '{"kind":"<kind>","type":"<type>","data":<data>}' | deno run -A <BUS_URI>
     ```
-*   **Example**: To signal `-> Syscall.Ping { payload: "hello" }`, you run:
+*   **Example**: To signal `-> Syscall.Ping { payload: "hello" }`:
     ```bash
-  echo '{"kind":"query","type":"Syscall.Ping","data":{"payload":"hello"}}' | deno run -A new URL('kernel/bus.ts', root).href
+    echo '{"kind":"query","type":"Syscall.Ping","data":{"payload":"hello"}}' | deno run -A <BUS_URI>
     ```
-*   **Constraint**: Do not modify the kernel source code. Just invoke the bus.
+*   **Constraint**: Do not modify the kernel source code. Only transmit messages into the bus.
 
 ### 6. The Law of Ingestion (Event-Driven Context)
 *   **Trigger**: You receive `<- Kernel.Ingest { data }`.
